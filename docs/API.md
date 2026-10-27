@@ -85,7 +85,7 @@ An `ack` carries `requestId,revision,duplicate,serverTime`, after this connectio
 
 The host keeps 256 events and receipts for seven days/up to 10,000 revisions per campaign. Older accepted requests cannot execute again with their old base. Membership/session changes trigger reauthorization; `closing` with `ACCESS_REVOKED` clears protected browser projections; `HOST_SHUTTING_DOWN` invites reconnect. Sessions are also checked during the subscription. Reconnect backoff caps at eight seconds plus jitter; one in-flight request retains its exact ID/body for retry after a fresh snapshot, with a 15-second confirmation deadline. Editing pauses when offline/reconnecting.
 
-Bounds: 64 sockets per host, four per user, 16 KiB frame/message limit, 20 inbound frames/second/connection, 768 KiB maximum write buffer, three-second JSON write timeout, five-second hello deadline and ping/idle timeout. Queued events recheck session/membership and current token visibility between awaited sends, with a five-second batch deadline. A slow socket has its own task and cannot block other subscribers. Missing retained events produce a fresh authorized snapshot.
+Bounds: 64 sockets per host, four per user, 16 KiB frame/message limit, 20 inbound frames/second/connection, 4 MiB maximum write buffer, three-second JSON write timeout, five-second hello deadline and ping/idle timeout. Queued events recheck session/membership and current token visibility between awaited sends, with a five-second batch deadline. A slow socket has its own task and cannot block other subscribers. Missing retained events produce a fresh authorized snapshot.
 
 ## Build0.0.4 actors and scene management
 
@@ -106,7 +106,7 @@ Actor fields: id,version,name,kind(character/npc),assetId,biography,hp,maxHp,att
 
 All use the existing command/revision/receipt transaction and current filtered snapshots, never privileged actor-history deltas. Wrong sheet version returns409/STALE_ACTOR; wrong original scene name returns409/STALE_SCENE. No rejected write increments revision or creates a receipt. Reload is explicit. Linked shared tokens move for DM/current actor owners only; observers never move, and token.assign on a link is rejected. Member revocation cascades grants. Queued token deltas reproject actorId and control after every awaited send. Uncorrelated protocol errors reject the one in-flight command immediately instead of leaving a confirmation timeout.
 
-Limits:16 actors/campaign,32 grants/actor,8 text properties(names40/value120), biography/private notes1000 each, actor names80; HP integer0..1000000/max>=1/current<=max. Outbound512KiB fits bounded Unicode sheets; input16KiB/deadlines unchanged. Actor/ACL/link/scene operations use fresh snapshots; snapshots now include actors and revocation clears that cache.
+Limits:16 actors/campaign,32 grants/actor,8 text properties(names40/value120), biography/private notes1000 each, actor names80; HP integer0..1000000/max>=1/current<=max. The current4MiB outbound buffer fits bounded Unicode sheets plus the full combined freehand/content fixture; input16KiB/deadlines are unchanged. Actor/ACL/link/scene operations use fresh snapshots; snapshots now include actors and revocation clears that cache.
 
 ## Build0.0.5 manual fog
 
@@ -153,7 +153,7 @@ DM-only and unavailable in archived campaigns. Exact accepted retries return the
 - Message DTO: id,senderId,senderName,body,visibility,recipientIds,createdAt,revision. Snapshot adds messages; current authorized replacement and access-clearing apply. Persisted events are content-free projection markers.
 - `dice.roll` additionally accepts visibility `selected` plus recipientIds. Select1–8 distinct other current members; roller included, DM only if selected. Every old scope requires empty recipients (omission defaults[]). Roll DTO adds recipientIds (older results default[]). Current SQL projection protects both REST and live delivery.
 
-All writes retain archive/membership checks and campaign optimistic revision/receipt semantics. Recipient membership is checked atomically; disappearing recipients never turn a private send public. Recipient rosters are immutable account IDs; current membership still gates delivery. Previously received information cannot be retracted. Input limit remains16KiB; write buffer is768KiB, covered by a combined maximum snapshot fixture.
+All writes retain archive/membership checks and campaign optimistic revision/receipt semantics. Recipient membership is checked atomically; disappearing recipients never turn a private send public. Recipient rosters are immutable account IDs; current membership still gates delivery. Previously received information cannot be retracted. Input limit remains16KiB; write buffer is4MiB, covered by the combined maximum freehand/content snapshot fixture.
 
 ## Generic combat (0.0.9)
 

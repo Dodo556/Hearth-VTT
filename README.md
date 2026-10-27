@@ -1,5 +1,7 @@
 # Hearth VTT · Build0.0.14
 
+Cloud continuation review and imported-source provenance: [CONTINUATION_REVIEW](docs/CONTINUATION_REVIEW.md). Current next work is in [NEXT_TASKS](docs/NEXT_TASKS.md).
+
 Continuing development in Codex cloud/GitHub: read [CODEX_HANDOFF.md](CODEX_HANDOFF.md) for setup, current evidence and the next implementation plan.
 
 Hearth is one continuously evolving application. Source/debug and optimized builds are configurations of the same code, not separate editions. The permanent policy is in [CONTINUOUS_DEVELOPMENT](docs/CONTINUOUS_DEVELOPMENT.md); current promotion blockers are in [RELEASE_VALIDATION](docs/RELEASE_VALIDATION.md). Build0.0.14 adds bounded persisted freehand while retaining the player-canvas startup and WebGL restoration corrections; verified-playable promotion still requires the recorded P0/platform gates.

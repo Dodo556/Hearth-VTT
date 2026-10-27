@@ -12,19 +12,24 @@ Implementation revision: `ca83eceab77d1587075bb1dedd66b05f324a75c6`; later evide
 
 Commands: `source /workspace/hearth-tools/activate.sh` then `pnpm verify:release`. Exit0 in one complete run; browser13/13 in3.6m. Direct `node scripts/verification.test.mjs` also reports7/7 named workflow tests; the runner's `node --test` reports one aggregate file result in this runtime.
 
-| Check                             | Result                                                                                                                 |
-| --------------------------------- | ---------------------------------------------------------------------------------------------------------------------- |
-| Workflow assertions               | PASS7, direct named run; shared runner aggregate file passes                                                           |
-| TypeScript                        | PASS67 tests/21 files; types and lint pass                                                                             |
-| Rust                              | PASS81 workspace tests, zero ignored; formatting and Clippy pass                                                       |
-| Inventory                         | PASS179 distinct feature IDs; none VERIFIED                                                                            |
-| Complete builds                   | PASS matching web and optimized host0.0.14                                                                             |
-| Complete browser gate             | PASS13/13 in3.6m, no skips/retries/removed assertions                                                                  |
-| Compatibility                     | PASS schema10/11 archive recovery, saved legacy line/nonce,11→12 order/point storage, exact closed-stroke backup bytes |
-| Full snapshot                     | PASS2429902 bytes for maximum combined campaign content, within4MiB                                                    |
-| Screenshot and independent review | Pending final recording; neither is inferred from automated tests                                                      |
+| Check                           | Result                                                                                                                 |
+| ------------------------------- | ---------------------------------------------------------------------------------------------------------------------- |
+| Workflow assertions             | PASS7, direct named run; shared runner aggregate file passes                                                           |
+| TypeScript                      | PASS67 tests/21 files; types and lint pass                                                                             |
+| Rust                            | PASS81 workspace tests, zero ignored; formatting and Clippy pass                                                       |
+| Inventory                       | PASS179 distinct feature IDs; none VERIFIED                                                                            |
+| Complete builds                 | PASS matching web and optimized host0.0.14                                                                             |
+| Complete browser gate           | PASS13/13 in3.6m, no skips/retries/removed assertions                                                                  |
+| Compatibility                   | PASS schema10/11 archive recovery, saved legacy line/nonce,11→12 order/point storage, exact closed-stroke backup bytes |
+| Full snapshot                   | PASS2429902 bytes for maximum combined campaign content, within4MiB                                                    |
+| Screenshots                     | PASS actual GM1600×1000 and narrow760×700, both visually inspected                                                     |
+| Independent whole-change review | PASS; no Critical/Important code findings; stale API bounds corrected                                                  |
 
 Browser drawing acceptance covers actual player pixels, a closed stroke authored at1.2× zoom, private keyboard path/raw-frame filtering, Escape, pointercancel, actual lost capture, extra pointers, color changes, offline/reconnect, navigation, host restart and undo. Existing context-restoration/idle rendering, campaign/token/actor/fog/dice/chat/combat and full-host recovery scenarios remain in the same full gate.
+
+Screenshot command: `HEARTH_TEST_HOST_BIN=target/release/hearth-server node scripts/capture-drawings.mjs /workspace/artifacts/Hearth_VTT_0.0.14.png /workspace/artifacts/Hearth_VTT_0.0.14_narrow.png`, after sourcing the activation script. PASS with fictional Game Master/Alice/Bob and actual persisted shared freehand/GM rectangle; no page errors. Capture ran only after the complete browser gate ended. Both images were inspected; narrow controls remain reachable without sidebar overlap.
+
+One fresh independent read-only whole-change review of c50056b..3e5f2b3 found no Critical/Important correctness, privacy, migration or lifecycle issue. Its one Minor finding was stale general API buffer limits. Final documentation updates align all three older buffer descriptions with the tested4MiB contract; no runtime code changed after the gate and a fresh lint check follows. No second review. Direct scene/tool/layer/permission-loss browser variants remain a future coverage recommendation; inspected shared reconciliation/disposal paths handle those changes. Manually rewriting trusted backup database semantics remains outside the unchanged recovery trust model: use trusted backups, and do not infer arbitrary semantic corruption repair. No new deferred code defect.
 
 Residual limits: no actual LAN/30-minute P0 encounter, Windows/macOS/current Chromium156/Firefox/WebKit/firewall, portable package or WAN claim. The imported remote remains without a main ref; source commits are local and fresh-task restoration is unverified. Environment install/start instructions were saved as a draft, not published.
 

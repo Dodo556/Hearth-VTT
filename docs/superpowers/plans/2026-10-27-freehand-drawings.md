@@ -53,5 +53,5 @@
 **Files:** package.json/Cargo.toml/Cargo.lock versions; docs/{PROGRESS,BUILD_OVERVIEW,RELEASE_VALIDATION,FEATURE_MATRIX,NEXT_TASKS,P0_GAPS,KNOWN_ISSUES,DECISIONS,API,DATA_MODEL,BACKUP_RECOVERY,DM_GUIDE}.md; update design status.
 - [x] Update version/schema and feature-specific documentation; keep every feature ID and partial status.
 - [x] Run one complete pnpm verify:release with local sockets and the supported installed Chromium override; diagnose/fix failures without removing assertions.
-- [ ] Capture/inspect a real screenshot sequentially after browser acceptance; record exact results and remaining platform/LAN/distribution limits.
-- [ ] Review the final diff against design and tests, resolve findings, verify affected checks and commit final evidence.
+- [x] Capture/inspect a real screenshot sequentially after browser acceptance; record exact results and remaining platform/LAN/distribution limits.
+- [x] Review the final diff against design and tests, resolve findings, verify affected checks and commit final evidence.
