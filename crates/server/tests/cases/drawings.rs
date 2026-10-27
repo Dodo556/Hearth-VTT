@@ -171,3 +171,124 @@ async fn drawings_enforce_scene_limit_and_creation_nonce() {
         .unwrap();
     assert_eq!(current, rev);
 }
+
+#[tokio::test]
+async fn freehand_normalizes_saves_filters_every_point_and_undoes_closed_paths() {
+    let h = Host::new().await;
+    let owner = h.owner().await;
+    let campaign = h.campaign_id(&owner).await;
+    let (alice, _) = h.player(&owner, &campaign, "freehand_alice").await;
+    let server = LiveServer::start(&h).await;
+    let mut dm = server.connect(&campaign, &owner).await;
+    let initial = frame(&mut dm).await;
+    let scene = initial["scenes"][0]["id"].as_str().unwrap().to_owned();
+    let mut rev = initial["revision"].as_i64().unwrap();
+    let create = json!({"type":"drawing.create","payload":{"sceneId":scene,"clientDrawingId":uuid::Uuid::new_v4().to_string(),"shape":"freehand","visibility":"shared","color":"#72b7e2","startX":10,"startY":10,"endX":10,"endY":10,"points":[{"x":10.1234,"y":10.5678},{"x":150,"y":20},{"x":20,"y":20},{"x":10.1234,"y":10.5678}]}});
+    let mut player = server.connect(&campaign, &alice).await;
+    frame(&mut player).await;
+    assert_eq!(
+        command(
+            &mut player,
+            &uuid::Uuid::new_v4().to_string(),
+            rev,
+            create.clone()
+        )
+        .await["error"]["code"],
+        "FORBIDDEN"
+    );
+    let request = uuid::Uuid::new_v4().to_string();
+    let reply = command(&mut dm, &request, rev, create.clone()).await;
+    assert_eq!(reply["kind"], "ack", "{reply}");
+    let old_rev = rev;
+    rev = reply["revision"].as_i64().unwrap();
+    let replay = command(&mut dm, &request, old_rev, create).await;
+    assert_eq!(replay["revision"], rev);
+    let public = through(&mut player, rev).await;
+    let drawing = &public["scenes"][0]["drawings"][0];
+    assert_eq!(drawing["points"][0], json!({"x":10.12,"y":10.57}));
+    assert_eq!(drawing["startX"], 10.12);
+    assert_eq!(drawing["endX"], 10.12);
+    assert_eq!(drawing["points"].as_array().unwrap().len(), 4);
+    accepted(
+        &mut dm,
+        &mut rev,
+        json!({"type":"fog.configure","payload":{"sceneId":scene,"enabled":true}}),
+    )
+    .await;
+    accepted(&mut dm, &mut rev, json!({"type":"fog.paint","payload":{"sceneId":scene,"column":0,"row":0,"width":1,"height":1,"mode":"reveal"}})).await;
+    assert_eq!(
+        through(&mut player, rev).await["scenes"][0]["drawings"],
+        json!([]),
+        "The middle of the curved path extends into unrevealed cells"
+    );
+    let (_, rest, _) = h
+        .request(
+            "GET",
+            &format!("/api/campaigns/{campaign}/scenes"),
+            json!({}),
+            Some(&alice),
+        )
+        .await;
+    assert_eq!(rest["scenes"][0]["drawings"], json!([]));
+    accepted(&mut dm, &mut rev, json!({"type":"fog.paint","payload":{"sceneId":scene,"column":0,"row":0,"width":3,"height":1,"mode":"reveal"}})).await;
+    assert_eq!(
+        through(&mut player, rev).await["scenes"][0]["drawings"][0]["points"],
+        drawing["points"]
+    );
+    let mut reconnect = server.connect(&campaign, &owner).await;
+    assert_eq!(
+        frame(&mut reconnect).await["scenes"][0]["drawings"][0]["points"],
+        drawing["points"]
+    );
+    accepted(
+        &mut dm,
+        &mut rev,
+        json!({"type":"drawing.undo","payload":{"sceneId":scene}}),
+    )
+    .await;
+    assert_eq!(
+        through(&mut player, rev).await["scenes"][0]["drawings"],
+        json!([])
+    );
+}
+
+#[tokio::test]
+async fn freehand_rejects_malformed_geometry_without_saving_or_consuming_nonce() {
+    let h = Host::new().await;
+    let owner = h.owner().await;
+    let campaign = h.campaign_id(&owner).await;
+    let server = LiveServer::start(&h).await;
+    let mut dm = server.connect(&campaign, &owner).await;
+    let initial = frame(&mut dm).await;
+    let scene = initial["scenes"][0]["id"].as_str().unwrap().to_owned();
+    let mut rev = initial["revision"].as_i64().unwrap();
+    let nonce = uuid::Uuid::new_v4().to_string();
+    let base = json!({"type":"drawing.create","payload":{"sceneId":scene,"clientDrawingId":nonce,"shape":"freehand","visibility":"dm","color":"#9ad59b","startX":10,"startY":10,"endX":20,"endY":20,"points":[{"x":10,"y":10},{"x":20,"y":20}]}});
+    let malformed = vec![
+        json!([]),
+        json!([{"x":1,"y":1}]),
+        json!([{"x":1,"y":1},{"x":1.001,"y":1.001}]),
+        json!([{"x":-1,"y":1},{"x":20,"y":20}]),
+        json!([{"x":1,"y":1},{"x":99999,"y":20}]),
+        json!([{"x":1,"y":1},{"x":null,"y":20}]),
+        json!([{"x":1,"y":1,"extra":true},{"x":20,"y":20}]),
+        json!(vec![json!({"x":10,"y":10}); 129]),
+    ];
+    for points in malformed {
+        let mut bad = base.clone();
+        bad["payload"]["points"] = points;
+        assert_eq!(
+            command(&mut dm, &uuid::Uuid::new_v4().to_string(), rev, bad).await["error"]["code"],
+            "VALIDATION_FAILED"
+        );
+    }
+    accepted(&mut dm, &mut rev, base).await;
+    let maximum = json!({"type":"drawing.create","payload":{"sceneId":scene,"clientDrawingId":uuid::Uuid::new_v4().to_string(),"shape":"freehand","visibility":"dm","color":"#9ad59b","startX":10,"startY":10,"endX":20,"endY":20,"points":(0..128).map(|i|json!({"x":10+i%2,"y":20+i%2})).collect::<Vec<_>>()}});
+    accepted(&mut dm, &mut rev, maximum).await;
+    let (count,): (i64,) = sqlx::query_as("SELECT COUNT(*) FROM drawings WHERE scene_id=?")
+        .bind(&scene)
+        .fetch_one(&h.state.store.pool)
+        .await
+        .unwrap();
+    assert_eq!(count, 2);
+}

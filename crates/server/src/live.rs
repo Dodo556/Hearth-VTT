@@ -176,7 +176,7 @@ pub(crate) async fn upgrade(
         .max_frame_size(16 * 1024)
         .max_message_size(16 * 1024)
         .write_buffer_size(0)
-        .max_write_buffer_size(768 * 1024)
+        .max_write_buffer_size(4 * 1024 * 1024)
         .on_upgrade(move |socket| run(socket, state, campaign, session, reservation)))
 }
 async fn send(socket: &mut WebSocket, value: Value) -> ApiResult<()> {

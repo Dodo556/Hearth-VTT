@@ -39,7 +39,7 @@ type TokenRow = (
     bool,
 );
 
-type DrawingRow = (String, String, String, String, f64, f64, f64, f64);
+type DrawingRow = (String, String, String, String, f64, f64, f64, f64, String);
 
 pub(crate) async fn projected_scenes(
     conn: &mut sqlx::SqliteConnection,
@@ -107,13 +107,27 @@ pub(crate) async fn projected_scenes(
                 },
             )
             .collect();
-        let drawing_rows: Vec<DrawingRow> = sqlx::query_as("SELECT id,shape,visibility,color,start_x,start_y,end_x,end_y FROM drawings WHERE scene_id=? AND (visibility='shared' OR ?=1) ORDER BY rowid")
+        let drawing_rows: Vec<DrawingRow> = sqlx::query_as("SELECT id,shape,visibility,color,start_x,start_y,end_x,end_y,points FROM drawings WHERE scene_id=? AND (visibility='shared' OR ?=1) ORDER BY rowid")
             .bind(&scene_id).bind(dm).fetch_all(&mut *conn).await?;
-        let drawings = drawing_rows
-            .into_iter()
-            .filter(|row| dm || fog.rectangle_visible(row.4, row.5, row.6, row.7))
-            .map(
-                |(id, shape, visibility, color, start_x, start_y, end_x, end_y)| Drawing {
+        let mut drawings = Vec::new();
+        for (id, shape, visibility, color, start_x, start_y, end_x, end_y, encoded) in drawing_rows
+        {
+            let points: Vec<hearth_domain::DrawingPoint> =
+                serde_json::from_str(&encoded).map_err(|_| ApiError::internal())?;
+            let (mut left, mut top, mut right, mut bottom) = (
+                start_x.min(end_x),
+                start_y.min(end_y),
+                start_x.max(end_x),
+                start_y.max(end_y),
+            );
+            for point in &points {
+                left = left.min(point.x);
+                top = top.min(point.y);
+                right = right.max(point.x);
+                bottom = bottom.max(point.y);
+            }
+            if dm || fog.rectangle_visible(left, top, right, bottom) {
+                drawings.push(Drawing {
                     id,
                     shape,
                     visibility,
@@ -122,9 +136,10 @@ pub(crate) async fn projected_scenes(
                     start_y,
                     end_x,
                     end_y,
-                },
-            )
-            .collect();
+                    points,
+                });
+            }
+        }
         scenes.push(Scene {
             drawings,
             fog: fog.dto(),

@@ -60,6 +60,8 @@ pub struct Scene {
 #[derive(Clone, Debug, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
 pub struct Drawing {
+    #[serde(default, skip_serializing_if = "Vec::is_empty")]
+    pub points: Vec<DrawingPoint>,
     pub id: String,
     pub shape: String,
     pub visibility: String,
@@ -68,6 +70,13 @@ pub struct Drawing {
     pub start_y: f64,
     pub end_x: f64,
     pub end_y: f64,
+}
+
+#[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
+#[serde(deny_unknown_fields)]
+pub struct DrawingPoint {
+    pub x: f64,
+    pub y: f64,
 }
 
 #[derive(Clone, Debug, Serialize, Deserialize)]

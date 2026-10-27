@@ -59,7 +59,7 @@ async fn whole_host_backup_restores_committed_data_and_blobs_without_overwriting
     let archive = std::fs::read(&prepared.path).unwrap();
     let (manifest, _) = parts(&archive);
     assert_eq!(manifest["formatVersion"], 1);
-    assert_eq!(manifest["schemaVersion"], 11);
+    assert_eq!(manifest["schemaVersion"], 12);
     assert_eq!(manifest["files"].as_array().unwrap().len(), 2);
     assert_eq!(manifest["files"][0]["path"], "hearth.db");
     assert!(!manifest.to_string().contains("orphan"));
@@ -157,8 +157,8 @@ async fn corrupt_truncated_and_path_forged_archives_leave_no_recovery_copy() {
         changed["files"][0]["byteSize"] = json!(size);
         variants.push(encoded(&changed, &payload));
     }
-    for schema in [10, 12] {
-        // A schema-11 database must not be accepted under a different manifest version.
+    for schema in [10, 11, 13] {
+        // A schema-12 database must not be accepted under a different manifest version.
         let mut changed = manifest.clone();
         changed["schemaVersion"] = json!(schema);
         variants.push(encoded(&changed, &payload));
@@ -463,18 +463,18 @@ async fn schema_ten_backup_restores_and_migrates_without_losing_data() {
             .fetch_one(&reopened.pool)
             .await
             .unwrap(),
-        11
+        12
     );
 }
 
 #[tokio::test]
-async fn newly_created_backups_report_schema_eleven() {
+async fn newly_created_backups_report_schema_twelve() {
     let root = tempfile::tempdir().unwrap();
     let store = fixture(root.path()).await;
     let prepared = backup::create(&store, root.path(), "0.0.12", 100)
         .await
         .unwrap();
-    assert_eq!(prepared.summary.schema_version, 11);
+    assert_eq!(prepared.summary.schema_version, 12);
 }
 
 #[tokio::test]
@@ -485,6 +485,8 @@ async fn backup_preserves_shared_and_private_drawings() {
     for visibility in ["shared", "dm"] {
         sqlx::query("INSERT INTO drawings(id,scene_id,shape,visibility,color,start_x,start_y,end_x,end_y) VALUES(?,'scene','line',?,'#e8bc6a',10,10,20,20)").bind(visibility).bind(visibility).execute(&store.pool).await.unwrap();
     }
+    let points = "[{\"x\":10.12,\"y\":10.57},{\"x\":90.0,\"y\":20.0},{\"x\":10.12,\"y\":10.57}]";
+    sqlx::query("INSERT INTO drawings(id,scene_id,shape,visibility,color,start_x,start_y,end_x,end_y,points) VALUES('stroke','scene','freehand','dm','#72b7e2',10.12,10.57,10.12,10.57,?)").bind(points).execute(&store.pool).await.unwrap();
     let prepared = backup::create(&store, root.path(), "0.0.12", 100)
         .await
         .unwrap();
@@ -502,5 +504,83 @@ async fn backup_preserves_shared_and_private_drawings() {
             .fetch_all(&copy.pool)
             .await
             .unwrap();
-    assert_eq!(visibility, ["dm", "shared"]);
+    assert_eq!(visibility, ["dm", "dm", "shared"]);
+    assert_eq!(
+        sqlx::query_scalar::<_, String>("SELECT points FROM drawings WHERE id='stroke'")
+            .fetch_one(&copy.pool)
+            .await
+            .unwrap(),
+        points
+    );
+}
+
+#[tokio::test]
+async fn schema_eleven_backup_restores_and_migrates_without_losing_data() {
+    static MIGRATIONS: sqlx::migrate::Migrator = sqlx::migrate!("./migrations");
+    let root = tempfile::tempdir().unwrap();
+    let old_db = root.path().join("old.db");
+    let options = SqliteConnectOptions::new()
+        .filename(&old_db)
+        .create_if_missing(true)
+        .foreign_keys(true);
+    let pool = sqlx::sqlite::SqlitePoolOptions::new()
+        .max_connections(1)
+        .connect_with(options)
+        .await
+        .unwrap();
+    let legacy = sqlx::migrate::Migrator::with_migrations(
+        MIGRATIONS
+            .iter()
+            .filter(|m| m.version <= 11)
+            .cloned()
+            .collect(),
+    );
+    legacy.run(&pool).await.unwrap();
+    for query in [
+        "INSERT INTO users VALUES('owner','owner','Game Master','password-hash',1,1)",
+        "INSERT INTO host_profile(singleton,owner_id) VALUES(1,'owner')",
+        "INSERT INTO device_sessions VALUES('old-session','owner',9999999999,1)",
+        "INSERT INTO campaigns(id,name,created_by,created_at,updated_at) VALUES('campaign','Recovery campaign','owner',1,1)",
+        "INSERT INTO memberships VALUES('campaign','owner','dm',1)",
+        "INSERT INTO journals(id,campaign_id,title,body,visibility,created_at) VALUES('secret','campaign','Private note','PREVIOUS VERSION NOTE','dm',1)",
+    ] {
+        sqlx::query(query).execute(&pool).await.unwrap();
+    }
+    pool.close().await;
+    let db = std::fs::read(&old_db).unwrap();
+    let manifest = json!({"formatVersion":1,"schemaVersion":11,"appVersion":"0.0.11","createdAt":100,
+        "counts":{"users":1,"campaigns":1,"scenes":0,"tokens":0,"actors":0,"journals":1,"messages":0,"rolls":0,"encounters":0,"assets":0},
+        "files":[{"path":"hearth.db","byteSize":db.len(),"sha256":hex::encode(Sha256::digest(&db))}]});
+    let archive = root.path().join("legacy.hearthbackup");
+    std::fs::write(&archive, encoded(&manifest, &db)).unwrap();
+    let restored = backup::restore(
+        backup::verify(&archive, &root.path().join("restores"))
+            .await
+            .unwrap(),
+        200,
+    )
+    .await
+    .unwrap();
+    let reopened = Store::open(&restored).await.unwrap();
+    assert_eq!(
+        sqlx::query_scalar::<_, String>("SELECT body FROM journals WHERE id='secret'")
+            .fetch_one(&reopened.pool)
+            .await
+            .unwrap(),
+        "PREVIOUS VERSION NOTE"
+    );
+    assert_eq!(
+        sqlx::query_scalar::<_, i64>("SELECT COUNT(*) FROM device_sessions")
+            .fetch_one(&reopened.pool)
+            .await
+            .unwrap(),
+        0
+    );
+    assert_eq!(
+        sqlx::query_scalar::<_, i64>("SELECT MAX(version) FROM _sqlx_migrations")
+            .fetch_one(&reopened.pool)
+            .await
+            .unwrap(),
+        12
+    );
 }

@@ -29,10 +29,14 @@ export const TokenSchema = z.object({
   canMove: z.boolean(),
   visibility: z.enum(["shared", "dm"]),
 });
-export const DrawingSchema = z
+const DrawingFields = z
   .object({
     id: z.uuid(),
-    shape: z.enum(["line", "rectangle"]),
+    shape: z.enum(["line", "rectangle", "freehand"]),
+    points: z
+      .array(z.object({ x: z.number().finite(), y: z.number().finite() }).strict())
+      .max(128)
+      .optional(),
     visibility: z.enum(["shared", "dm"]),
     color: z.string().regex(/^#[0-9a-f]{6}$/),
     startX: z.number().finite(),
@@ -41,6 +45,9 @@ export const DrawingSchema = z
     endY: z.number().finite(),
   })
   .strict();
+const validDrawingPoints = (drawing: { shape: string; points?: { x: number; y: number }[] }) =>
+  drawing.shape === "freehand" ? (drawing.points?.length ?? 0) >= 2 : !drawing.points?.length;
+export const DrawingSchema = DrawingFields.refine(validDrawingPoints);
 export type Drawing = z.infer<typeof DrawingSchema>;
 export const FogSchema = z
   .object({
@@ -257,9 +264,10 @@ export const TokenCommandSchema = z.discriminatedUnion("type", [
   z
     .object({
       type: z.literal("drawing.create"),
-      payload: DrawingSchema.omit({ id: true })
+      payload: DrawingFields.omit({ id: true })
         .extend({ sceneId: z.uuid(), clientDrawingId: z.uuid() })
-        .strict(),
+        .strict()
+        .refine(validDrawingPoints),
     })
     .strict(),
   z

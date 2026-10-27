@@ -55,7 +55,7 @@ async fn upgrade_nine_preserves_actor_chat_and_scene_bytes_and_combat_survives_r
             .fetch_one(&store.pool)
             .await
             .unwrap(),
-        11
+        12
     );
     sqlx::query("INSERT INTO combat_encounters(id,campaign_id,scene_id,name,status,round,active_combatant_id) VALUES('encounter','camp','scene','Saved fight','active',3,'combatant')").execute(&store.pool).await.unwrap();
     sqlx::query("INSERT INTO combatants(id,encounter_id,token_id,initiative,sort_order) VALUES('combatant','encounter','token',14,0)").execute(&store.pool).await.unwrap();

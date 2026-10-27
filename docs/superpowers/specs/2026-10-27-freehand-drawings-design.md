@@ -1,6 +1,6 @@
 # Bounded freehand drawing · MAP-04
 
-Status: proposed for owner approval. Extends the existing drawing slice; does not replace the master plan or change the agreed feature order.
+Status: approved by owner in chat on 2026-10-27. Extends the existing drawing slice; does not replace the master plan or change the agreed feature order.
 
 ## Intent and scope
 

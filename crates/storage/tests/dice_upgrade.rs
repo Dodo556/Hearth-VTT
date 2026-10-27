@@ -67,7 +67,7 @@ async fn upgrade_six_keeps_roll_bytes_and_adopts_caller_scoped_nonces() {
             .fetch_one(&store.pool)
             .await
             .unwrap(),
-        11
+        12
     );
     assert_eq!(
         sqlx::query_scalar::<_, i64>("SELECT COUNT(*) FROM pragma_foreign_key_check")

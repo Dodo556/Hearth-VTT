@@ -369,8 +369,9 @@ async fn maximum_unicode_actors_and_grants_survive_restart() {
     let mut drawing_tx = h.state.store.pool.begin().await.unwrap();
     for scene_id in &scene_ids {
         for _ in 0..64 {
-            sqlx::query("INSERT INTO drawings(id,scene_id,shape,visibility,color,start_x,start_y,end_x,end_y) VALUES(?,?,'rectangle','dm','#e65b5b',1,1,4095,4095)")
-                .bind(uuid::Uuid::new_v4().to_string()).bind(scene_id).execute(&mut *drawing_tx).await.unwrap();
+            sqlx::query("INSERT INTO drawings(id,scene_id,shape,visibility,color,start_x,start_y,end_x,end_y,points) VALUES(?,?,'freehand','dm','#e65b5b',4095.99,4095.99,4094.99,4094.99,?)")
+                .bind(uuid::Uuid::new_v4().to_string()).bind(scene_id)
+                .bind(serde_json::to_string(&(0..128).map(|i|json!({"x":4095.99-(i%2) as f64,"y":4095.99-(i%2) as f64})).collect::<Vec<_>>()).unwrap()).execute(&mut *drawing_tx).await.unwrap();
         }
     }
     drawing_tx.commit().await.unwrap();
@@ -471,7 +472,18 @@ async fn maximum_unicode_actors_and_grants_survive_restart() {
     assert_eq!(snap["journals"].as_array().unwrap().len(), 16);
     assert!(snap.to_string().len() > 128 * 1024);
     assert_eq!(snap["messages"].as_array().unwrap().len(), 20);
-    assert!(snap.to_string().len() < 768 * 1024);
+    assert!(snap.to_string().len() < 4 * 1024 * 1024);
+    assert_eq!(
+        snap["scenes"][0]["drawings"][0]["points"]
+            .as_array()
+            .unwrap()
+            .len(),
+        128
+    );
+    eprintln!(
+        "Maximum combined freehand snapshot: {} bytes",
+        snap.to_string().len()
+    );
     accepted(&mut dm,&mut rev,json!({"type":"actor.permission","payload":{"actorId":last,"userId":player,"permission":"owner"}})).await;
     dm.close(None).await.unwrap();
     fresh.close(None).await.unwrap();
