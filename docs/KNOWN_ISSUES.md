@@ -56,3 +56,5 @@ Resolved in0.0.13: the older player-map loading regression reproduced with succe
 
 
 Build0.0.13 completes a fresh optimized-host/full-browser validation run, including automatic redraw after forced WebGL restoration. This clears the recorded canvas regression and stale/full-run evidence gap for this candidate. Manual package/platform/current-browser/LAN/session gates and remaining P0 features still block verified-playable promotion. See RELEASE_VALIDATION.md.
+
+Build0.0.14: freehand is bounded to128 saved points and0.01 scene pixels; long gestures are simplified with a notice. Whole-path fog bounds can withhold a visible diagonal/curve until its complete bounding rectangle is revealed. Stroke editing, erasing portions, redo, pressure/variable width, text and scene notes remain pending. Schema12 requires a matching refreshed browser/host; schema10/11 backups are retained for isolated verification/upgrade. Automated cloud checks do not establish actual LAN, Windows/macOS/current-browser matrix, portable hosting or full P0 playability.

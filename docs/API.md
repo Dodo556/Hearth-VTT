@@ -198,3 +198,9 @@ Authenticated campaign members may send `{kind:"ping",schemaVersion:1,sceneId,x,
 ## Scene drawings (0.0.12)
 
 The GM sends `drawing.create` with `sceneId`, `clientDrawingId`, `shape` (`line` or `rectangle`), `visibility` (`shared` or `dm`), `color` (`#` and six lowercase hex digits), and `startX`, `startY`, `endX`, `endY` scene coordinates. `drawing.undo` takes `sceneId` and removes the latest drawing. Commands participate in the existing revision/receipt protocol. Server-generated drawing IDs and role/fog-filtered scene snapshots are authoritative.
+
+## Freehand drawings ·0.0.14/schema12
+
+`drawing.create` retains sceneId/clientDrawingId/shape/visibility/color/startX/startY/endX/endY. For shape `freehand`, also provide `points:[{x,y},...]` with2–128 finite in-scene points. The host rounds to0.01 scene pixels, removes consecutive duplicates, requires at least one pixel of total path length, and derives stored endpoints from the normalized path. Closed paths are valid. Line/rectangle payloads retain their existing endpoint semantics and accept no nonempty points. Unknown point fields and excessive/out-of-scene geometry fail without mutation. Existing GM-only rights, revision/nonce/receipt rules,64 scene drawing cap and content-free snapshot markers apply.
+
+Scene DTOs include points for freehand and omit empty points for legacy shapes. Shared visibility uses the stroke-expanded bounding rectangle of every point, not only endpoints. The combined maximum campaign fixture (all8 scenes ×64 strokes ×128 points plus earlier maximum content) measures2429902 bytes; outbound buffer is bounded at4MiB, input messages remain16KiB. Matching browser assets must be refreshed with the host; wire schema remains1.

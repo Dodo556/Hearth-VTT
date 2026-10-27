@@ -32,3 +32,7 @@ combat_encounters has one row per campaign, a scene foreign key, host ID/name/ve
 ## Scene drawings (0011)
 
 Each drawing belongs to one scene and stores a host-generated ID, line or rectangle shape, shared/GM visibility, color and two scene-space endpoints. Rows are ordered by insertion for rendering and undo. Caller-scoped creation nonces remain after deletion. A scene permits 64 drawings; current snapshots filter GM-only shapes and shared shapes intersecting unrevealed fog before serialization. Schema 10 recovery is validated against its own canonical migrations and upgraded after isolated restore.
+
+## Freehand storage ·schema12
+
+Forward migration0012 rebuilds drawings with freehand in its shape constraint and a `points` JSON array column. Old rows receive `[]`; rowids and creation nonces preserve authoring/undo order. Freehand rows require2–128 stored points; host validation further checks coordinate bounds, normalized geometry and path length. Domain DTOs carry points only when present. Published0001–0011 remain unchanged. Backup canonical schemas10/11/12 are independently verified; old copies upgrade only after isolated restoration.

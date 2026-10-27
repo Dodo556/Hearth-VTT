@@ -1,10 +1,10 @@
-# Hearth VTT · Build0.0.13
+# Hearth VTT · Build0.0.14
 
 Continuing development in Codex cloud/GitHub: read [CODEX_HANDOFF.md](CODEX_HANDOFF.md) for setup, current evidence and the next implementation plan.
 
-Hearth is one continuously evolving application. Source/debug and optimized builds are configurations of the same code, not separate editions. The permanent policy is in [CONTINUOUS_DEVELOPMENT](docs/CONTINUOUS_DEVELOPMENT.md); current promotion blockers are in [RELEASE_VALIDATION](docs/RELEASE_VALIDATION.md). Build0.0.13 corrects player-canvas startup and WebGL restoration; verified-playable promotion still requires the recorded P0/platform gates.
+Hearth is one continuously evolving application. Source/debug and optimized builds are configurations of the same code, not separate editions. The permanent policy is in [CONTINUOUS_DEVELOPMENT](docs/CONTINUOUS_DEVELOPMENT.md); current promotion blockers are in [RELEASE_VALIDATION](docs/RELEASE_VALIDATION.md). Build0.0.14 adds bounded persisted freehand while retaining the player-canvas startup and WebGL restoration corrections; verified-playable promotion still requires the recorded P0/platform gates.
 
-Build0.0.13 renders static scenes on change and keeps active pings animated. Player maps, ruler/zoom, drawing restart and context restoration have real browser regressions. Shared/GM lines and rectangles, color choices and undo remain included and respect manual fog.
+Build0.0.14 renders static scenes on change and keeps active pings animated. Player maps, ruler/zoom, drawing restart and context restoration have real browser regressions. Shared/GM lines, rectangles and bounded freehand strokes, color choices and undo are included and respect manual fog.
 
 A private, self-hosted **web application** under development. The DM runs the hosting server and opens the DM interface in a browser. Players open an invitation link in their browsers; no player installation is required. There is no separate Windows/macOS desktop app planned. This increment supplies accounts, saved campaigns, one-use player invitations, custom private scenes/map uploads, generic actor sheets and permissions, linked token control, synchronized movement, shared manual fog, ruler/pings, host-generated private/blind/selected dice, chat/whispers, journals, generic combat and whole-host backup/isolated recovery. **It is not yet a playable VTT or release 0.1.**
 

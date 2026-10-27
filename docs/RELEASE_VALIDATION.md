@@ -1,3 +1,35 @@
+# Current cloud candidate ·0.0.14/schema12 ·2026-10-27
+
+Status: automated candidate gate passed; not verified playable. Verified-playable promotion remains blocked by the existing P0/platform/distribution/LAN/session gates.
+
+The imported0.0.13 source checkpoint c50056b passed one complete optimized gate in this cloud environment: direct workflow7, TS63, Rust77, types/lint/fmt/Clippy/inventory, full web/host builds and browser13/13 in3.3m on Chromium154.0.8037.57/Linux/software WebGL. Earlier restricted-sandbox TCP failures were all local listener permission denials; the successful full rerun used local sockets. Default Chromium156 download was domain-denied; no matching-browser or cross-platform claim.
+
+The0.0.14 feature's new host/protocol/upgrade tests failed before implementation and passed afterward. Sampling tests cover bounded long paths and closed loops. Storage suite covers schema10/11 recovery and exact freehand point preservation. Existing drawing browser acceptance first caught an Undo-acknowledgement timing assumption: an HTTP-visible save preceded the browser becoming ready; the fixture now waits for the existing enabled control, retaining all functional assertions and timeouts. The expanded rendered GM/Alice/Bob stroke/undo/restart test subsequently passed, followed by the complete cancellation/zoom scenario (38.7s) and the full optimized gate.
+
+## Actual0.0.14 cloud evidence
+
+Implementation revision: `ca83eceab77d1587075bb1dedd66b05f324a75c6`; later evidence-only edits are separately committed. Linux, Node24.19.0/pnpm11.25.0/Rust1.99.1, Chromium154.0.8037.57/software WebGL, four Cargo build jobs, CARGO_INCREMENTAL=0, default target directory. All thirteen browser scenarios use matched optimized0.0.14 hosts and web assets with disposable data.
+
+Commands: `source /workspace/hearth-tools/activate.sh` then `pnpm verify:release`. Exit0 in one complete run; browser13/13 in3.6m. Direct `node scripts/verification.test.mjs` also reports7/7 named workflow tests; the runner's `node --test` reports one aggregate file result in this runtime.
+
+| Check                             | Result                                                                                                                 |
+| --------------------------------- | ---------------------------------------------------------------------------------------------------------------------- |
+| Workflow assertions               | PASS7, direct named run; shared runner aggregate file passes                                                           |
+| TypeScript                        | PASS67 tests/21 files; types and lint pass                                                                             |
+| Rust                              | PASS81 workspace tests, zero ignored; formatting and Clippy pass                                                       |
+| Inventory                         | PASS179 distinct feature IDs; none VERIFIED                                                                            |
+| Complete builds                   | PASS matching web and optimized host0.0.14                                                                             |
+| Complete browser gate             | PASS13/13 in3.6m, no skips/retries/removed assertions                                                                  |
+| Compatibility                     | PASS schema10/11 archive recovery, saved legacy line/nonce,11→12 order/point storage, exact closed-stroke backup bytes |
+| Full snapshot                     | PASS2429902 bytes for maximum combined campaign content, within4MiB                                                    |
+| Screenshot and independent review | Pending final recording; neither is inferred from automated tests                                                      |
+
+Browser drawing acceptance covers actual player pixels, a closed stroke authored at1.2× zoom, private keyboard path/raw-frame filtering, Escape, pointercancel, actual lost capture, extra pointers, color changes, offline/reconnect, navigation, host restart and undo. Existing context-restoration/idle rendering, campaign/token/actor/fog/dice/chat/combat and full-host recovery scenarios remain in the same full gate.
+
+Residual limits: no actual LAN/30-minute P0 encounter, Windows/macOS/current Chromium156/Firefox/WebKit/firewall, portable package or WAN claim. The imported remote remains without a main ref; source commits are local and fresh-task restoration is unverified. Environment install/start instructions were saved as a draft, not published.
+
+## Historical handoff candidate evidence ·not this cloud feature candidate
+
 # Release validation status
 
 Status: **Partially functional; verified-playable promotion remains BLOCKED.**

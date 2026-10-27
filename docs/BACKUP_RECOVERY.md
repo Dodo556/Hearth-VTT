@@ -1,4 +1,4 @@
-# Backup and recovery ·0.0.10
+# Backup and recovery ·0.0.14
 
 The host owner can open **Backup & recovery** from the campaign library or table header. Other campaign DMs and players cannot access host backups. The current format recovers the entire host into a separate directory; the live data directory is never replaced automatically.
 1. Choose **Prepare host backup**. The host snapshots the committed SQLite state and includes every registered uploaded artwork file. Edits committed after that snapshot stay in the current host.
@@ -12,11 +12,11 @@ A successful isolated recovery is not an automatic switch or a password reset. K
 
 Backups are unencrypted whole-host private data, including account password hashes, all participants' private whispers/rolls and hidden campaign content. This is an explicit trusted machine-owner export privilege. Ordinary campaign DMs have no such access; normal Chat/dice/document routes still filter by current permissions. Checksums detect corruption, not who created a file. Store and restore backups you trust.
 
-Current bounds:512MiB archive,128MiB DB,16MiB per PNG,4096 unique uploaded blobs,512million decoded pixels,1MiB manifest. Schema10 and schema11 archives are supported. Larger stores can use the offline copy procedure below. Scheduled/retained/encrypted/selective backups, imports from other older schemas, automatic host switching and comprehensive crash/platform acceptance remain pending.
+Current bounds:512MiB archive,128MiB DB,16MiB per PNG,4096 unique uploaded blobs,512million decoded pixels,1MiB manifest. Schema10, schema11 and schema12 archives are supported. Larger stores can use the offline copy procedure below. Scheduled/retained/encrypted/selective backups, imports from other older schemas, automatic host switching and comprehensive crash/platform acceptance remain pending.
 
 ## Open backup format1
 
-The uncompressed byte format is8 ASCII bytes `HEARTHB1`, a4-byte little-endian unsigned manifest length, strict UTF-8 JSON, then the concatenated payloads. Manifest fields: `formatVersion:1`, `schemaVersion:10` or `schemaVersion:11`, `appVersion`, `createdAt` (Unix seconds), `counts` (users/campaigns/scenes/tokens/actors/journals/messages/rolls/encounters/assets) and `files:[{path,byteSize,sha256}]`. Database is first at `hearth.db`; subsequent entries are unique sorted `assets/<lowercase SHA256>.png`. SHA256 refers to each file's complete bytes. No directories, links, arbitrary paths, compression or trailing bytes. Asset count is unique registered blobs. Logs, prior backups/recovery copies, orphan/temp files and external environment configuration are excluded. Original runtime example art stays in the matching host package.
+The uncompressed byte format is8 ASCII bytes `HEARTHB1`, a4-byte little-endian unsigned manifest length, strict UTF-8 JSON, then the concatenated payloads. Manifest fields: `formatVersion:1`, `schemaVersion:10`, `schemaVersion:11` or `schemaVersion:12`, `appVersion`, `createdAt` (Unix seconds), `counts` (users/campaigns/scenes/tokens/actors/journals/messages/rolls/encounters/assets) and `files:[{path,byteSize,sha256}]`. Database is first at `hearth.db`; subsequent entries are unique sorted `assets/<lowercase SHA256>.png`. SHA256 refers to each file's complete bytes. No directories, links, arbitrary paths, compression or trailing bytes. Asset count is unique registered blobs. Logs, prior backups/recovery copies, orphan/temp files and external environment configuration are excluded. Original runtime example art stays in the matching host package.
 
 ## Offline full-directory alternative
 
@@ -41,3 +41,7 @@ Whole-host archive recovery creates an isolated copy for a compatible host; it d
 For rollback, stop both hosts, keep the failed candidate's current data untouched in a separate location, and restore a COPY of the pre-update data/artwork/configuration with the exact compatible prior application and web assets. Do not run an older host on the newer migrated database. Verify the restored pair on a separate loopback port before switching back. A current-source `pnpm try` may rebuild newer code and migrate again, so it is not by itself an application rollback command. Post-backup changes are not automatically merged. Automatic rollback and arbitrary schema downgrades are not currently implemented.
 
 A pre-migration SQLite snapshot/checksum is a database safeguard only; preserve uploaded artwork separately or use a verified whole-host backup. Follow the permanent update policy in CONTINUOUS_DEVELOPMENT.md and the candidate gates in RELEASE.md.
+
+## Build0.0.14 compatibility
+
+The current host writes schema12 archives containing saved freehand point arrays. Schema10 and schema11 archives are still checked against their original migration/schema/checksum histories, then restored into separate roots and upgraded on first startup. Migration0012 preserves old line/rectangle row order and creation nonces. Retain the previous compatible application/web/data/artwork/configuration pair before an actual update; this is not support for running an older host on schema12.

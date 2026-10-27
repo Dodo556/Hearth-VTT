@@ -31,27 +31,27 @@
 **Files:** crates/domain/src/{lib,commands}.rs; crates/server/src/{drawings,scenes,live}.rs; crates/storage/migrations/0012_freehand_drawings.sql; crates/storage/src/lib.rs; packages/protocol/src/{index,drawings.test}.ts; crates/server/tests/cases/drawings.rs; crates/server/src/live/tests.rs; crates/storage/tests/{backup,drawings_upgrade}.rs.
 
 **Interfaces:** Drawing/CreateDrawing gain optional points for freehand only; strict DrawingPoint {x:f64,y:f64}. Existing endpoint geometry is retained for old shapes. Freehand endpoints are normalized first/last points; projection bounds derive from every point. Migration rebuilds the shape constraint and adds bounded point JSON while preserving row order/nonces. Shared snapshots carry saved points; acknowledgements remain content-free.
-- [ ] Add failing tests for valid/closed/normalized strokes, malformed/over-cap geometry, permissions, all-point fog, receipt/undo/reopen and old→new upgrades.
-- [ ] Run focused Vitest and Rust tests; confirm intended failures.
-- [ ] Implement normalized points, migration, command validation/projection and strict TypeScript schemas; preserve existing shape payloads.
-- [ ] Fill all scenes/drawings in the combined maximum fixture; choose/document the measured outbound bound with headroom.
-- [ ] Run focused tests, Rust formatting/Clippy and upgrade/recovery tests; commit the tested backend/protocol increment.
+- [x] Add failing tests for valid/closed/normalized strokes, malformed/over-cap geometry, permissions, all-point fog, receipt/undo/reopen and old→new upgrades.
+- [x] Run focused Vitest and Rust tests; confirm intended failures.
+- [x] Implement normalized points, migration, command validation/projection and strict TypeScript schemas; preserve existing shape payloads.
+- [x] Fill all scenes/drawings in the combined maximum fixture; choose/document the measured outbound bound with headroom.
+- [x] Run focused tests, Rust formatting/Clippy and upgrade/recovery tests; commit the tested backend/protocol increment.
 
 ### Task 2: Bounded canvas gesture
 
 **Files:** create apps/web/src/features/freehand.ts and freehand.test.ts; modify DrawingControls.tsx, SceneCanvas.tsx, Table.tsx and existing drawing browser test/capture harness.
 
 **Interfaces:** Helpers consume ScenePoint[] and produce bounded normalized preview/submission paths; finish includes simplification status. Table passes optional points through drawing.create. Renderer consumes the same saved path for shared/private layers.
-- [ ] Add failing helper tests for deterministic bounds/endpoints/closed loops, repeated samples and long paths.
-- [ ] Implement bounded sampling, compaction and final simplification, plus Freehand control and literal instructions.
-- [ ] Integrate pointer and keyboard drafting; cancel on Escape, pointercancel/lostpointercapture, tool/settings/scene/authority/connectivity changes and disposal. Ignore extra pointers.
-- [ ] Extend real GM/Alice/Bob tests for saved curved strokes, hidden/private raw-frame absence, keyboard/pointer cancellation, zoom coordinates, reconnect/restart/undo and idle rendering.
-- [ ] Run helpers/protocol/types and focused real-browser acceptance; commit the integrated interaction.
+- [x] Add failing helper tests for deterministic bounds/endpoints/closed loops, repeated samples and long paths.
+- [x] Implement bounded sampling, compaction and final simplification, plus Freehand control and literal instructions.
+- [x] Integrate pointer and keyboard drafting; cancel on Escape, pointercancel/lostpointercapture, tool/settings/scene/authority/connectivity changes and disposal. Ignore extra pointers.
+- [x] Extend real GM/Alice/Bob tests for saved curved strokes, hidden/private raw-frame absence, keyboard/pointer cancellation, zoom coordinates, reconnect/restart/undo and idle rendering.
+- [x] Run helpers/protocol/types and focused real-browser acceptance; commit the integrated interaction.
 
 ### Task 3: Integrated validation and evidence
 
 **Files:** package.json/Cargo.toml/Cargo.lock versions; docs/{PROGRESS,BUILD_OVERVIEW,RELEASE_VALIDATION,FEATURE_MATRIX,NEXT_TASKS,P0_GAPS,KNOWN_ISSUES,DECISIONS,API,DATA_MODEL,BACKUP_RECOVERY,DM_GUIDE}.md; update design status.
-- [ ] Update version/schema and feature-specific documentation; keep every feature ID and partial status.
-- [ ] Run one complete pnpm verify:release with local sockets and the supported installed Chromium override; diagnose/fix failures without removing assertions.
+- [x] Update version/schema and feature-specific documentation; keep every feature ID and partial status.
+- [x] Run one complete pnpm verify:release with local sockets and the supported installed Chromium override; diagnose/fix failures without removing assertions.
 - [ ] Capture/inspect a real screenshot sequentially after browser acceptance; record exact results and remaining platform/LAN/distribution limits.
 - [ ] Review the final diff against design and tests, resolve findings, verify affected checks and commit final evidence.

@@ -1,3 +1,15 @@
+# Hearth VTT · Build 0.0.14 · cloud continuation · 2026-10-27
+
+Imported and reviewed the supplied0.0.13 archive into the previously empty checkout. CONTINUATION_REVIEW.md records its SHA-256, preserved architecture, actual baseline checks and scope limits. The full baseline optimized gate passed TS63/Rust77/browser13 on Linux with installed Chromium154.0.8037.57; old chat results were not reused as current evidence. Only two handoff Markdown formatting issues were corrected before baseline validation.
+
+Owner approved bounded point-based freehand. This increment extends current GM drawing commands, migration0012, strict protocol, all-point fog bounds and Pixi rendering, preserving lines/rectangles, creation nonces/order, undo, old backups and the idle render scheduler. 2–128 normalized saved points, maximum256 live samples before compaction, 64 shapes/scene. Maximum combined campaign fixture is2429902 bytes, within a bounded4MiB outbound buffer; incoming16KiB remains. Sampling, closed-loop, host validation/permission/fog, migration and complete snapshot tests are recorded in the implementation ledger; final integrated evidence follows in RELEASE_VALIDATION.md.
+
+Final full optimized gate PASS:7 direct workflow assertions,67 TypeScript tests,81 Rust tests, types/lint/format/Clippy/179-ID inventory, matched web/optimized host and13/13 browser cases in3.6m. Tested implementation ca83ece; screenshot/review results are recorded separately when completed. All eleven prior migrations remain byte-identical to the supplied archive.
+
+Application0.0.14/schema12/wire1. No new runtime dependency. No source push/publication or P0 promotion. Text/scene notes, token bars/status/context, handouts/folders/reusable content, distribution and manual platform/LAN/session gates remain pending.
+
+## Imported historical0.0.13 evidence
+
 # Hearth VTT · Build 0.0.13 · 2026-10-27
 
 Corrected the recorded multi-player canvas startup blocker. Perpetual static Pixi redraws competed with later clients' initialization under software WebGL. An unchanged real scenario reproduced the failure; a temporary10FPS control confirmed the boundary and was removed. The renderer now coalesces scene/asset/camera/interaction changes into animation frames, animates live pings and stops when idle. Dragging and tools keep normal browser-frame responsiveness; no fixed FPS cap, timeout extension or removed player assertion. Disposal cancels pending frames.

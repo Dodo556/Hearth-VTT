@@ -1,4 +1,4 @@
-# Run and test Hearth VTT · build0.0.13
+# Run and test Hearth VTT · build0.0.14
 
 Yes: you can run and test this build on your own computer. It is a working self-hosted web app, currently distributed as developer source. Both DM and players use browsers; only the host computer needs the tools below. No native player client is installed. Do not open index.html directly: the Rust web server provides accounts, persistence and live synchronization.
 
