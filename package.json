@@ -1,0 +1,39 @@
+{
+  "name": "hearth-vtt",
+  "version": "0.0.13",
+  "private": true,
+  "type": "module",
+  "packageManager": "pnpm@11.25.0",
+  "engines": {
+    "node": ">=24.0.0 <27"
+  },
+  "scripts": {
+    "try": "node scripts/run-local.mjs",
+    "dev": "concurrently --kill-others -n host,web \"cargo run -p hearth-server\" \"pnpm --filter @hearth/web dev\"",
+    "dev:server": "cargo run -p hearth-server",
+    "dev:web": "pnpm --filter @hearth/web dev",
+    "build": "pnpm --filter @hearth/web build",
+    "build:host": "pnpm build && cargo build --release -p hearth-server",
+    "start": "cargo run -p hearth-server",
+    "lint": "biome check .",
+    "format": "biome check --write .",
+    "typecheck": "tsc --noEmit -p apps/web/tsconfig.json && tsc --noEmit -p tests/tsconfig.json",
+    "test": "vitest run",
+    "test:e2e": "node scripts/verify.mjs --browser-only",
+    "check:features": "node scripts/check-features.mjs",
+    "verify": "node scripts/verify.mjs",
+    "verify:release": "node scripts/verify.mjs --release",
+    "test:tooling": "node --test scripts/verification.test.mjs"
+  },
+  "devDependencies": {
+    "@biomejs/biome": "2.6.2",
+    "@playwright/test": "1.64.1",
+    "@testing-library/jest-dom": "7.0.1",
+    "@testing-library/react": "16.3.3",
+    "@types/node": "26.6.5",
+    "concurrently": "10.0.6",
+    "jsdom": "30.1.3",
+    "typescript": "7.0.2",
+    "vitest": "5.0.5"
+  }
+}

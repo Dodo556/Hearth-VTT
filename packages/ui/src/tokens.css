@@ -1,0 +1,21 @@
+:root {
+  color-scheme: dark;
+  --bg: #17191e;
+  --surface: #202329;
+  --surface-raised: #2a2e36;
+  --text: #e0e3e9;
+  --muted: #a0a6b1;
+  --accent: #d2ad70;
+  --border: #ffffff16;
+  --font: Inter, "Segoe UI", Arial, sans-serif;
+  --serif: "Iowan Old Style", "Palatino Linotype", Palatino, Georgia, serif;
+}
+:root[data-contrast="true"] {
+  --bg: #090d10;
+  --surface: #10161b;
+  --surface-raised: #1b252c;
+  --text: #fff;
+  --muted: #ccd8ce;
+  --accent: #ffda83;
+  --border: #d8e7cf66;
+}

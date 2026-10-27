@@ -1,0 +1,11 @@
+# Player canvas rendering correction
+
+The existing NEXT_TASKS blocker reproduces with real isolated GM/Alice/Bob sessions: authentication, snapshots and artwork succeed, while later renderer initialization exceeds the normal browser assertion deadline. Temporary stage timing and a single-variable10FPS control identify competing perpetual Pixi render loops as the cause on the software-rendering test machine. The10FPS control passes the original scenario; it is not the intended implementation.
+
+Maintain the existing renderer and full interactive frame rate. Stop Pixi's automatic ticker and request a coalesced animation frame whenever scene state, assets, selection or camera/interaction previews change. Keep requesting frames while map pings animate; become idle again after clearing them. A small frame scheduler owns cancellation and rejects callbacks after scene disposal. No campaign data, schema, protocol or authorization changes.
+
+Approaches considered: increasing the test timeout would hide the resource competition; a fixed10FPS cap proves the hypothesis but unnecessarily limits interaction; rendering static scenes on change avoids wasted work while preserving animation/drag responsiveness. The last approach is the implementation decision within the owner's authorized roadmap and master-plan autonomy contract.
+
+Tests must demonstrate that the old continuous renderer issues repeated GPU draws on an unchanged scene, while the corrected renderer becomes idle and wakes after a visual change. Preserve real rendered-player/ruler/ping assertions, add rendered-player checks to the drawing/restart scenario and test frame coalescing, animation completion and disposal. Run the shared integrated gate and inspect actual fictional-campaign screenshots. Retain explicit LAN/platform/distribution/P0 blockers; this correction alone does not establish verified playability.
+
+Final review adds explicit redraw on `webglcontextrestored`, removed during cleanup. Full integration also requires independent later browser scenarios to own their temporary host/data/authentication state; the production rate limiter remains unchanged. Both corrections have real failing-then-passing evidence in RELEASE_VALIDATION.md.

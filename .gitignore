@@ -1,0 +1,12 @@
+node_modules/
+target/
+dist/
+coverage/
+playwright-report/
+test-results/
+.env
+.hearth-data/
+.superpowers/
+*.db
+*.db-shm
+*.db-wal
