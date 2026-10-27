@@ -7,10 +7,10 @@ import { expect, type Page, test } from "@playwright/test";
 import { testHostExecutable } from "../../scripts/test-runtime.mjs";
 
 const baseURL = "http://127.0.0.1:8795";
-async function point(page: Page, x: number, y: number) {
+async function point(page: Page, x: number, y: number, zoom = 1) {
   const box = await page.locator("canvas").boundingBox();
   if (!box) throw new Error("Map canvas unavailable");
-  const scale = Math.min(box.width / 1440, box.height / 960) * 0.92;
+  const scale = Math.min(box.width / 1440, box.height / 960) * 0.92 * zoom;
   return {
     x: box.x + (box.width - 1440 * scale) / 2 + x * scale,
     y: box.y + (box.height - 960 * scale) / 2 + y * scale,
@@ -133,6 +133,7 @@ test("GM drawings synchronize, remain private, undo and survive a host restart",
     expect(frames.join(" ")).not.toContain(secret.id);
     await dm.getByRole("button", { name: "Undo drawing" }).click();
     await expect.poll(async () => (await read(dm)).length).toBe(1);
+    await expect(dm.getByRole("button", { name: "Undo drawing" })).toBeEnabled();
     await dm.locator("canvas").focus();
     await dm.keyboard.press("Enter");
     await dm.keyboard.press("ArrowRight");
@@ -152,6 +153,128 @@ test("GM drawings synchronize, remain private, undo and survive a host restart",
     }
     expect(await read(dm)).toHaveLength(2);
     for (const page of players) expect(await read(page)).toHaveLength(1);
+    // Closed freehand strokes are real saved geometry, not raster overlays.
+    await dm.getByRole("button", { name: "Draw on map" }).click();
+    await dm.getByLabel("Drawing shape").selectOption("freehand");
+    await dm.getByLabel("Drawing layer").selectOption("shared");
+    await dm.getByLabel("Drawing color").selectOption("#72b7e2");
+    const beforeStroke = await players[0].locator("canvas").screenshot();
+    const curve = [
+      [300, 300],
+      [500, 300],
+      [500, 440],
+      [300, 300],
+    ] as const;
+    await dm.getByRole("button", { name: "Zoom in", exact: true }).click();
+    const first = await point(dm, curve[0][0], curve[0][1], 1.2);
+    await dm.mouse.move(first.x, first.y);
+    await dm.mouse.down();
+    for (const coordinate of curve.slice(1)) {
+      const p = await point(dm, coordinate[0], coordinate[1], 1.2);
+      await dm.mouse.move(p.x, p.y, { steps: 10 });
+    }
+    await dm.mouse.up();
+    await expect.poll(async () => (await read(dm)).length).toBe(3);
+    const stroke = (await read(dm))[2];
+    expect(stroke.shape).toBe("freehand");
+    expect(stroke.points.length).toBeGreaterThan(3);
+    expect(stroke.points[0].x).toBeCloseTo(300, 0);
+    expect(stroke.points.at(-1)).toEqual(stroke.points[0]);
+    for (const player of players)
+      await expect.poll(async () => (await read(player)).length).toBe(2);
+    await expect
+      .poll(async () => !(await players[0].locator("canvas").screenshot()).equals(beforeStroke))
+      .toBe(true);
+    // Escape must cancel without an extra saved drawing before the next accepted command.
+    const cancelStart = await point(dm, 400, 120);
+    await dm.mouse.move(cancelStart.x, cancelStart.y);
+    await dm.mouse.down();
+    await dm.mouse.move(cancelStart.x + 70, cancelStart.y + 50, { steps: 5 });
+    await dm.keyboard.press("Escape");
+    await dm.mouse.up();
+    const canvas = dm.locator("canvas");
+    const beginDraft = async () => {
+      await canvas.evaluate((el) =>
+        el.addEventListener(
+          "pointerdown",
+          (e) => el.setAttribute("data-test-pointer", String((e as PointerEvent).pointerId)),
+          { once: true },
+        ),
+      );
+      await dm.mouse.move(cancelStart.x, cancelStart.y);
+      await dm.mouse.down();
+      await dm.mouse.move(cancelStart.x + 50, cancelStart.y + 40, { steps: 4 });
+      return Number(await canvas.getAttribute("data-test-pointer"));
+    };
+    const canceledId = await beginDraft();
+    await canvas.dispatchEvent("pointercancel", { pointerId: canceledId });
+    await dm.mouse.up();
+    const lostId = await beginDraft();
+    await canvas.evaluate((el, id) => (el as HTMLCanvasElement).releasePointerCapture(id), lostId);
+    await dm.mouse.move(cancelStart.x + 55, cancelStart.y + 45);
+    await dm.mouse.up();
+    await beginDraft();
+    await canvas.dispatchEvent("pointerdown", {
+      pointerId: 9999,
+      button: 0,
+      clientX: cancelStart.x,
+      clientY: cancelStart.y,
+    });
+    await canvas.dispatchEvent("pointerup", {
+      pointerId: 9999,
+      button: 0,
+      clientX: cancelStart.x + 80,
+      clientY: cancelStart.y + 80,
+    });
+    await dm.keyboard.press("Escape");
+    await dm.mouse.up();
+    await beginDraft();
+    await dm.getByLabel("Drawing color").selectOption("#9ad59b");
+    await dm.mouse.up();
+    await beginDraft();
+    await owner.setOffline(true);
+    await expect(dm.getByTestId("connection-status")).not.toHaveText("Live");
+    await dm.mouse.up();
+    await owner.setOffline(false);
+    await expect(dm.getByTestId("connection-status")).toHaveText("Live");
+    await beginDraft();
+    await dm.goto("/");
+    await dm.mouse.up();
+    await dm.goto(`/campaign/${campaign}`);
+    await expect(dm.getByTestId("connection-status")).toHaveText("Live");
+    await expect(dm.locator(".scene-viewport")).toHaveAttribute("data-renderer", "pixi");
+    await dm.getByRole("button", { name: "Draw on map" }).click();
+    await dm.getByLabel("Drawing shape").selectOption("freehand");
+    await dm.getByLabel("Drawing layer").selectOption("dm");
+    await dm.locator("canvas").focus();
+    await dm.keyboard.press("Enter");
+    await dm.keyboard.press("ArrowRight");
+    await dm.keyboard.press("ArrowDown");
+    await dm.keyboard.press("ArrowLeft");
+    await dm.keyboard.press("Enter");
+    await expect.poll(async () => (await read(dm)).length).toBe(4);
+    const privateStroke = (await read(dm))[3];
+    expect(privateStroke.shape).toBe("freehand");
+    expect(privateStroke.points.length).toBe(4);
+    for (const player of players) expect(await read(player)).toHaveLength(2);
+    expect(frames.join(" ")).not.toContain(privateStroke.id);
+    await stop(host);
+    await start();
+    await dm.reload();
+    await expect(dm.getByTestId("connection-status")).toHaveText("Live");
+    await expect(dm.locator(".scene-viewport")).toHaveAttribute("data-renderer", "pixi");
+    expect((await read(dm))[2].points).toEqual(stroke.points);
+    for (const player of players) {
+      await player.reload();
+      await expect(player.getByTestId("connection-status")).toHaveText("Live");
+      await expect(player.locator(".scene-viewport")).toHaveAttribute("data-renderer", "pixi");
+      expect((await read(player))[1].points).toEqual(stroke.points);
+    }
+    await dm.getByRole("button", { name: "Draw on map" }).click();
+    await dm.getByRole("button", { name: "Undo drawing" }).click();
+    await expect.poll(async () => (await read(dm)).length).toBe(3);
+    await dm.getByRole("button", { name: "Undo drawing" }).click();
+    await expect.poll(async () => (await read(players[0])).length).toBe(1);
     expect(errors).toEqual([]);
   } finally {
     for (const context of contexts) await context.close();

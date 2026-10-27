@@ -11,7 +11,7 @@ import { testHostExecutable } from "./test-runtime.mjs";
 const expect = baseExpect.configure({ timeout: 20000 });
 const baseURL = "http://127.0.0.1:8792";
 const data = mkdtempSync(join(tmpdir(), "hearth-drawing-preview-"));
-const output = resolve(process.argv[2] || "Hearth_VTT_0.0.12.png");
+const output = resolve(process.argv[2] || "Hearth_VTT_0.0.14.png");
 const version = JSON.parse(readFileSync("package.json", "utf8")).version;
 const host = spawn(testHostExecutable(), [], {
   stdio: ["ignore", "ignore", "inherit"],
@@ -118,7 +118,25 @@ try {
   await dm.getByLabel("Drawing color").selectOption("#e65b5b");
   await draw([880, 300], [1100, 520]);
   await expect.poll(async () => (await drawings(owner)).length).toBe(2);
-  for (const player of playerContexts) assert.equal((await drawings(player)).length, 1);
+  await dm.getByLabel("Drawing shape").selectOption("freehand");
+  await dm.getByLabel("Drawing layer").selectOption("shared");
+  await dm.getByLabel("Drawing color").selectOption("#72b7e2");
+  const start = await mapPoint(500, 650);
+  await dm.mouse.move(start.x, start.y);
+  await dm.mouse.down();
+  for (const p of [
+    [730, 650],
+    [790, 740],
+    [720, 820],
+    [560, 800],
+    [500, 650],
+  ]) {
+    const point = await mapPoint(...p);
+    await dm.mouse.move(point.x, point.y, { steps: 8 });
+  }
+  await dm.mouse.up();
+  await expect.poll(async () => (await drawings(owner)).length).toBe(3);
+  for (const player of playerContexts) assert.equal((await drawings(player)).length, 2);
   await dm.evaluate(() => document.fonts.ready);
   await expect(dm.getByText("Alice", { exact: true }).first()).toBeVisible();
   assert.deepEqual(errors, []);

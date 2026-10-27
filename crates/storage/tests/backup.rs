@@ -546,10 +546,16 @@ async fn schema_eleven_backup_restores_and_migrates_without_losing_data() {
     ] {
         sqlx::query(query).execute(&pool).await.unwrap();
     }
+    sqlx::query("INSERT INTO scenes(id,campaign_id,name,width,height,grid_size,background_asset_id,created_at) VALUES('old-scene','campaign','Old map',1440,960,60,'amber-map',1)").execute(&pool).await.unwrap();
+    sqlx::query("INSERT INTO drawings(id,scene_id,shape,visibility,color,start_x,start_y,end_x,end_y) VALUES('old-line','old-scene','line','shared','#e8bc6a',10,20,30,40)").execute(&pool).await.unwrap();
+    sqlx::query("INSERT INTO drawing_creation_nonces VALUES('campaign','owner','old-nonce')")
+        .execute(&pool)
+        .await
+        .unwrap();
     pool.close().await;
     let db = std::fs::read(&old_db).unwrap();
-    let manifest = json!({"formatVersion":1,"schemaVersion":11,"appVersion":"0.0.11","createdAt":100,
-        "counts":{"users":1,"campaigns":1,"scenes":0,"tokens":0,"actors":0,"journals":1,"messages":0,"rolls":0,"encounters":0,"assets":0},
+    let manifest = json!({"formatVersion":1,"schemaVersion":11,"appVersion":"0.0.13","createdAt":100,
+        "counts":{"users":1,"campaigns":1,"scenes":1,"tokens":0,"actors":0,"journals":1,"messages":0,"rolls":0,"encounters":0,"assets":0},
         "files":[{"path":"hearth.db","byteSize":db.len(),"sha256":hex::encode(Sha256::digest(&db))}]});
     let archive = root.path().join("legacy.hearthbackup");
     std::fs::write(&archive, encoded(&manifest, &db)).unwrap();
@@ -582,5 +588,21 @@ async fn schema_eleven_backup_restores_and_migrates_without_losing_data() {
             .await
             .unwrap(),
         12
+    );
+    assert_eq!(
+        sqlx::query_as::<_, (String, f64, f64, String)>(
+            "SELECT shape,start_x,end_y,points FROM drawings WHERE id='old-line'"
+        )
+        .fetch_one(&reopened.pool)
+        .await
+        .unwrap(),
+        ("line".into(), 10.0, 40.0, "[]".into())
+    );
+    assert_eq!(
+        sqlx::query_scalar::<_, String>("SELECT nonce FROM drawing_creation_nonces")
+            .fetch_one(&reopened.pool)
+            .await
+            .unwrap(),
+        "old-nonce"
     );
 }

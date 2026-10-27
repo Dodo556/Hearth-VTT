@@ -7,6 +7,7 @@ import { api } from "../api";
 import { t } from "../i18n/en";
 import { DrawingControls, type DrawingSettings } from "./DrawingControls";
 import { type FogRect, type FogTool, fogPixels, fogRectangle, footprintRevealed } from "./fog";
+import { appendFreehandPoint, finishFreehand } from "./freehand";
 import {
   canPingPoint,
   clampScenePoint,
@@ -24,7 +25,12 @@ type Props = {
   pings: MapPing[];
   drawing: DrawingSettings;
   onDrawingSettings: (settings: DrawingSettings) => void;
-  onDraw: (settings: DrawingSettings, start: ScenePoint, end: ScenePoint) => Promise<void>;
+  onDraw: (
+    settings: DrawingSettings,
+    start: ScenePoint,
+    end: ScenePoint,
+    points?: ScenePoint[],
+  ) => Promise<void>;
   onUndoDrawing: () => void;
   onPing: (x: number, y: number) => boolean;
   panOnly?: boolean;
@@ -183,6 +189,8 @@ export function SceneCanvas(props: Props) {
         end: ScenePoint;
         settings: DrawingSettings;
         pointer: number | null;
+        points: ScenePoint[];
+        simplified: boolean;
       } | null = null;
       const canDraw = () =>
         latest.current.mapTool === "draw" &&
@@ -196,8 +204,14 @@ export function SceneCanvas(props: Props) {
         color: string,
         start: ScenePoint,
         end: ScenePoint,
+        points: ScenePoint[] = [],
       ) {
-        if (shape === "line") target.moveTo(start.x, start.y).lineTo(end.x, end.y);
+        if (shape === "freehand") {
+          const first = points[0];
+          if (!first) return;
+          target.moveTo(first.x, first.y);
+          for (const point of points.slice(1)) target.lineTo(point.x, point.y);
+        } else if (shape === "line") target.moveTo(start.x, start.y).lineTo(end.x, end.y);
         else
           target.rect(
             Math.min(start.x, end.x),
@@ -218,6 +232,7 @@ export function SceneCanvas(props: Props) {
             drawing.color,
             { x: drawing.startX, y: drawing.startY },
             { x: drawing.endX, y: drawing.endY },
+            drawing.points,
           );
         }
       }
@@ -231,30 +246,55 @@ export function SceneCanvas(props: Props) {
             draft.settings.color,
             draft.start,
             draft.end,
+            draft.settings.shape === "freehand"
+              ? finishFreehand([...draft.points, draft.end]).points
+              : undefined,
           );
       }
       function clearDraft() {
-        if (
-          draft?.pointer !== null &&
-          draft?.pointer !== undefined &&
-          canvas.hasPointerCapture(draft.pointer)
-        )
-          canvas.releasePointerCapture(draft.pointer);
+        const pointer = draft?.pointer;
         draft = null;
+        if (pointer !== null && pointer !== undefined && canvas.hasPointerCapture(pointer))
+          canvas.releasePointerCapture(pointer);
+        showDraft();
+      }
+      function extendDraft(point: ScenePoint) {
+        if (!draft) return;
+        draft.end = point;
+        if (draft.settings.shape === "freehand") {
+          const next = appendFreehandPoint(draft.points, point);
+          draft.points = next.points;
+          draft.simplified ||= next.simplified;
+        }
         showDraft();
       }
       function finishDraft() {
         const finished = draft;
+        const path =
+          finished?.settings.shape === "freehand"
+            ? finishFreehand([...finished.points, finished.end])
+            : undefined;
         clearDraft();
         if (!finished || !canDraw()) return;
         const dx = Math.abs(finished.end.x - finished.start.x),
           dy = Math.abs(finished.end.y - finished.start.y);
-        if (finished.settings.shape === "rectangle" ? dx < 1 || dy < 1 : Math.hypot(dx, dy) < 1) {
+        const length =
+          path?.points.slice(1).reduce((total, p, index) => {
+            const previous = path.points[index];
+            return total + (previous ? Math.hypot(p.x - previous.x, p.y - previous.y) : 0);
+          }, 0) ?? Math.hypot(dx, dy);
+        if (finished.settings.shape === "rectangle" ? dx < 1 || dy < 1 : length < 1) {
           setToolMessage("Draw a larger shape, or press Esc to cancel.");
           return;
         }
-        setToolMessage(null);
-        void latest.current.onDraw(finished.settings, finished.start, finished.end);
+        const start = path?.points[0] ?? finished.start,
+          end = path?.points.at(-1) ?? finished.end;
+        setToolMessage(
+          path && (path.simplified || finished.simplified)
+            ? "Stroke simplified to keep it within the 128-point limit."
+            : null,
+        );
+        void latest.current.onDraw(finished.settings, start, end, path?.points);
       }
       const pingStarted = new Map<string, number>();
       function drawMeasurement() {
@@ -540,6 +580,7 @@ export function SceneCanvas(props: Props) {
         );
       }
       const down = (e: PointerEvent) => {
+        if (draft?.pointer !== null && draft?.pointer !== undefined) return;
         if (e.button !== 0 && e.button !== 1) return;
         canvas.focus();
         const p = point(e);
@@ -550,6 +591,8 @@ export function SceneCanvas(props: Props) {
             start,
             end: start,
             settings: { ...latest.current.drawing },
+            points: [start],
+            simplified: false,
             pointer: e.pointerId,
           };
           showDraft();
@@ -602,8 +645,7 @@ export function SceneCanvas(props: Props) {
             clearDraft();
             return;
           }
-          draft.end = clampScenePoint(point(e), width, height);
-          showDraft();
+          extendDraft(clampScenePoint(point(e), width, height));
           return;
         }
         if (measurementPointer === e.pointerId && measurement) {
@@ -638,7 +680,7 @@ export function SceneCanvas(props: Props) {
         if (draft?.pointer === e.pointerId) {
           if (e.type === "pointercancel") clearDraft();
           else {
-            draft.end = clampScenePoint(point(e), width, height);
+            extendDraft(clampScenePoint(point(e), width, height));
             finishDraft();
           }
           return;
@@ -714,10 +756,7 @@ export function SceneCanvas(props: Props) {
                 height,
               )
             : current;
-          if (draft) {
-            draft.end = drawCursor;
-            showDraft();
-          }
+          if (draft) extendDraft(drawCursor);
           if (e.key === "Enter") {
             if (draft) finishDraft();
             else {
@@ -726,6 +765,8 @@ export function SceneCanvas(props: Props) {
                 end: drawCursor,
                 settings: { ...latest.current.drawing },
                 pointer: null,
+                points: [drawCursor],
+                simplified: false,
               };
               showDraft();
             }
@@ -788,6 +829,10 @@ export function SceneCanvas(props: Props) {
         const rect = canvas.getBoundingClientRect();
         zoomAt(Math.exp(-e.deltaY * 0.001), e.clientX - rect.left, e.clientY - rect.top);
       };
+      const lostCapture = (e: PointerEvent) => {
+        if (draft?.pointer === e.pointerId) clearDraft();
+      };
+      canvas.addEventListener("lostpointercapture", lostCapture);
       const contextRestored = () => renderLoop?.invalidate();
       canvas.addEventListener("webglcontextrestored", contextRestored);
       canvas.addEventListener("pointerdown", down);
@@ -804,6 +849,8 @@ export function SceneCanvas(props: Props) {
         zoom: (factor) => zoomAt(factor, app.screen.width / 2, app.screen.height / 2),
       };
       cleanup = () => {
+        clearDraft();
+        canvas.removeEventListener("lostpointercapture", lostCapture);
         for (const piece of pieces.values()) piece.abort.abort();
         canvas.removeEventListener("webglcontextrestored", contextRestored);
         canvas.removeEventListener("pointerdown", down);
@@ -911,7 +958,9 @@ export function SceneCanvas(props: Props) {
               (props.mapTool === "measure"
                 ? "Ruler: drag to measure · Enter and arrows to adjust · Esc clears"
                 : props.mapTool === "draw"
-                  ? "Draw: drag on the map · Enter, arrows, Enter to place · Esc cancels"
+                  ? props.drawing.shape === "freehand"
+                    ? "Freehand: drag a stroke · Enter starts/finishes, arrows add points · Esc cancels · 128 saved points"
+                    : "Draw: drag on the map · Enter, arrows, Enter to place · Esc cancels"
                   : "Ping: click the map · arrows and Enter work from the keyboard")}
           </span>
           {distance !== null && (

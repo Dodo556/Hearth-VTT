@@ -563,7 +563,7 @@ function TableSession({ user, id }: { user: User; id: string }) {
               pings={stream.pings}
               drawing={drawing}
               onDrawingSettings={setDrawing}
-              onDraw={async (settings, start, end) => {
+              onDraw={async (settings, start, end, points) => {
                 await stream
                   .send({
                     type: "drawing.create",
@@ -571,6 +571,7 @@ function TableSession({ user, id }: { user: User; id: string }) {
                       sceneId: scene.id,
                       clientDrawingId: newRequestId(),
                       ...settings,
+                      ...(points ? { points } : {}),
                       startX: start.x,
                       startY: start.y,
                       endX: end.x,

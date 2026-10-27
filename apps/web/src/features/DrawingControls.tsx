@@ -30,6 +30,7 @@ export function DrawingControls({
         >
           <option value="line">Line</option>
           <option value="rectangle">Rectangle</option>
+          <option value="freehand">Freehand</option>
         </select>
       </label>
       <label>
