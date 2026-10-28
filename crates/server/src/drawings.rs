@@ -1,4 +1,5 @@
-//! Scene drawings are authored by the GM and projected through scene/fog ACLs.
+mod history;
+// Scene drawings are authored by the GM and projected through scene/fog ACLs.
 use crate::error::{ApiError, ApiResult};
 use hearth_domain::{
     DrawingPoint,
@@ -21,7 +22,44 @@ pub(crate) async fn apply(
             .await?;
     let (width, height) = dimensions.ok_or_else(ApiError::hidden)?;
     match command {
+        TokenCommand::DrawingDelete(p) => {
+            if uuid::Uuid::parse_str(&p.drawing_id).is_err() {
+                return Err(ApiError::invalid("Use a valid drawing ID."));
+            }
+            let before = history::load(conn, scene, &p.drawing_id, p.expected_version).await?;
+            history::record(conn, scene, &p.drawing_id, "delete", Some(&before)).await?;
+            sqlx::query("DELETE FROM drawings WHERE scene_id=? AND id=?")
+                .bind(scene)
+                .bind(&p.drawing_id)
+                .execute(&mut *conn)
+                .await?;
+        }
+        TokenCommand::DrawingUpdateText(p) => {
+            if uuid::Uuid::parse_str(&p.drawing_id).is_err() {
+                return Err(ApiError::invalid("Use a valid drawing ID."));
+            }
+            let before = history::load(conn, scene, &p.drawing_id, p.expected_version).await?;
+            if before.shape != "text" {
+                return Err(ApiError::invalid("Choose a text drawing."));
+            }
+            let text = valid_text(&p.text)?;
+            let (sx, sy, ex, ey) = text_box(p.start_x, p.start_y, p.end_x, p.end_y, width, height)?;
+            if !valid_color(&p.color) || !(8..=96).contains(&p.font_size) {
+                return Err(ApiError::invalid(
+                    "Use a valid color and a font size of 8–96.",
+                ));
+            }
+            history::record(conn, scene, &p.drawing_id, "update", Some(&before)).await?;
+            sqlx::query("UPDATE drawings SET visibility=?,color=?,start_x=?,start_y=?,end_x=?,end_y=?,text=?,font_size=?,text_fit=0,version=version+1 WHERE scene_id=? AND id=?").bind(match p.visibility{Visibility::Shared=>"shared",Visibility::Dm=>"dm"}).bind(&p.color).bind(sx).bind(sy).bind(ex).bind(ey).bind(text).bind(p.font_size).bind(scene).bind(&p.drawing_id).execute(&mut *conn).await?;
+        }
         TokenCommand::DrawingCreate(p) => {
+            if p.shape != "text" && p.font_size.is_some() {
+                return Err(ApiError::invalid("Only text drawings accept a font size."));
+            }
+            let font_size = p.font_size.unwrap_or(24);
+            if !(8..=96).contains(&font_size) {
+                return Err(ApiError::invalid("Use a font size of 8–96."));
+            }
             let text = if p.shape == "text" {
                 let text = p
                     .text
@@ -143,20 +181,69 @@ pub(crate) async fn apply(
             if nonce.rows_affected() == 0 {
                 return Err(ApiError::conflict("Use a new drawing ID."));
             }
-            sqlx::query("INSERT INTO drawings(id,scene_id,shape,visibility,color,start_x,start_y,end_x,end_y,points,text) VALUES(?,?,?,?,?,?,?,?,?,?,?)")
-                .bind(uuid::Uuid::new_v4().to_string()).bind(scene).bind(&p.shape)
+            let drawing_id = uuid::Uuid::new_v4().to_string();
+            sqlx::query("INSERT INTO drawings(id,scene_id,shape,visibility,color,start_x,start_y,end_x,end_y,points,text,font_size,text_fit) VALUES(?,?,?,?,?,?,?,?,?,?,?,?,?)")
+                .bind(&drawing_id).bind(scene).bind(&p.shape)
                 .bind(match p.visibility { Visibility::Shared => "shared", Visibility::Dm => "dm" })
-                .bind(&p.color).bind(start_x).bind(start_y).bind(end_x).bind(end_y).bind(serde_json::to_string(&points).map_err(|_|ApiError::internal())?).bind(text)
+                .bind(&p.color).bind(start_x).bind(start_y).bind(end_x).bind(end_y).bind(serde_json::to_string(&points).map_err(|_|ApiError::internal())?).bind(text).bind(font_size).bind(p.font_size.is_none())
                 .execute(&mut *conn).await?;
+            history::record(conn, scene, &drawing_id, "create", None).await?;
         }
         TokenCommand::DrawingUndo(_) => {
-            let removed = sqlx::query("DELETE FROM drawings WHERE rowid=(SELECT rowid FROM drawings WHERE scene_id=? ORDER BY rowid DESC LIMIT 1)")
-                .bind(scene).execute(&mut *conn).await?;
-            if removed.rows_affected() == 0 {
-                return Err(ApiError::invalid("There are no drawings to undo."));
-            }
+            history::undo(conn, scene).await?;
         }
         _ => return Err(ApiError::invalid("Unsupported drawing command.")),
     }
     Ok(json!({"projection":"snapshot"}))
+}
+
+fn valid_text(text: &str) -> ApiResult<&str> {
+    if text.trim().is_empty()
+        || text.chars().count() > 120
+        || text.split('\n').count() > 4
+        || text.chars().any(|c| c.is_control() && c != '\n')
+    {
+        return Err(ApiError::invalid(
+            "Use 1–120 plain characters over at most four lines.",
+        ));
+    }
+    Ok(text.trim())
+}
+fn valid_color(color: &str) -> bool {
+    color.len() == 7
+        && color.starts_with('#')
+        && color.as_bytes()[1..]
+            .iter()
+            .all(|b| b.is_ascii_digit() || (b'a'..=b'f').contains(b))
+}
+fn text_box(
+    sx: f64,
+    sy: f64,
+    ex: f64,
+    ey: f64,
+    width: i64,
+    height: i64,
+) -> ApiResult<(f64, f64, f64, f64)> {
+    if ![sx, sy, ex, ey].iter().all(|v| v.is_finite())
+        || sx < 0.0
+        || sy < 0.0
+        || ex < 0.0
+        || ey < 0.0
+        || sx > width as f64
+        || ex > width as f64
+        || sy > height as f64
+        || ey > height as f64
+    {
+        return Err(ApiError::invalid("Keep the text box inside the scene."));
+    }
+    let r = |v: f64| (v * 100.0).round() / 100.0;
+    let (sx, sy, ex, ey) = (r(sx.min(ex)), r(sy.min(ey)), r(sx.max(ex)), r(sy.max(ey)));
+    let w = (ex * 100.0).round() - (sx * 100.0).round();
+    let h = (ey * 100.0).round() - (sy * 100.0).round();
+    if !(4000.0..=102400.0).contains(&w) || !(3200.0..=51200.0).contains(&h) {
+        return Err(ApiError::invalid(
+            "Use a text box 40–1024 pixels wide and 32–512 high.",
+        ));
+    }
+    Ok((sx, sy, ex, ey))
 }

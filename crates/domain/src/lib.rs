@@ -55,11 +55,18 @@ pub struct Scene {
     pub active: bool,
     pub tokens: Vec<Token>,
     pub drawings: Vec<Drawing>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub can_undo_drawing: Option<bool>,
 }
 
 #[derive(Clone, Debug, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
 pub struct Drawing {
+    pub version: i64,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub font_size: Option<i64>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub text_fit: Option<bool>,
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub text: Option<String>,
     #[serde(default, skip_serializing_if = "Vec::is_empty")]

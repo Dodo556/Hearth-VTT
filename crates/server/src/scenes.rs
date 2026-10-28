@@ -50,6 +50,9 @@ type DrawingRow = (
     f64,
     String,
     Option<String>,
+    i64,
+    i64,
+    bool,
 );
 
 pub(crate) async fn projected_scenes(
@@ -118,11 +121,24 @@ pub(crate) async fn projected_scenes(
                 },
             )
             .collect();
-        let drawing_rows: Vec<DrawingRow> = sqlx::query_as("SELECT id,shape,visibility,color,start_x,start_y,end_x,end_y,points,text FROM drawings WHERE scene_id=? AND (visibility='shared' OR ?=1) ORDER BY rowid")
+        let drawing_rows: Vec<DrawingRow> = sqlx::query_as("SELECT id,shape,visibility,color,start_x,start_y,end_x,end_y,points,text,font_size,version,text_fit FROM drawings WHERE scene_id=? AND (visibility='shared' OR ?=1) ORDER BY rowid")
             .bind(&scene_id).bind(dm).fetch_all(&mut *conn).await?;
         let mut drawings = Vec::new();
-        for (id, shape, visibility, color, start_x, start_y, end_x, end_y, encoded, text) in
-            drawing_rows
+        for (
+            id,
+            shape,
+            visibility,
+            color,
+            start_x,
+            start_y,
+            end_x,
+            end_y,
+            encoded,
+            text,
+            font_size,
+            version,
+            text_fit,
+        ) in drawing_rows
         {
             let points: Vec<hearth_domain::DrawingPoint> =
                 serde_json::from_str(&encoded).map_err(|_| ApiError::internal())?;
@@ -140,6 +156,17 @@ pub(crate) async fn projected_scenes(
             }
             if dm || fog.rectangle_visible(left, top, right, bottom) {
                 drawings.push(Drawing {
+                    font_size: if shape == "text" {
+                        Some(font_size)
+                    } else {
+                        None
+                    },
+                    text_fit: if shape == "text" {
+                        Some(text_fit)
+                    } else {
+                        None
+                    },
+                    version,
                     text,
                     id,
                     shape,
@@ -153,7 +180,20 @@ pub(crate) async fn projected_scenes(
                 });
             }
         }
+        let can_undo_drawing = if dm {
+            Some(
+                sqlx::query_scalar::<_, bool>(
+                    "SELECT EXISTS(SELECT 1 FROM drawing_history WHERE scene_id=?)",
+                )
+                .bind(&scene_id)
+                .fetch_one(&mut *conn)
+                .await?,
+            )
+        } else {
+            None
+        };
         scenes.push(Scene {
+            can_undo_drawing,
             drawings,
             fog: fog.dto(),
             id: scene_id,

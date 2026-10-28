@@ -151,8 +151,12 @@ try {
   if (process.argv[4])
     await dm.screenshot({ path: resolve(process.argv[4]), fullPage: true, animations: "disabled" });
   await dm.getByRole("button", { name: "Draw text", exact: true }).click();
-  await dm.getByLabel("Drawing text", { exact: true }).fill("North gate\nKeep the lantern lit");
   await draw([820, 190], [1260, 310]);
+  await dm.getByLabel("Drawing text", { exact: true }).fill("North gate\nKeep the lantern lit");
+  await dm.getByLabel("Text font size").fill("32");
+  if (process.argv[6])
+    await dm.screenshot({ path: resolve(process.argv[6]), fullPage: true, animations: "disabled" });
+  await dm.getByRole("button", { name: "Save text", exact: true }).click();
   await expect.poll(async () => (await drawings(owner)).length).toBe(4);
   for (const player of playerContexts) assert.equal((await drawings(player)).length, 3);
   await dm.evaluate(() => document.fonts.ready);

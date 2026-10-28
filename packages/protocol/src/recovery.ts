@@ -5,7 +5,13 @@ const time = z.number().int().min(0).max(253402300799);
 export const BackupSummarySchema = z
   .object({
     formatVersion: z.literal(1),
-    schemaVersion: z.union([z.literal(10), z.literal(11), z.literal(12), z.literal(13)]),
+    schemaVersion: z.union([
+      z.literal(10),
+      z.literal(11),
+      z.literal(12),
+      z.literal(13),
+      z.literal(14),
+    ]),
     appVersion: z.string().min(1).max(32),
     createdAt: time,
     counts: z

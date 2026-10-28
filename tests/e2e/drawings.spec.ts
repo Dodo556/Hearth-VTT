@@ -292,7 +292,7 @@ test("GM drawings synchronize, remain private, undo and survive a host restart",
     await expect(dm.getByRole("button", { name: "Undo drawing" })).toBeEnabled();
     await dm.getByRole("button", { name: "Draw text", exact: true }).click();
     await dm.getByRole("button", { name: "Shared drawings", exact: true }).click();
-    await dm.getByLabel("Drawing text", { exact: true }).fill("<b>North gate</b> 🐉\nKeep left");
+    await dm.getByLabel("Text font size").fill("32");
     // Compare tabletop pixels; the HTML camera readout is outside the renderer.
     const labelPixels = () =>
       players[0].locator("canvas").screenshot({ style: ".canvas-status { visibility: hidden; }" });
@@ -313,12 +313,15 @@ test("GM drawings synchronize, remain private, undo and survive a host restart",
     await dm.mouse.down();
     await dm.mouse.move(textEnd.x, textEnd.y, { steps: 8 });
     await dm.mouse.up();
+    await dm.getByLabel("Drawing text", { exact: true }).fill("<b>North gate</b> 🐉\nKeep left");
+    await dm.getByRole("button", { name: "Save text", exact: true }).click();
     await expect.poll(async () => (await read(dm)).length).toBe(3);
-    const label = (await read(dm))[2];
+    let label = (await read(dm))[2];
     expect(label).toMatchObject({
       shape: "text",
       visibility: "shared",
       text: "<b>North gate</b> 🐉\nKeep left",
+      fontSize: 32,
     });
     expect(label.startX).toBeCloseTo(500, 0);
     expect(label.endY).toBeCloseTo(380, 0);
@@ -329,24 +332,59 @@ test("GM drawings synchronize, remain private, undo and survive a host restart",
     expect(await dm.locator("b", { hasText: "North gate" }).count()).toBe(0);
     await expectIdleMap(players[0]);
     await expectContextRecovery(players[0]);
-    // Editing text or Escape during a keyboard placement cancels the old draft.
+    // Select a saved label, edit directly, resize/move and save its explicit style.
+    const labelPoint = await point(dm, 520, 280, 1.2);
+    await dm.mouse.click(labelPoint.x, labelPoint.y);
+    await expect(dm.getByLabel("Drawing text", { exact: true })).toHaveValue(label.text);
+    await dm.getByLabel("Drawing text", { exact: true }).fill("Edited gate");
+    await dm.getByLabel("Text font size").fill("48");
+    await dm.getByRole("button", { name: "Drawing color", exact: true }).click();
+    await dm.getByLabel("Custom drawing color").fill("#abcdef");
+    await dm.getByRole("button", { name: "Drawing color", exact: true }).press("Escape");
+    const resize = await dm
+      .getByRole("button", { name: "Resize text box", exact: true })
+      .boundingBox();
+    if (!resize) throw new Error("Resize handle unavailable");
+    await dm.mouse.move(resize.x + resize.width / 2, resize.y + resize.height / 2);
+    await dm.mouse.down();
+    await dm.mouse.move(resize.x + resize.width / 2 + 24, resize.y + resize.height / 2 + 18, {
+      steps: 4,
+    });
+    await dm.mouse.up();
+    await dm.getByRole("button", { name: "Move text box", exact: true }).press("ArrowRight");
+    await dm.getByRole("button", { name: "Save text", exact: true }).click();
+    await expect.poll(async () => (await read(dm))[2].version).toBe(2);
+    const edited = (await read(dm))[2];
+    expect(edited.text).toBe("Edited gate");
+    expect(edited.fontSize).toBe(48);
+    expect(edited.color).toBe("#abcdef");
+    expect(edited.endX).toBeGreaterThan(label.endX);
+    expect(edited.endY).toBeGreaterThan(label.endY);
+    await dm.getByRole("button", { name: "Undo drawing", exact: true }).click();
+    await expect.poll(async () => (await read(dm))[2].version).toBe(3);
+    label = (await read(dm))[2];
+    expect(label.text).toBe("<b>North gate</b> 🐉\nKeep left");
+    expect(label.fontSize).toBe(32);
+    // Style changes cancel an unfinished placement; Escape cancels typed text without a save.
     await expect(dm.getByRole("button", { name: "Undo drawing" })).toBeEnabled();
     await dm.locator("canvas").focus();
     await dm.keyboard.press("Enter");
     await dm.keyboard.press("ArrowRight");
     await dm.keyboard.press("ArrowDown");
-    await dm.getByLabel("Drawing text", { exact: true }).fill("SECRET TEXT MARKER 🐉");
+    await dm.getByLabel("Text font size").fill("24");
     await dm.locator("canvas").focus();
     await dm.keyboard.press("Enter");
-    await dm.keyboard.press("ArrowRight");
-    await dm.keyboard.press("ArrowDown");
-    await dm.keyboard.press("Escape");
+    await dm.keyboard.press("Enter");
+    await dm.getByLabel("Drawing text", { exact: true }).fill("Canceled draft");
+    await dm.getByLabel("Drawing text", { exact: true }).press("Escape");
     await dm.getByRole("button", { name: "GM-only drawings", exact: true }).click();
     await dm.locator("canvas").focus();
     await dm.keyboard.press("Enter");
     await dm.keyboard.press("ArrowRight");
     await dm.keyboard.press("ArrowDown");
     await dm.keyboard.press("Enter");
+    await dm.getByLabel("Drawing text", { exact: true }).fill("SECRET TEXT MARKER 🐉");
+    await dm.getByLabel("Drawing text", { exact: true }).press("Control+Enter");
     await expect.poll(async () => (await read(dm)).length).toBe(4);
     const privateLabel = (await read(dm))[3];
     expect(privateLabel.text).toBe("SECRET TEXT MARKER 🐉");
@@ -373,10 +411,43 @@ test("GM drawings synchronize, remain private, undo and survive a host restart",
     await expect.poll(async () => (await read(players[0])).length).toBe(1);
     await expect.poll(async () => (await labelPixels()).equals(beforeLabel)).toBe(true);
     await expectIdleMap(players[0]);
+    // Object eraser removes strokes and Undo restores them, including keyboard targeting.
+    await expect(dm.getByRole("button", { name: "Undo drawing", exact: true })).toBeEnabled();
+    await dm.getByRole("button", { name: "Erase drawing", exact: true }).click();
+    const linePoint = await point(dm, 600, 460);
+    await dm.mouse.click(linePoint.x, linePoint.y);
+    await expect.poll(async () => (await read(players[0])).length).toBe(0);
+    await dm.getByRole("button", { name: "Undo drawing", exact: true }).click();
+    await expect.poll(async () => (await read(players[0])).length).toBe(1);
+    await dm.locator("canvas").focus();
+    await dm.keyboard.press("ArrowRight");
+    await dm.keyboard.press("Enter");
+    await expect.poll(async () => (await read(players[0])).length).toBe(0);
+    await expect(dm.getByRole("button", { name: "Undo drawing", exact: true })).toBeEnabled();
+    await dm.locator("canvas").press("Control+z");
+    await expect.poll(async () => (await read(players[0])).length).toBe(1);
+    await dm.getByRole("button", { name: "Draw freehand", exact: true }).click();
+    await dm.getByRole("button", { name: "Shared drawings", exact: true }).click();
+    await drag(dm, [400, 300], [500, 400]);
+    await expect.poll(async () => (await read(dm)).length).toBe(3);
+    const erasedStroke = (await read(dm))[2];
+    await dm.getByRole("button", { name: "Erase drawing", exact: true }).click();
+    const strokePoint = await point(dm, 450, 350);
+    await dm.mouse.click(strokePoint.x, strokePoint.y);
+    await expect.poll(async () => (await read(dm)).length).toBe(2);
+    await dm.getByRole("button", { name: "Undo drawing", exact: true }).click();
+    await expect.poll(async () => (await read(dm)).length).toBe(3);
+    expect((await read(dm))[2].points).toEqual(erasedStroke.points);
+    await dm.getByRole("button", { name: "Undo drawing", exact: true }).click();
+    await expect.poll(async () => (await read(dm)).length).toBe(2);
     // Palette controls stay separate from the canvas, editor and right dock.
     await dm.getByRole("button", { name: "Draw text", exact: true }).click();
+    await dm.locator("canvas").focus();
+    await dm.keyboard.press("Enter");
+    await dm.keyboard.press("Enter");
     await dm.getByLabel("Drawing text", { exact: true }).fill("Layout draft");
     await dm.getByLabel("Drawing text", { exact: true }).press("Escape");
+    await dm.locator("canvas").press("Escape");
     await expect(dm.getByRole("group", { name: "Drawing controls", exact: true })).toHaveCount(0);
     await expect(dm.locator("canvas")).toBeFocused();
     for (const viewport of [
@@ -386,7 +457,12 @@ test("GM drawings synchronize, remain private, undo and survive a host restart",
     ]) {
       await dm.setViewportSize(viewport);
       await dm.getByRole("button", { name: "Draw on map", exact: true }).click();
+      await dm.locator("canvas").focus();
+      await dm.keyboard.press("Enter");
+      await dm.keyboard.press("Enter");
       await expect(dm.getByLabel("Drawing text", { exact: true })).toHaveValue("Layout draft");
+      await expect(dm.getByLabel("Text font size")).toHaveValue("24");
+      await dm.getByLabel("Drawing text", { exact: true }).press("Escape");
       const tools = await dm.locator(".drawing-controls").boundingBox();
       const editor = await dm.locator(".drawing-text-options").boundingBox();
       const dock = await dm.getByRole("complementary", { name: "Workspace sidebar" }).boundingBox();
@@ -416,7 +492,11 @@ test("GM drawings synchronize, remain private, undo and survive a host restart",
     await dm.setViewportSize({ width: 641, height: 700 });
     await dm.getByRole("button", { name: "Draw on map", exact: true }).click();
     await expect(dm.getByRole("button", { name: "Expand sidebar", exact: true })).toBeVisible();
+    await dm.locator("canvas").focus();
+    await dm.keyboard.press("Enter");
+    await dm.keyboard.press("Enter");
     await expect(dm.getByLabel("Drawing text", { exact: true })).toHaveValue("Layout draft");
+    await dm.getByLabel("Drawing text", { exact: true }).press("Escape");
     await dm.getByRole("button", { name: "Drawing color", exact: true }).click();
     const picker = await dm.locator(".drawing-color-options").boundingBox();
     const rightDock = await dm

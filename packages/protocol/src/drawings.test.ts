@@ -1,6 +1,45 @@
 import { describe, expect, it } from "vitest";
 import { DrawingSchema, TokenCommandSchema } from "./index";
 
+it("accepts versioned text edits and deletes while rejecting unsafe styles", () => {
+  const sceneId = "8f834642-e1a2-42f2-9c5b-a80b91991344",
+    drawingId = "f4f84642-e1a2-42f2-9c5b-a80b91991344";
+  const payload = {
+    sceneId,
+    drawingId,
+    expectedVersion: 1,
+    text: "North gate",
+    visibility: "shared",
+    color: "#72b7e2",
+    fontSize: 32,
+    startX: 20,
+    startY: 20,
+    endX: 320,
+    endY: 120,
+  };
+  expect(TokenCommandSchema.safeParse({ type: "drawing.updateText", payload }).success).toBe(true);
+  expect(
+    TokenCommandSchema.safeParse({
+      type: "drawing.delete",
+      payload: { sceneId, drawingId, expectedVersion: 1 },
+    }).success,
+  ).toBe(true);
+  for (const change of [
+    { fontSize: 7 },
+    { fontSize: 97 },
+    { fontSize: 24.5 },
+    { expectedVersion: 0 },
+    { text: "" },
+    { drawingId: "bad" },
+  ])
+    expect(
+      TokenCommandSchema.safeParse({
+        type: "drawing.updateText",
+        payload: { ...payload, ...change },
+      }).success,
+    ).toBe(false);
+});
+
 describe("drawing commands", () => {
   const id = "8f834642-e1a2-42f2-9c5b-a80b91991344";
   const create = {

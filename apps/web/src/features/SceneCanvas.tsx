@@ -1,13 +1,15 @@
 import "pixi.js/unsafe-eval";
-import type { MapPing, Scene, Token } from "@hearth/protocol";
+import type { Drawing, MapPing, Scene, Token } from "@hearth/protocol";
 import { Maximize, Minus, Plus } from "lucide-react";
 import { Application, Container, Graphics, Sprite, Text, Texture } from "pixi.js";
 import { useEffect, useRef, useState } from "react";
 import { api } from "../api";
 import { t } from "../i18n/en";
 import { DrawingControls, type DrawingSettings } from "./DrawingControls";
+import { hitDrawing, type TextDraft } from "./drawingEditing";
 import { type FogRect, type FogTool, fogPixels, fogRectangle, footprintRevealed } from "./fog";
 import { appendFreehandPoint, finishFreehand } from "./freehand";
+import { InlineDrawingText } from "./InlineDrawingText";
 import {
   canPingPoint,
   clampScenePoint,
@@ -34,6 +36,8 @@ type Props = {
     points?: ScenePoint[],
   ) => Promise<void>;
   onUndoDrawing: () => void;
+  onEraseDrawing: (drawing: Drawing) => Promise<void>;
+  onSaveText: (draft: TextDraft) => Promise<void>;
   onCloseDrawing: () => void;
   onPing: (x: number, y: number) => boolean;
   panOnly?: boolean;
@@ -64,6 +68,65 @@ export function SceneCanvas(props: Props) {
   const [zoom, setZoom] = useState(100);
   const [distance, setDistance] = useState<number | null>(null);
   const [toolMessage, setToolMessage] = useState<string | null>(null);
+  const [textDraft, setTextDraft] = useState<TextDraft | null>(null);
+  const textDraftRef = useRef<TextDraft | null>(null);
+  textDraftRef.current = textDraft;
+  const [textError, setTextError] = useState<string | null>(null);
+  const [camera, setCamera] = useState({ x: 0, y: 0, scale: 1 });
+  const cancelText = () => {
+    setTextDraft(null);
+    setTextError(null);
+    host.current?.querySelector("canvas")?.focus();
+  };
+  const changeText = (next: TextDraft) => {
+    setTextDraft(next);
+    props.onDrawingSettings({
+      ...props.drawing,
+      text: next.text,
+      color: next.color,
+      fontSize: next.fontSize,
+      visibility: next.visibility,
+    });
+  };
+  const saveText = async () => {
+    const submitted = textDraftRef.current;
+    if (!submitted || !validDrawingText(submitted.text) || !props.online || props.busy) return;
+    setTextError(null);
+    try {
+      await props.onSaveText(submitted);
+      if (textDraftRef.current === submitted) {
+        setTextDraft(null);
+        props.onDrawingSettings({ ...props.drawing, text: "" });
+        host.current?.querySelector("canvas")?.focus();
+      }
+    } catch (error) {
+      if (textDraftRef.current === submitted)
+        setTextError(
+          error instanceof Error ? error.message : "Could not save text. Your draft is kept.",
+        );
+    }
+  };
+  // biome-ignore lint/correctness/useExhaustiveDependencies: A scene switch discards only this scene's editor and releases its async ownership.
+  useEffect(() => {
+    setTextDraft(null);
+    setTextError(null);
+    return () => {
+      textDraftRef.current = null;
+    };
+  }, [scene.id]);
+  useEffect(() => {
+    if (
+      props.mapTool !== "draw" ||
+      props.drawing.erase ||
+      props.drawing.shape !== "text" ||
+      !props.isDm
+    ) {
+      setTextDraft(null);
+      setTextError(null);
+    }
+  }, [props.mapTool, props.drawing.erase, props.drawing.shape, props.isDm]);
+  // biome-ignore lint/correctness/useExhaustiveDependencies: The renderer consumes the current draft through textDraftRef.
+  useEffect(() => update.current(), [textDraft]);
   // Only changing the actual scene/map geometry creates a new renderer.
   const { id, campaignId, name, width, height, gridSize, backgroundAssetId } = scene;
   useEffect(() => {
@@ -189,6 +252,61 @@ export function SceneCanvas(props: Props) {
       let measurementPointer: number | null = null;
       let pingCursor: ScenePoint | null = null;
       let drawCursor: ScenePoint | null = null;
+      let eraserTarget: string | null = null;
+      const eraserHighlight = new Graphics();
+      toolLayer.addChild(eraserHighlight);
+      const canAuthor = () =>
+        latest.current.mapTool === "draw" &&
+        latest.current.isDm &&
+        latest.current.online &&
+        !latest.current.busy;
+      function highlightEraser() {
+        eraserHighlight.clear();
+        renderLoop?.invalidate();
+        const d = latest.current.scene.drawings?.find((d) => d.id === eraserTarget);
+        if (!d || !latest.current.drawing.erase) {
+          eraserTarget = null;
+          return;
+        }
+        const points = [
+          { x: d.startX, y: d.startY },
+          { x: d.endX, y: d.endY },
+          ...(d.points ?? []),
+        ];
+        const left = Math.min(...points.map((p) => p.x)),
+          top = Math.min(...points.map((p) => p.y));
+        eraserHighlight
+          .rect(
+            left - 4,
+            top - 4,
+            Math.max(...points.map((p) => p.x)) - left + 8,
+            Math.max(...points.map((p) => p.y)) - top + 8,
+          )
+          .stroke({ color: 0xe65b5b, width: 2 / world.scale.x });
+      }
+      function openText(start: ScenePoint, end: ScenePoint, saved?: Drawing) {
+        const settings = latest.current.drawing;
+        const next: TextDraft = {
+          start,
+          end,
+          text: saved?.text ?? settings.text ?? "",
+          fontSize: saved?.fontSize ?? settings.fontSize ?? 24,
+          color: saved?.color ?? settings.color,
+          visibility: saved?.visibility ?? settings.visibility,
+          ...(saved ? { drawingId: saved.id, expectedVersion: saved.version } : {}),
+        };
+        latest.current.onDrawingSettings({
+          ...settings,
+          shape: "text",
+          erase: false,
+          text: next.text,
+          fontSize: next.fontSize,
+          color: next.color,
+          visibility: next.visibility,
+        });
+        setTextError(null);
+        setTextDraft(next);
+      }
       let draft: {
         start: ScenePoint;
         end: ScenePoint;
@@ -198,13 +316,10 @@ export function SceneCanvas(props: Props) {
         simplified: boolean;
       } | null = null;
       const canDraw = () =>
-        latest.current.mapTool === "draw" &&
-        latest.current.isDm &&
-        latest.current.online &&
-        !latest.current.busy &&
-        (latest.current.scene.drawings?.length ?? 0) < 64 &&
-        (latest.current.drawing.shape !== "text" ||
-          validDrawingText(latest.current.drawing.text ?? ""));
+        canAuthor() &&
+        !latest.current.drawing.erase &&
+        !textDraftRef.current &&
+        (latest.current.scene.drawings?.length ?? 0) < 64;
       function drawShape(
         target: Graphics,
         shape: DrawingSettings["shape"],
@@ -234,6 +349,7 @@ export function SceneCanvas(props: Props) {
         privateDrawings.clear();
         const retained = new Set<string>();
         for (const drawing of latest.current.scene.drawings ?? []) {
+          if (drawing.id === textDraftRef.current?.drawingId) continue;
           const target = drawing.visibility === "shared" ? sharedDrawings : privateDrawings;
           if (drawing.shape === "text" && drawing.text !== undefined) {
             retained.add(drawing.id);
@@ -246,6 +362,8 @@ export function SceneCanvas(props: Props) {
                 drawing.color,
                 { x: drawing.startX, y: drawing.startY },
                 { x: drawing.endX, y: drawing.endY },
+                drawing.fontSize ?? 24,
+                drawing.textFit ?? false,
               );
               if (!object) continue;
               cached = { signature, object };
@@ -281,6 +399,7 @@ export function SceneCanvas(props: Props) {
             draft.settings.color,
             draft.start,
             draft.end,
+            draft.settings.fontSize ?? 24,
           );
           if (previewText) drawingPreview.addChild(previewText);
           drawingPreview
@@ -330,15 +449,24 @@ export function SceneCanvas(props: Props) {
         clearDraft();
         if (!finished || !canDraw()) return;
         if (finished.settings.shape === "text") {
-          const bounds = textDrawingBounds(finished.start, finished.end);
+          const click =
+            Math.hypot(finished.end.x - finished.start.x, finished.end.y - finished.start.y) < 5;
+          const w = Math.min(240, width),
+            h = Math.min(96, height);
+          const start = click
+            ? {
+                x: Math.min(finished.start.x, width - w),
+                y: Math.min(finished.start.y, height - h),
+              }
+            : finished.start;
+          const end = click ? { x: start.x + w, y: start.y + h } : finished.end;
+          const bounds = textDrawingBounds(start, end);
           if (!bounds) {
-            setToolMessage(
-              "Text box: use 40–1024 pixels wide and 32–512 high. Drag a new box or use Enter and arrows.",
-            );
+            setToolMessage("Drag a larger text box, or click to use a standard box.");
             return;
           }
           setToolMessage(null);
-          void latest.current.onDraw(finished.settings, bounds.start, bounds.end);
+          openText(bounds.start, bounds.end);
           return;
         }
         const dx = Math.abs(finished.end.x - finished.start.x),
@@ -359,7 +487,7 @@ export function SceneCanvas(props: Props) {
             ? "Stroke simplified to keep it within the 128-point limit."
             : null,
         );
-        void latest.current.onDraw(finished.settings, start, end, path?.points);
+        void latest.current.onDraw(finished.settings, start, end, path?.points).catch(() => {});
       }
       const pingStarted = new Map<string, number>();
       function drawMeasurement() {
@@ -538,6 +666,7 @@ export function SceneCanvas(props: Props) {
         )
           clearDraft();
         renderDrawings();
+        highlightEraser();
         reconcileFog();
         const tokens = latest.current.scene.tokens;
         for (const [key, piece] of pieces)
@@ -603,6 +732,7 @@ export function SceneCanvas(props: Props) {
           (app.screen.height - height * scale) / 2,
         );
         setZoom(Math.round(scale * 100));
+        setCamera({ x: world.x, y: world.y, scale: world.scale.x });
         drawMeasurement();
         drawKeyboardCursor();
       }
@@ -615,6 +745,7 @@ export function SceneCanvas(props: Props) {
         );
         world.scale.set(scale);
         setZoom(Math.round(scale * 100));
+        setCamera({ x: world.x, y: world.y, scale: world.scale.x });
         drawMeasurement();
         drawKeyboardCursor();
       }
@@ -650,6 +781,30 @@ export function SceneCanvas(props: Props) {
         canvas.focus();
         const p = point(e);
         if (e.button === 0 && latest.current.mapTool === "draw") {
+          if (!canAuthor() || textDraftRef.current) return;
+          if (latest.current.drawing.erase) {
+            const hit = hitDrawing(latest.current.scene.drawings ?? [], p, 8 / world.scale.x);
+            if (hit)
+              void latest.current
+                .onEraseDrawing(hit)
+                .catch((error) =>
+                  setToolMessage(
+                    error instanceof Error ? error.message : "Could not erase drawing.",
+                  ),
+                );
+            return;
+          }
+          if (latest.current.drawing.shape === "text") {
+            const hit = hitDrawing(
+              (latest.current.scene.drawings ?? []).filter((d) => d.shape === "text"),
+              p,
+              0,
+            );
+            if (hit) {
+              openText({ x: hit.startX, y: hit.startY }, { x: hit.endX, y: hit.endY }, hit);
+              return;
+            }
+          }
           if (!canDraw() || p.x < 0 || p.y < 0 || p.x > width || p.y > height) return;
           const start = clampScenePoint(p, width, height);
           draft = {
@@ -705,6 +860,13 @@ export function SceneCanvas(props: Props) {
         canvas.style.cursor = "grabbing";
       };
       const move = (e: PointerEvent) => {
+        if (canAuthor() && latest.current.drawing.erase) {
+          eraserTarget =
+            hitDrawing(latest.current.scene.drawings ?? [], point(e), 8 / world.scale.x)?.id ??
+            null;
+          highlightEraser();
+          return;
+        }
         if (draft?.pointer === e.pointerId) {
           if (!canDraw()) {
             clearDraft();
@@ -727,7 +889,10 @@ export function SceneCanvas(props: Props) {
           return;
         }
         if (pan || drag) renderLoop?.invalidate();
-        if (pan) world.position.set(pan.wx + e.clientX - pan.x, pan.wy + e.clientY - pan.y);
+        if (pan) {
+          world.position.set(pan.wx + e.clientX - pan.x, pan.wy + e.clientY - pan.y);
+          setCamera({ x: world.x, y: world.y, scale: world.scale.x });
+        }
         if (drag) {
           const token = latest.current.scene.tokens.find((t) => t.id === drag?.id);
           const piece = pieces.get(drag.id);
@@ -788,9 +953,54 @@ export function SceneCanvas(props: Props) {
         reconcile();
       };
       const key = (e: KeyboardEvent) => {
+        if (
+          (e.ctrlKey || e.metaKey) &&
+          e.key.toLowerCase() === "z" &&
+          latest.current.mapTool === "draw"
+        ) {
+          e.preventDefault();
+          if (!e.repeat && canAuthor() && latest.current.scene.canUndoDrawing)
+            latest.current.onUndoDrawing();
+          return;
+        }
+        if (latest.current.mapTool === "draw" && latest.current.drawing.erase) {
+          const objects = latest.current.scene.drawings ?? [];
+          if (e.key.startsWith("Arrow")) {
+            e.preventDefault();
+            const old = objects.findIndex((d) => d.id === eraserTarget);
+            const backwards = e.key === "ArrowLeft" || e.key === "ArrowUp";
+            const index =
+              old < 0
+                ? backwards
+                  ? objects.length - 1
+                  : 0
+                : (old + (backwards ? -1 : 1) + objects.length) % objects.length;
+            eraserTarget = objects[index]?.id ?? null;
+            highlightEraser();
+            return;
+          }
+          if (e.key === "Enter") {
+            e.preventDefault();
+            const target = objects.find((d) => d.id === eraserTarget);
+            if (target && !e.repeat && canAuthor())
+              void latest.current
+                .onEraseDrawing(target)
+                .catch((error) =>
+                  setToolMessage(
+                    error instanceof Error ? error.message : "Could not erase drawing.",
+                  ),
+                );
+            return;
+          }
+        }
         if (e.key === "Escape" && draft) {
           clearDraft();
           e.preventDefault();
+          return;
+        }
+        if (e.key === "Escape" && latest.current.mapTool === "draw") {
+          e.preventDefault();
+          latest.current.onCloseDrawing();
           return;
         }
         if (e.key === "Escape" && measurement) {
@@ -973,15 +1183,45 @@ export function SceneCanvas(props: Props) {
       {props.isDm && props.mapTool === "draw" && (
         <DrawingControls
           settings={props.drawing}
-          onChange={props.onDrawingSettings}
+          onChange={(next) => {
+            props.onDrawingSettings(next);
+            if (textDraft && next.shape === "text" && !next.erase)
+              setTextDraft({
+                ...textDraft,
+                text: next.text ?? textDraft.text,
+                color: next.color,
+                fontSize: next.fontSize ?? 24,
+                visibility: next.visibility,
+              });
+          }}
+          editing={!!textDraft}
+          onSaveText={() => void saveText()}
+          onCancelText={cancelText}
+          textError={textError}
           onClose={() => {
             props.onCloseDrawing();
             host.current?.querySelector("canvas")?.focus();
           }}
           onUndo={props.onUndoDrawing}
           disabled={!props.online || props.busy}
-          empty={(scene.drawings?.length ?? 0) === 0}
+          empty={
+            scene.canUndoDrawing !== undefined
+              ? !scene.canUndoDrawing
+              : (scene.drawings?.length ?? 0) === 0
+          }
           full={(scene.drawings?.length ?? 0) >= 64}
+        />
+      )}
+      {textDraft && (
+        <InlineDrawingText
+          draft={textDraft}
+          camera={camera}
+          width={width}
+          height={height}
+          onChange={changeText}
+          onSave={() => void saveText()}
+          onCancel={cancelText}
+          disabled={!props.online || props.busy}
         />
       )}
       {failure === "gpu" && (
@@ -1027,11 +1267,13 @@ export function SceneCanvas(props: Props) {
               (props.mapTool === "measure"
                 ? "Ruler: drag to measure · Enter and arrows to adjust · Esc clears"
                 : props.mapTool === "draw"
-                  ? props.drawing.shape === "freehand"
-                    ? "Freehand: drag a stroke · Enter starts/finishes, arrows add points · Esc cancels · 128 saved points"
-                    : props.drawing.shape === "text"
-                      ? "Text: enter a label, then drag a box · Enter, arrows, Enter to place · Esc cancels"
-                      : "Draw: drag on the map · Enter, arrows, Enter to place · Esc cancels"
+                  ? props.drawing.erase
+                    ? "Eraser: click an object · arrows choose, Enter erases · Ctrl/Command+Z restores"
+                    : props.drawing.shape === "freehand"
+                      ? "Freehand: drag a stroke · Enter starts/finishes, arrows add points · Esc cancels · 128 saved points"
+                      : props.drawing.shape === "text"
+                        ? "Text: click or drag, then type on the map · Ctrl/Command+Enter saves · Esc cancels"
+                        : "Draw: drag on the map · Enter, arrows, Enter to place · Esc cancels"
                   : "Ping: click the map · arrows and Enter work from the keyboard")}
           </span>
           {distance !== null && (

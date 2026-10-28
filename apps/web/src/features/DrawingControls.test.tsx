@@ -38,6 +38,7 @@ function Example() {
   const [open, setOpen] = useState(true);
   return (
     <>
+      <output aria-label="Retained drawing text">{settings.text}</output>
       <button type="button" onClick={() => setOpen(true)}>
         Open drawings
       </button>
@@ -71,24 +72,20 @@ it("uses named icon buttons for shapes, layer choices and color swatches while k
   fireEvent.click(screen.getByRole("button", { name: "Blue drawing color" }));
   expect(screen.getByRole("button", { name: "Drawing color" }).title).toContain("Blue");
   fireEvent.click(screen.getByRole("button", { name: "Draw text" }));
-  expect(
-    (screen.getByLabelText("Drawing text", { exact: true }) as HTMLTextAreaElement).value,
-  ).toBe("Keep this draft");
+  expect(screen.getByLabelText("Retained drawing text").textContent).toBe("Keep this draft");
   expect((screen.getByRole("button", { name: "Undo drawing" }) as HTMLButtonElement).disabled).toBe(
     true,
   );
 });
-it("closes with Escape without clearing the editor draft", () => {
+it("closes with Escape without clearing text or font settings", () => {
   render(<Example />);
   fireEvent.click(screen.getByRole("button", { name: "Draw text" }));
-  const editor = screen.getByLabelText("Drawing text", { exact: true });
-  fireEvent.change(editor, { target: { value: "Changed draft" } });
+  const editor = screen.getByLabelText("Text font size");
+  fireEvent.change(editor, { target: { value: "32" } });
   fireEvent.keyDown(editor, { key: "Escape" });
   expect(screen.queryByRole("group", { name: "Drawing controls" })).toBeNull();
   fireEvent.click(screen.getByRole("button", { name: "Open drawings" }));
-  expect(
-    (screen.getByLabelText("Drawing text", { exact: true }) as HTMLTextAreaElement).value,
-  ).toBe("Changed draft");
+  expect(screen.getByLabelText("Retained drawing text").textContent).toBe("Keep this draft");
   expect(
     within(screen.getByRole("group", { name: "Drawing shape" })).getAllByRole("button"),
   ).toHaveLength(4);

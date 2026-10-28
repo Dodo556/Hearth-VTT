@@ -7,6 +7,8 @@ export function createTextDrawing(
   color: string,
   start: ScenePoint,
   end: ScenePoint,
+  fontSize = 24,
+  fit = false,
 ): Container | null {
   const left = Math.min(start.x, end.x),
     top = Math.min(start.y, end.y);
@@ -19,8 +21,8 @@ export function createTextDrawing(
     text: text.trim(),
     style: {
       fontFamily: "system-ui",
-      fontSize: 24,
-      lineHeight: 30,
+      fontSize,
+      lineHeight: fontSize * 1.25,
       fill: color,
       stroke: { color: "#151a1e", width: 3 },
       wordWrap: true,
@@ -28,9 +30,10 @@ export function createTextDrawing(
       breakWords: true,
     },
   });
-  label.scale.set(
-    Math.min(1, (width - 8) / Math.max(label.width, 1), (height - 8) / Math.max(label.height, 1)),
-  );
+  if (fit)
+    label.scale.set(
+      Math.min(1, (width - 8) / Math.max(label.width, 1), (height - 8) / Math.max(label.height, 1)),
+    );
   label.position.set(4, 4);
   const clip = new Graphics().rect(0, 0, width, height).fill(0xffffff);
   label.mask = clip;

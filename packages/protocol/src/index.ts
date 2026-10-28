@@ -42,6 +42,9 @@ export const DrawingTextSchema = z.string().refine(
 const DrawingFields = z
   .object({
     id: z.uuid(),
+    version: z.number().int().positive().max(Number.MAX_SAFE_INTEGER).default(1),
+    fontSize: z.number().int().min(8).max(96).optional(),
+    textFit: z.boolean().optional(),
     shape: z.enum(["line", "rectangle", "freehand", "text"]),
     text: DrawingTextSchema.optional(),
     points: z
@@ -59,10 +62,13 @@ const DrawingFields = z
 const validDrawingPoints = (drawing: {
   shape: string;
   text?: string;
+  fontSize?: number;
   points?: { x: number; y: number }[];
 }) =>
   (drawing.shape === "freehand" ? (drawing.points?.length ?? 0) >= 2 : !drawing.points?.length) &&
-  (drawing.shape === "text" ? drawing.text !== undefined : drawing.text === undefined);
+  (drawing.shape === "text"
+    ? drawing.text !== undefined
+    : drawing.text === undefined && drawing.fontSize === undefined);
 export const DrawingSchema = DrawingFields.refine(validDrawingPoints);
 export type Drawing = z.infer<typeof DrawingSchema>;
 export const FogSchema = z
@@ -90,6 +96,7 @@ export const SceneSchema = z.object({
   active: z.boolean(),
   tokens: z.array(TokenSchema),
   drawings: z.array(DrawingSchema).max(64).optional(),
+  canUndoDrawing: z.boolean().optional(),
 });
 export const JournalSchema = z.object({
   version: z.number().int().positive(),
@@ -276,11 +283,36 @@ export const CombatResponse = z.object({ ...version, encounter: EncounterSchema.
 const combatRef = z
   .object({ encounterId: z.uuid(), expectedVersion: z.number().int().positive() })
   .strict();
+const drawingRef = z
+  .object({
+    sceneId: z.uuid(),
+    drawingId: z.uuid(),
+    expectedVersion: z.number().int().positive().max(Number.MAX_SAFE_INTEGER),
+  })
+  .strict();
 export const TokenCommandSchema = z.discriminatedUnion("type", [
+  z.object({ type: z.literal("drawing.delete"), payload: drawingRef }).strict(),
+  z
+    .object({
+      type: z.literal("drawing.updateText"),
+      payload: drawingRef
+        .extend({
+          text: DrawingTextSchema,
+          visibility: z.enum(["shared", "dm"]),
+          color: z.string().regex(/^#[0-9a-f]{6}$/),
+          fontSize: z.number().int().min(8).max(96),
+          startX: z.number().finite(),
+          startY: z.number().finite(),
+          endX: z.number().finite(),
+          endY: z.number().finite(),
+        })
+        .strict(),
+    })
+    .strict(),
   z
     .object({
       type: z.literal("drawing.create"),
-      payload: DrawingFields.omit({ id: true })
+      payload: DrawingFields.omit({ id: true, version: true, textFit: true })
         .extend({ sceneId: z.uuid(), clientDrawingId: z.uuid() })
         .strict()
         .refine(validDrawingPoints),

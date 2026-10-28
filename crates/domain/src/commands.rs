@@ -30,6 +30,10 @@ pub enum ClientFrame {
 pub enum TokenCommand {
     #[serde(rename = "drawing.create")]
     DrawingCreate(CreateDrawing),
+    #[serde(rename = "drawing.delete")]
+    DrawingDelete(DrawingRef),
+    #[serde(rename = "drawing.updateText")]
+    DrawingUpdateText(UpdateDrawingText),
     #[serde(rename = "drawing.undo")]
     DrawingUndo(SceneRef),
     #[serde(rename = "combat.create")]
@@ -131,6 +135,8 @@ impl TokenCommand {
         match self {
             Self::DrawingCreate(p) => &p.scene_id,
             Self::DrawingUndo(p) => &p.scene_id,
+            Self::DrawingDelete(p) => &p.scene_id,
+            Self::DrawingUpdateText(p) => &p.scene_id,
             Self::CombatCreate(p) => &p.client_encounter_id,
             Self::CombatAdd(p) => &p.client_combatant_id,
             Self::CombatRemove(p) => &p.combatant_id,
@@ -172,6 +178,8 @@ impl TokenCommand {
 #[serde(rename_all = "camelCase", deny_unknown_fields)]
 pub struct CreateDrawing {
     #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub font_size: Option<i64>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
     pub text: Option<String>,
     #[serde(default, skip_serializing_if = "Vec::is_empty")]
     pub points: Vec<crate::DrawingPoint>,
@@ -187,7 +195,13 @@ pub struct CreateDrawing {
 }
 impl TokenCommand {
     pub fn is_drawing(&self) -> bool {
-        matches!(self, Self::DrawingCreate(_) | Self::DrawingUndo(_))
+        matches!(
+            self,
+            Self::DrawingCreate(_)
+                | Self::DrawingUndo(_)
+                | Self::DrawingDelete(_)
+                | Self::DrawingUpdateText(_)
+        )
     }
 }
 
@@ -511,4 +525,27 @@ fn required_nullable_initiative<'de, D: serde::Deserializer<'de>>(
     deserializer: D,
 ) -> Result<Option<i64>, D::Error> {
     Option::<i64>::deserialize(deserializer)
+}
+
+#[derive(Debug, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase", deny_unknown_fields)]
+pub struct DrawingRef {
+    pub scene_id: String,
+    pub drawing_id: String,
+    pub expected_version: i64,
+}
+#[derive(Debug, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase", deny_unknown_fields)]
+pub struct UpdateDrawingText {
+    pub scene_id: String,
+    pub drawing_id: String,
+    pub expected_version: i64,
+    pub text: String,
+    pub visibility: Visibility,
+    pub color: String,
+    pub font_size: i64,
+    pub start_x: f64,
+    pub start_y: f64,
+    pub end_x: f64,
+    pub end_y: f64,
 }

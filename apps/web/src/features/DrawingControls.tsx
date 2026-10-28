@@ -1,10 +1,24 @@
 import type { Drawing } from "@hearth/protocol";
-import { Eye, LockKeyhole, Minus, PencilLine, Square, Type, Undo2, X } from "lucide-react";
+import {
+  Check,
+  Eraser,
+  Eye,
+  LockKeyhole,
+  Minus,
+  PencilLine,
+  Square,
+  Type,
+  Undo2,
+  X,
+} from "lucide-react";
 import { useEffect, useRef, useState } from "react";
 import { ToolButton } from "../workspace/ToolButton";
 import { validDrawingText } from "./textDrawings";
 
-export type DrawingSettings = Pick<Drawing, "shape" | "visibility" | "color" | "text">;
+export type DrawingSettings = Pick<
+  Drawing,
+  "shape" | "visibility" | "color" | "text" | "fontSize"
+> & { erase?: boolean };
 const shapes = [
   { shape: "line", icon: Minus },
   { shape: "rectangle", icon: Square },
@@ -25,6 +39,10 @@ export function DrawingControls({
   disabled,
   empty,
   full,
+  editing = false,
+  onSaveText,
+  onCancelText,
+  textError,
 }: {
   settings: DrawingSettings;
   onChange: (settings: DrawingSettings) => void;
@@ -33,6 +51,10 @@ export function DrawingControls({
   disabled: boolean;
   empty: boolean;
   full: boolean;
+  editing?: boolean;
+  onSaveText?: () => void;
+  onCancelText?: () => void;
+  textError?: string | null;
 }) {
   const [colorsOpen, setColorsOpen] = useState(false);
   const root = useRef<HTMLFieldSetElement>(null);
@@ -75,19 +97,29 @@ export function DrawingControls({
           {shapes.map(({ shape, icon }) => (
             <ToolButton
               key={shape}
+              disabled={disabled}
               label={`Draw ${shape}`}
               icon={icon}
-              pressed={settings.shape === shape}
+              pressed={!settings.erase && settings.shape === shape}
               onClick={() => {
-                onChange({ ...settings, shape });
+                onChange({ ...settings, shape, erase: false });
                 setColorsOpen(false);
               }}
             />
           ))}
         </fieldset>
+        <ToolButton
+          disabled={disabled}
+          label="Erase drawing"
+          title="Erase a whole object · Undo restores it"
+          icon={Eraser}
+          pressed={!!settings.erase}
+          onClick={() => onChange({ ...settings, erase: !settings.erase })}
+        />
         <span className="tool-divider" />
         <fieldset aria-label="Drawing layer" className="drawing-tool-group">
           <ToolButton
+            disabled={disabled}
             label="Shared drawings"
             title="Shared · visible in revealed areas"
             icon={Eye}
@@ -95,6 +127,7 @@ export function DrawingControls({
             onClick={() => onChange({ ...settings, visibility: "shared" })}
           />
           <ToolButton
+            disabled={disabled}
             label="GM-only drawings"
             title="GM only · hidden from players"
             icon={LockKeyhole}
@@ -108,6 +141,7 @@ export function DrawingControls({
         <span className="tool-divider" />
         <ToolButton
           ref={colorTrigger}
+          disabled={disabled}
           label="Drawing color"
           title={`Drawing color · ${colors.find((c) => c.color === settings.color)?.name ?? settings.color}`}
           aria-expanded={colorsOpen}
@@ -118,6 +152,7 @@ export function DrawingControls({
         </ToolButton>
         <ToolButton
           label="Undo drawing"
+          title="Undo drawing change · Ctrl/Command+Z · last 128 changes"
           icon={Undo2}
           disabled={disabled || empty}
           onClick={onUndo}
@@ -128,7 +163,7 @@ export function DrawingControls({
           </span>
         )}
       </fieldset>
-      {settings.shape === "text" && !colorsOpen && (
+      {settings.shape === "text" && !settings.erase && !colorsOpen && (
         <fieldset className="drawing-options drawing-text-options">
           <legend className="sr-only">Text drawing options</legend>
           <div className="drawing-options-heading">
@@ -136,22 +171,45 @@ export function DrawingControls({
             <span>{visibility}</span>
           </div>
           <label>
-            Drawing text
-            <textarea
-              aria-label="Drawing text"
-              aria-describedby="drawing-text-help"
-              aria-invalid={!!settings.text && !validDrawingText(settings.text)}
-              value={settings.text ?? ""}
-              maxLength={240}
-              rows={3}
-              placeholder="Add a label…"
-              onChange={(e) => onChange({ ...settings, text: e.target.value })}
+            Font size
+            <input
+              type="number"
+              disabled={disabled}
+              aria-label="Text font size"
+              min={8}
+              max={96}
+              step={1}
+              value={settings.fontSize ?? 24}
+              onChange={(e) => {
+                const n = e.target.valueAsNumber;
+                if (Number.isInteger(n) && n >= 8 && n <= 96)
+                  onChange({ ...settings, fontSize: n });
+              }}
             />
           </label>
-          <small id="drawing-text-help">
-            {[...(settings.text ?? "")].length}/120 · up to 4 lines
-          </small>
-          <p>Drag a box on the map to place your label.</p>
+          <small>{[...(settings.text ?? "")].length}/120 · up to 4 lines</small>
+          <p>
+            {editing
+              ? "Type in the box. Use its handles to move/resize. Text outside the box is clipped."
+              : "Click or drag on the map, then start typing. Click a saved label to edit it."}
+          </p>
+          {editing && (
+            <div className="drawing-edit-actions">
+              <button
+                type="button"
+                className="button"
+                disabled={disabled || !validDrawingText(settings.text ?? "")}
+                onClick={onSaveText}
+              >
+                <Check size={14} />
+                Save text
+              </button>
+              <button type="button" className="button secondary" onClick={onCancelText}>
+                Cancel
+              </button>
+            </div>
+          )}
+          {textError && <p role="alert">{textError}</p>}
         </fieldset>
       )}
       {colorsOpen && (
@@ -162,6 +220,7 @@ export function DrawingControls({
             {colors.map(({ color, name }) => (
               <ToolButton
                 key={color}
+                disabled={disabled}
                 label={`${name} drawing color`}
                 pressed={settings.color === color}
                 onClick={() => {
@@ -174,6 +233,16 @@ export function DrawingControls({
               </ToolButton>
             ))}
           </div>
+          <label className="drawing-custom-color">
+            Custom color
+            <input
+              type="color"
+              disabled={disabled}
+              aria-label="Custom drawing color"
+              value={settings.color}
+              onChange={(e) => onChange({ ...settings, color: e.target.value })}
+            />
+          </label>
         </fieldset>
       )}
     </fieldset>

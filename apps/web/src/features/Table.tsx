@@ -586,24 +586,61 @@ function TableSession({ user, id }: { user: User; id: string }) {
               onDrawingSettings={setDrawing}
               onCloseDrawing={() => setMapTool(null)}
               onDraw={async (settings, start, end, points) => {
-                await stream
-                  .send({
-                    type: "drawing.create",
+                await stream.send({
+                  type: "drawing.create",
+                  payload: {
+                    sceneId: scene.id,
+                    clientDrawingId: newRequestId(),
+                    shape: settings.shape,
+                    visibility: settings.visibility,
+                    color: settings.color,
+                    ...(settings.shape === "text"
+                      ? { text: settings.text?.trim(), fontSize: settings.fontSize ?? 24 }
+                      : {}),
+                    ...(points ? { points } : {}),
+                    startX: start.x,
+                    startY: start.y,
+                    endX: end.x,
+                    endY: end.y,
+                  },
+                });
+              }}
+              onSaveText={async (draft) => {
+                const fields = {
+                  sceneId: scene.id,
+                  text: draft.text.trim(),
+                  color: draft.color,
+                  fontSize: draft.fontSize,
+                  visibility: draft.visibility,
+                  startX: draft.start.x,
+                  startY: draft.start.y,
+                  endX: draft.end.x,
+                  endY: draft.end.y,
+                };
+                if (draft.drawingId)
+                  await stream.send({
+                    type: "drawing.updateText",
                     payload: {
-                      sceneId: scene.id,
-                      clientDrawingId: newRequestId(),
-                      shape: settings.shape,
-                      visibility: settings.visibility,
-                      color: settings.color,
-                      ...(settings.shape === "text" ? { text: settings.text?.trim() } : {}),
-                      ...(points ? { points } : {}),
-                      startX: start.x,
-                      startY: start.y,
-                      endX: end.x,
-                      endY: end.y,
+                      ...fields,
+                      drawingId: draft.drawingId,
+                      expectedVersion: draft.expectedVersion ?? 1,
                     },
-                  })
-                  .catch(() => {});
+                  });
+                else
+                  await stream.send({
+                    type: "drawing.create",
+                    payload: { ...fields, shape: "text", clientDrawingId: newRequestId() },
+                  });
+              }}
+              onEraseDrawing={async (drawing) => {
+                await stream.send({
+                  type: "drawing.delete",
+                  payload: {
+                    sceneId: scene.id,
+                    drawingId: drawing.id,
+                    expectedVersion: drawing.version,
+                  },
+                });
               }}
               onUndoDrawing={() => change({ type: "drawing.undo", payload: { sceneId: scene.id } })}
               onPing={(x, y) => stream.ping(scene.id, x, y)}

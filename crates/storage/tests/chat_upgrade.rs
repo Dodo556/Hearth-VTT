@@ -67,7 +67,7 @@ async fn upgrade_eight_preserves_existing_roll_bytes_nonces_and_journal_versions
             .fetch_one(&store.pool)
             .await
             .unwrap(),
-        13
+        14
     );
     assert_eq!(
         sqlx::query_scalar::<_, i64>("SELECT COUNT(*) FROM pragma_foreign_key_check")
