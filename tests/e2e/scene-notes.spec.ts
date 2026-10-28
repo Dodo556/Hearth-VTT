@@ -224,11 +224,19 @@ test("scene notes preserve private drafts and share only the active scene briefi
       await dm.setViewportSize(viewport);
       if (viewport.width === 900)
         await dm.getByRole("button", { name: "Expand sidebar", exact: true }).click();
-      const box = await notes(dm).boundingBox();
-      if (!box) throw new Error("Note window missing");
-      expect(box.x).toBeGreaterThanOrEqual(0);
-      expect(box.x + box.width).toBeLessThanOrEqual(viewport.width);
-      expect(box.y + box.height).toBeLessThanOrEqual(viewport.height);
+      // ResizeObserver clamps local window position after the viewport/CSS resize.
+      await expect
+        .poll(async () => {
+          const box = await notes(dm).boundingBox();
+          return box
+            ? Math.max(
+                -box.x,
+                box.x + box.width - viewport.width,
+                box.y + box.height - viewport.height,
+              )
+            : Number.POSITIVE_INFINITY;
+        })
+        .toBeLessThanOrEqual(0);
       const save = notes(dm).getByRole("button", { name: "Update player briefing", exact: true });
       await save.scrollIntoViewIfNeeded();
       await expect(save).toBeInViewport({ ratio: 1 });

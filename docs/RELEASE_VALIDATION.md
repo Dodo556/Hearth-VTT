@@ -8,6 +8,8 @@ The first optimized gate on e09e6ef stopped101 at strict Clippy (collapsible-if)
 
 Fresh review: the initially requested gpt-6-astra/high reviewer failed on a usage limit before reviewing; one read-only gpt-6.1-sol/high fallback review completed. It found an Important overlap-targeting bug after an ID-sorted snapshot. The extended real regression observed expected Disposable counter versus actual Rowan after a no-op resource save. Selection/context hit testing now follows actual retained Pixi container order. No second review; final focused/full gate evidence follows. Minor K020 (menu can reappear after another session switches the displayed scene away/back) is deferred; current authorization and delete confirmation still apply. No Critical finding.
 
+Full7de93be optimized gate passes workflow7/TS94/Rust95/builds/13 browser cases but fails two fixture observations, so it is not a passing gate. The sheet test's global Current HP label matches both hidden retained inspector input and the sheet dialog; scope all four sheet interactions to their existing dialog. Notes resize test reads CSS width after resize but the prior left76 before ResizeObserver clamps it: transient right408 at390px; failure screenshot already shows settled left8/right340. Poll the same complete bounds condition within the existing timeout, preserving full Save hit/sidebar/draft assertions. No production behavior, privacy assertion or timeout changed. A fresh complete gate follows.
+
 Final candidate identity, matched optimized gate and inspected captures: pending completion below.
 
 ## Previous0.0.18 evidence

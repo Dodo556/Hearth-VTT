@@ -420,11 +420,11 @@ it("character sheets and linked ownership converge without private notes or stal
   await expect(dm.getByTestId("token-position")).toContainText("450");
   await lia.getByRole("tab", { name: "Characters", exact: true }).click();
   await lia.getByRole("button", { name: "Edit sheet", exact: true }).click();
-  await lia.getByLabel("Current HP", { exact: true }).fill("7");
+  await lia.getByRole("dialog").getByLabel("Current HP", { exact: true }).fill("7");
   await expect(lia.getByLabel("DM notes", { exact: true })).toHaveCount(0);
   await dm.getByRole("tab", { name: "Characters", exact: true }).click();
   await dm.getByRole("button", { name: "Edit sheet", exact: true }).click();
-  await dm.getByLabel("Current HP", { exact: true }).fill("9");
+  await dm.getByRole("dialog").getByLabel("Current HP", { exact: true }).fill("9");
   await dm.getByRole("button", { name: "Save sheet", exact: true }).click();
   await expect(kai.getByTestId("actor-hp")).toHaveText("9 / 20");
   await lia.getByRole("button", { name: "Save sheet", exact: true }).click();
@@ -432,8 +432,8 @@ it("character sheets and linked ownership converge without private notes or stal
     "This sheet changed. Reload the latest sheet before saving.",
   );
   await lia.getByRole("button", { name: "Reload latest sheet", exact: true }).click();
-  await expect(lia.getByLabel("Current HP", { exact: true })).toHaveValue("9");
-  await lia.getByLabel("Current HP", { exact: true }).fill("7");
+  await expect(lia.getByRole("dialog").getByLabel("Current HP", { exact: true })).toHaveValue("9");
+  await lia.getByRole("dialog").getByLabel("Current HP", { exact: true }).fill("7");
   await lia.getByRole("button", { name: "Save sheet", exact: true }).click();
   await expect(dm.getByTestId("actor-hp")).toHaveText("7 / 20");
   await dm.getByLabel("Permission for Lia", { exact: true }).selectOption("none");
