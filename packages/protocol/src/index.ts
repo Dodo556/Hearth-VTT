@@ -83,7 +83,25 @@ export const FogSchema = z
   })
   .strict()
   .refine((f) => f.revealed.length === Math.ceil((f.columns * f.rows) / 8) * 2);
+export const SceneNoteBodySchema = z.string().refine(
+  (text) =>
+    [...text].length <= 1000 &&
+    [...text].every((c) => {
+      const code = c.codePointAt(0) ?? 0;
+      return c === "\n" || c === "\t" || (code >= 32 && !(code >= 127 && code <= 159));
+    }),
+);
+const SceneNoteSchema = z
+  .object({
+    body: SceneNoteBodySchema,
+    version: z.number().int().nonnegative().max(Number.MAX_SAFE_INTEGER),
+  })
+  .strict();
 export const SceneSchema = z.object({
+  notes: z
+    .object({ dm: SceneNoteSchema.optional(), shared: SceneNoteSchema.optional() })
+    .strict()
+    .optional(),
   fog: FogSchema,
   id: z.string(),
   campaignId: z.string(),
@@ -305,6 +323,23 @@ export const TokenCommandSchema = z.discriminatedUnion("type", [
           startY: z.number().finite(),
           endX: z.number().finite(),
           endY: z.number().finite(),
+        })
+        .strict(),
+    })
+    .strict(),
+  z
+    .object({
+      type: z.literal("scene.notes.update"),
+      payload: z
+        .object({
+          sceneId: z.uuid(),
+          visibility: z.enum(["dm", "shared"]),
+          body: SceneNoteBodySchema,
+          expectedVersion: z
+            .number()
+            .int()
+            .nonnegative()
+            .max(Number.MAX_SAFE_INTEGER - 1),
         })
         .strict(),
     })

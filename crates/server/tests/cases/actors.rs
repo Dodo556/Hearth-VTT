@@ -368,6 +368,15 @@ async fn maximum_unicode_actors_and_grants_survive_restart() {
         .unwrap();
     let mut drawing_tx = h.state.store.pool.begin().await.unwrap();
     for scene_id in &scene_ids {
+        for scope in ["dm", "shared"] {
+            sqlx::query("INSERT INTO scene_notes VALUES(?,?,?,1)")
+                .bind(scene_id)
+                .bind(scope)
+                .bind("\u{10ffff}".repeat(1000))
+                .execute(&mut *drawing_tx)
+                .await
+                .unwrap();
+        }
         for _ in 0..64 {
             sqlx::query("INSERT INTO drawings(id,scene_id,shape,visibility,color,start_x,start_y,end_x,end_y,points) VALUES(?,?,'freehand','dm','#e65b5b',4095.99,4095.99,4094.99,4094.99,?)")
                 .bind(uuid::Uuid::new_v4().to_string()).bind(scene_id)

@@ -74,7 +74,12 @@ pub(crate) async fn execute(
     if archived {
         return Err(ApiError::forbidden());
     }
-    let mut payload = if let TokenCommand::Chat(p) = &command {
+    let mut payload = if let TokenCommand::SceneNotesUpdate(p) = &command {
+        if role != "dm" {
+            return Err(ApiError::forbidden());
+        }
+        crate::scene_notes::apply(&mut tx, campaign, p).await?
+    } else if let TokenCommand::Chat(p) = &command {
         crate::chat::apply(&mut tx, campaign, &user, revision + 1, p).await?
     } else if let TokenCommand::Roll(p) = &command {
         crate::dice::apply(&mut tx, campaign, &user, revision + 1, p).await?

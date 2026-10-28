@@ -59,7 +59,7 @@ async fn whole_host_backup_restores_committed_data_and_blobs_without_overwriting
     let archive = std::fs::read(&prepared.path).unwrap();
     let (manifest, _) = parts(&archive);
     assert_eq!(manifest["formatVersion"], 1);
-    assert_eq!(manifest["schemaVersion"], 14);
+    assert_eq!(manifest["schemaVersion"], 15);
     assert_eq!(manifest["files"].as_array().unwrap().len(), 2);
     assert_eq!(manifest["files"][0]["path"], "hearth.db");
     assert!(!manifest.to_string().contains("orphan"));
@@ -157,8 +157,8 @@ async fn corrupt_truncated_and_path_forged_archives_leave_no_recovery_copy() {
         changed["files"][0]["byteSize"] = json!(size);
         variants.push(encoded(&changed, &payload));
     }
-    for schema in [10, 11, 12, 13, 15] {
-        // A schema-14 database must not be accepted under a different manifest version.
+    for schema in [10, 11, 12, 13, 14, 16] {
+        // A schema-15 database must not be accepted under a different manifest version.
         let mut changed = manifest.clone();
         changed["schemaVersion"] = json!(schema);
         variants.push(encoded(&changed, &payload));
@@ -463,18 +463,18 @@ async fn schema_ten_backup_restores_and_migrates_without_losing_data() {
             .fetch_one(&reopened.pool)
             .await
             .unwrap(),
-        14
+        15
     );
 }
 
 #[tokio::test]
-async fn newly_created_backups_report_schema_fourteen() {
+async fn newly_created_backups_report_schema_fifteen() {
     let root = tempfile::tempdir().unwrap();
     let store = fixture(root.path()).await;
     let prepared = backup::create(&store, root.path(), "0.0.12", 100)
         .await
         .unwrap();
-    assert_eq!(prepared.summary.schema_version, 14);
+    assert_eq!(prepared.summary.schema_version, 15);
 }
 
 #[tokio::test]
@@ -482,6 +482,14 @@ async fn backup_preserves_shared_and_private_drawings() {
     let root = tempfile::tempdir().unwrap();
     let store = fixture(root.path()).await;
     sqlx::query("INSERT INTO scenes(id,campaign_id,name,width,height,grid_size,background_asset_id,created_at) VALUES('scene','campaign','Map',160,160,40,'art',1)").execute(&store.pool).await.unwrap();
+    for visibility in ["dm", "shared"] {
+        sqlx::query("INSERT INTO scene_notes VALUES('scene',?,?,7)")
+            .bind(visibility)
+            .bind(format!("<b>{visibility} 🐉</b>\n\tExact text"))
+            .execute(&store.pool)
+            .await
+            .unwrap();
+    }
     for visibility in ["shared", "dm"] {
         sqlx::query("INSERT INTO drawings(id,scene_id,shape,visibility,color,start_x,start_y,end_x,end_y) VALUES(?,'scene','line',?,'#e8bc6a',10,10,20,20)").bind(visibility).bind(visibility).execute(&store.pool).await.unwrap();
     }
@@ -513,6 +521,18 @@ async fn backup_preserves_shared_and_private_drawings() {
     .await
     .unwrap();
     let copy = Store::open(&restored).await.unwrap();
+    let notes: Vec<(String, String, i64)> =
+        sqlx::query_as("SELECT visibility,body,version FROM scene_notes ORDER BY visibility")
+            .fetch_all(&copy.pool)
+            .await
+            .unwrap();
+    assert_eq!(
+        notes,
+        vec![
+            ("dm".into(), "<b>dm 🐉</b>\n\tExact text".into(), 7),
+            ("shared".into(), "<b>shared 🐉</b>\n\tExact text".into(), 7)
+        ]
+    );
     let visibility: Vec<String> =
         sqlx::query_scalar("SELECT visibility FROM drawings ORDER BY visibility")
             .fetch_all(&copy.pool)
@@ -693,7 +713,7 @@ async fn restore_previous_drawing_schema(schema: i64) {
             .fetch_one(&reopened.pool)
             .await
             .unwrap(),
-        14
+        15
     );
     assert_eq!(
         sqlx::query_as::<_, (String, f64, f64, String)>(
@@ -711,4 +731,9 @@ async fn restore_previous_drawing_schema(schema: i64) {
             .unwrap(),
         "old-nonce"
     );
+}
+
+#[tokio::test]
+async fn schema_fourteen_backup_upgrades_without_losing_drawing_state() {
+    restore_previous_drawing_schema(14).await;
 }

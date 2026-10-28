@@ -319,3 +319,5 @@ include!("cases/chat.rs");
 include!("cases/combat.rs");
 
 include!("cases/drawings.rs");
+
+include!("cases/scene_notes.rs");

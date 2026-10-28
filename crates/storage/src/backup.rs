@@ -21,7 +21,7 @@ pub const MAX_ASSET_BYTES: u64 = 16 * 1024 * 1024;
 pub const MAX_FILES: usize = 4097;
 pub const MAX_MANIFEST_BYTES: usize = 1024 * 1024;
 pub const MAX_PIXELS: u64 = 512_000_000;
-const SCHEMA_VERSION: i64 = 14;
+const SCHEMA_VERSION: i64 = 15;
 const MARKER: &str = ".restore-in-progress";
 
 #[derive(Clone, Debug, Serialize, Deserialize, PartialEq, Eq)]

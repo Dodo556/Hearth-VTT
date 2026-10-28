@@ -49,7 +49,7 @@ it("accepts bounded non-secret backup receipts and rejects malformed or unexpect
     { ...receipt, byteSize: 536870913 },
     { ...receipt, sha256: "not a hash" },
     { ...receipt, summary: { ...summary, passwords: [] } },
-    { ...receipt, summary: { ...summary, schemaVersion: 15 } },
+    { ...receipt, summary: { ...summary, schemaVersion: 16 } },
   ])
     expect(BackupResponse.safeParse({ schemaVersion: 1, backup: value }).success).toBe(false);
   expect(

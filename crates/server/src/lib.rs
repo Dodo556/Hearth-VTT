@@ -17,6 +17,7 @@ mod live;
 mod media;
 mod recipients;
 mod recovery;
+mod scene_notes;
 mod scenes;
 mod security;
 

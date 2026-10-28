@@ -192,7 +192,9 @@ pub(crate) async fn projected_scenes(
         } else {
             None
         };
+        let notes = crate::scene_notes::projected(conn, &scene_id, dm).await?;
         scenes.push(Scene {
+            notes,
             can_undo_drawing,
             drawings,
             fog: fog.dto(),

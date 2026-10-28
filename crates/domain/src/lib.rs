@@ -43,6 +43,8 @@ pub struct Token {
 #[derive(Clone, Debug, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
 pub struct Scene {
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub notes: Option<SceneNotes>,
     pub fog: Fog,
     pub id: String,
     pub campaign_id: String,
@@ -57,6 +59,19 @@ pub struct Scene {
     pub drawings: Vec<Drawing>,
     #[serde(skip_serializing_if = "Option::is_none")]
     pub can_undo_drawing: Option<bool>,
+}
+
+#[derive(Clone, Debug, Default, Serialize, Deserialize)]
+pub struct SceneNote {
+    pub body: String,
+    pub version: i64,
+}
+#[derive(Clone, Debug, Serialize, Deserialize)]
+pub struct SceneNotes {
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub dm: Option<SceneNote>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub shared: Option<SceneNote>,
 }
 
 #[derive(Clone, Debug, Serialize, Deserialize)]

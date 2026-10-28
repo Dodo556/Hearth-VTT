@@ -28,6 +28,8 @@ pub enum ClientFrame {
 #[derive(Debug, Serialize, Deserialize)]
 #[serde(tag = "type", content = "payload", deny_unknown_fields)]
 pub enum TokenCommand {
+    #[serde(rename = "scene.notes.update")]
+    SceneNotesUpdate(UpdateSceneNote),
     #[serde(rename = "drawing.create")]
     DrawingCreate(CreateDrawing),
     #[serde(rename = "drawing.delete")]
@@ -133,6 +135,7 @@ pub enum Visibility {
 impl TokenCommand {
     pub fn token_id(&self) -> &str {
         match self {
+            Self::SceneNotesUpdate(p) => &p.scene_id,
             Self::DrawingCreate(p) => &p.scene_id,
             Self::DrawingUndo(p) => &p.scene_id,
             Self::DrawingDelete(p) => &p.scene_id,
@@ -548,4 +551,13 @@ pub struct UpdateDrawingText {
     pub start_y: f64,
     pub end_x: f64,
     pub end_y: f64,
+}
+
+#[derive(Debug, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase", deny_unknown_fields)]
+pub struct UpdateSceneNote {
+    pub scene_id: String,
+    pub visibility: Visibility,
+    pub body: String,
+    pub expected_version: i64,
 }

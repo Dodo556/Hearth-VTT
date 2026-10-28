@@ -132,7 +132,7 @@ mod tests {
             .fetch_one(&store.pool)
             .await
             .unwrap();
-        assert_eq!(version, 14, "The drawing migration must be embedded");
+        assert_eq!(version, 15, "The scene-note migration must be embedded");
         let fk: i64 = sqlx::query_scalar("PRAGMA foreign_keys")
             .fetch_one(&store.pool)
             .await
