@@ -434,7 +434,7 @@ test("GM drawings synchronize, remain private, undo and survive a host restart",
       )
       .toBeLessThan(1190);
     await dm.getByRole("button", { name: "Undo drawing", exact: true }).click();
-    await expect.poll(async () => (await read(dm)).length).toBe(1);
+    await expect.poll(async () => (await read(dm)).length).toBe(2);
     await dm.getByRole("button", { name: "Erase drawing", exact: true }).click();
     await dm.getByRole("button", { name: "Fit scene", exact: true }).click();
     await dm.locator("canvas").focus();

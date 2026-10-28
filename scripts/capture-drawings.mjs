@@ -177,6 +177,22 @@ try {
     );
     await dm.screenshot({ path: resolve(process.argv[3]), fullPage: true, animations: "disabled" });
     console.log("Captured narrow drawing controls.");
+    if (process.argv[7]) {
+      await dm.getByRole("button", { name: "Collapse sidebar", exact: true }).click();
+      await dm.getByRole("button", { name: "Fit scene", exact: true }).click();
+      const label = await mapPoint(1000, 240);
+      await dm.mouse.click(label.x, label.y);
+      await expect(dm.getByLabel("Drawing text", { exact: true })).toHaveValue(
+        "North gate\nKeep the lantern lit",
+      );
+      await dm.screenshot({
+        path: resolve(process.argv[7]),
+        fullPage: true,
+        animations: "disabled",
+      });
+      await dm.getByRole("button", { name: "Cancel", exact: true }).click();
+    }
+
     if (process.argv[5]) {
       await dm.getByRole("button", { name: "Close drawing controls", exact: true }).click();
       await dm.setViewportSize({ width: 390, height: 700 });
