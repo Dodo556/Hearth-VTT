@@ -49,10 +49,9 @@ pub(crate) async fn decorate(
     }
     if (dm || token.can_move || r.hp_visibility == "shared")
         && (r.actor_id.is_none() || token.actor_id.is_some())
+        && let (Some(hp), Some(max_hp)) = (hp, max_hp)
     {
-        if let (Some(hp), Some(max_hp)) = (hp, max_hp) {
-            token.health = Some(TokenHealth { hp, max_hp });
-        }
+        token.health = Some(TokenHealth { hp, max_hp });
     }
     Ok(())
 }
