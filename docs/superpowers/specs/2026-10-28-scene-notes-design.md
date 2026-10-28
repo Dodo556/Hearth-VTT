@@ -1,0 +1,21 @@
+# Scene notes ·0.0.18
+
+Continue the owner's authorized roadmap and UI standard after0.0.17. Complete a bounded P0 scene-note workflow, using the existing authoritative Rust/SQLite/live transaction and browser window patterns. No new dependency. Native execution conserves the stated usage budget; routine implementation choices below are the builder's calls.
+
+## Approach and scope
+
+Use two independent plain-text notes per scene: GM notes and a player briefing. This gives private preparation and explicit player sharing without mixing secret fields. Reusing campaign journals directly would require new linking/filtering semantics and clutter the general directory; configurable map pins are the separate MAP-15/P1 scope. A single local textarea would fail persistence/authorization. Use a small scene-owned table and the same versioned-save/conflict patterns as journals.
+
+`scene_notes(scene_id,visibility,body,version)` has primary key(scene_id,visibility), a cascading scene FK, dm/shared visibility,1000 Unicode scalars per body and positive persisted versions. Empty/whitespace shared notes are absent from player projections. A missing note has GM version0; saves advance independently by scope, including clears, so stale drafts cannot recreate old content. Original migrations0001..0014 remain unchanged; append0015. Whole-host backup schema15 preserves exact note bytes and supports canonical-schema10..14 isolated recovery.
+
+GM-only `scene.notes.update {sceneId,visibility,body,expectedVersion}` uses strict fields, valid IDs,0..MAX_SAFE_INTEGER-1 expected version and current campaign revision/receipt/archive/membership/scene checks. Body allows LF/TAB, rejects other controls, preserves literal text and whitespace. Replies/events contain only projection markers; authoritative REST/live scenes include `notes:{dm?:{body,version},shared?:{body,version}}`. GMs receive both defaults; players receive only nonblank shared content for their currently authorized active shared scene. Private text/version and notes from inactive/private/foreign scenes never reach players. Clearing does not retract already received knowledge. Notes are scene-wide, unaffected by cell fog; they are not map pins.
+
+## UI
+
+A named notebook button beside scene navigation opens a compact movable/resizable existing WorkspaceWindow. Add the same action to Scene controls. No new canvas mode/rail. GM tabs: GM notes (default, lock icon) and Player briefing (eye icon). Players see a read-only briefing or a clear empty state. Read mode has an Edit/Add action; editing uses a labeled textarea, Unicode counter, Save/Share/Cancel and concise visibility help. Shared saves explicitly say Share/Update/Clear player briefing. GM notes never use a sharing action. Ctrl/Command+Enter saves; Escape/close preserves drafts. Keep drafts independently by scene/scope while the table is mounted, including closing/reopening, tabs and scene switches; navigation/reload can discard them. Never store note bodies in layout preferences/localStorage.
+
+Save errors keep drafts. Stale notes retain text and offer explicit Reload saved note; no automatic overwrite. Pending/offline/archive disables mutation, while offline drafts remain editable. Scene deletion or lost access removes its editor/content. Reuse slate/gold variables, targets, focus and responsive window limits. Inspect actual1440/1600 desktop,760 narrow,390 constrained and900×520 short layouts with reachable actions; keep camera/drawing lifecycle intact.
+
+## Evidence
+
+Protocol and real-host RED→GREEN for independent versions, default privacy, forged role/foreign/archive denial, stale rejection/clear/nonces, literal Unicode/bounds, REST/raw WS filtering, scene transitions and restart. Backup current notes and original-schema14 recovery; include maximum notes in bounded snapshot coverage. Component tests cover explicit scope/save, draft/error/stale behavior. One real GM/Alice/Bob browser scenario covers private/shared typing, literal rendering, conflict/reload, scene switching/concealment, close/reopen and restart plus responsive geometry. One fresh whole-change review, complete optimized gate and inspected captures. Keep179 IDs and partial status; no P0/platform/LAN promotion. Token HP/status/context follows next.
