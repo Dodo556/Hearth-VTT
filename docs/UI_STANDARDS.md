@@ -36,6 +36,6 @@ These are defaults for future work. Change the standard deliberately when a real
 
 ## Direct text and object erasing
 
-Text starts with click/drag placement, then native typing in the scene-positioned box. Keep style/Save/Cancel in the compact inspector. Use visible36px move/resize handles with pointer capture and arrow/Shift-arrow support. Save is explicit (Ctrl/Command+Enter); Escape/Cancel ends an active edit. Keep failed drafts and disable mutation while pending/offline. New explicit-size text clips at its bounds rather than silently shrinking. Preserve legacy fit until edited. Camera changes must keep editor/handles aligned.
+Text starts with click/drag placement, then native typing in the scene-positioned box. Keep style/Save/Cancel in the compact inspector. Place36px move/resize handles just outside the text box so they do not obscure its characters; use pointer capture and arrow/Shift-arrow support. Save is explicit (Ctrl/Command+Enter); Escape/Cancel ends an active edit. Keep failed drafts and disable mutation while pending/offline. New explicit-size text clips at its bounds rather than silently shrinking. Preserve legacy fit until edited. Camera changes must keep editor/handles aligned.
 
 Use the eraser icon for whole-object removal and show its target before click; keyboard arrows/Enter provide equivalent targeting. Undo stays available after the last object is erased. Preserve middle-drag camera motion in every tool. Do not add partial-stroke/redo controls until their host behavior exists.

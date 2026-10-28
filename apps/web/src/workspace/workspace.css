@@ -1734,13 +1734,13 @@ dialog .button {
   touch-action: none;
 }
 .inline-text-move {
-  top: -18px;
-  left: -18px;
+  top: -38px;
+  left: 0;
   cursor: move;
 }
 .inline-text-resize {
-  right: -18px;
-  bottom: -18px;
+  right: 0;
+  bottom: -38px;
   cursor: nwse-resize;
 }
 .drawing-options input[type="number"] {

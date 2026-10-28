@@ -4,6 +4,10 @@ Owner-requested whole-object eraser and direct on-map text editing/move/resize/f
 
 Single fresh review of4a307c4..72aa488 found no Critical and one Important: restoring a deleted physical rowid could collide with a new row from another scene. Real host RED→GREEN validates stable scene sort order with fresh physical allocation. Preserve exact raw points/order/style/version/history in backups. A panning interaction issue initially labeled Minor is treated as a functional preservation fix; its actual scene-coordinate regression and final result are recorded with the integrated evidence. No second review. Existing deferred K019 remains; trusted manually altered backup semantics stay outside scope.
 
+Initial complete0.0.17 run at3e4b038 passed TS81/Rust89 and12/13 browser scenarios; the new panning coordinate assertion passed, then its cleanup expected one GM drawing while the fixture also retained a private shape. Correct that expectation to two; preserve the privacy/eraser assertions and timeouts. The a7059c3 rerun was deliberately interrupted (exit130) after capture inspection found36px handles covering the first characters. Neither run is promotion evidence. Move handles outside the text rectangle and freeze a final candidate for one fresh complete gate.
+
+Actual final visual fixture runs with explicit child status `{"code":0,"signal":null}` and zero page errors. Inspected1600×1000 palette/saved text/active editor,760×700 normal sidebar and active editor with collapsed sidebar, and390×700 constrained controls. Text characters are clear of both handles. Browser geometry retains900×520 short-height and641px wide-sidebar/resize checks. These are desktop/narrow checks, not a complete touch/platform audit. A cloud execution transport disconnect prevented the final save/gate; resumed checkout retains a7059c3 plus the handle-position change and captures.
+
 ## Previous0.0.16 evidence
 
 # Current cloud candidate ·0.0.16/schema13 ·2026-10-28
