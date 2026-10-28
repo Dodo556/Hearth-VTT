@@ -47,10 +47,11 @@ export function hitDrawing(
   p: ScenePoint,
   tolerance: number,
 ): Drawing | undefined {
-  const ordered = [
-    ...drawings.filter((d) => d.visibility === "shared"),
-    ...drawings.filter((d) => d.visibility === "dm"),
-  ];
+  // Text children render above primitive strokes within each visibility layer.
+  const ordered = (["shared", "dm"] as const).flatMap((visibility) => {
+    const layer = drawings.filter((d) => d.visibility === visibility);
+    return [...layer.filter((d) => d.shape !== "text"), ...layer.filter((d) => d.shape === "text")];
+  });
   return ordered.reverse().find((d) => {
     const a = { x: d.startX, y: d.startY },
       b = { x: d.endX, y: d.endY };

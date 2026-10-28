@@ -33,6 +33,8 @@ it("hits actual strokes rather than empty bounding-box interiors and prefers the
   expect(hitDrawing([stroke], { x: 50, y: 50 }, 4)).toBeUndefined();
   const privateLine = { ...line, id: "private", visibility: "dm" as const };
   expect(hitDrawing([privateLine, line], { x: 50, y: 50 }, 4)?.id).toBe("private");
+  const text = { ...line, id: "text", shape: "text" as const, text: "Gate" };
+  expect(hitDrawing([text, line], { x: 50, y: 50 }, 4)?.id).toBe("text");
 });
 it("moves and resizes a text box inside the scene without violating minimum dimensions", () => {
   const box = { start: { x: 20, y: 30 }, end: { x: 260, y: 126 } };
