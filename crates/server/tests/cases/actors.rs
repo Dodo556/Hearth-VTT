@@ -443,6 +443,9 @@ async fn maximum_unicode_actors_and_grants_survive_restart() {
         sqlx::query("INSERT INTO journals(id,campaign_id,title,body,visibility,created_at) VALUES(?,?,?,?,'shared',1)")
             .bind(uuid::Uuid::new_v4().to_string()).bind(&camp).bind("😀".repeat(80)).bind("😀".repeat(1000)).execute(&h.state.store.pool).await.unwrap();
     }
+    for _ in 0..16 {
+        sqlx::query("INSERT INTO journal_folders(id,campaign_id,name) VALUES(?,?,?)").bind(uuid::Uuid::new_v4().to_string()).bind(&camp).bind("😀".repeat(60)).execute(&h.state.store.pool).await.unwrap();
+    }
     // Include a full encounter in the same Unicode/fog/grants/chat/dice budget.
     let encounter = uuid::Uuid::new_v4().to_string();
     sqlx::query("INSERT INTO combat_encounters(id,campaign_id,scene_id,name,status,round) VALUES(?,?,?,?,'active',1000000000)").bind(&encounter).bind(&camp).bind(&scene).bind("😀".repeat(80)).execute(&h.state.store.pool).await.unwrap();

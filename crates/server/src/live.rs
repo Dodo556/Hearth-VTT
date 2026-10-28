@@ -210,6 +210,7 @@ async fn snapshot(
         .fetch_one(&mut *tx)
         .await?;
     let scenes = scenes::projected_scenes(&mut tx, campaign, role == "dm", &user).await?;
+    let folders = crate::journal_folders::projected(&mut tx, campaign, role == "dm").await?;
     let journals = scenes::projected_journals(&mut tx, campaign, role == "dm").await?;
     let actors = crate::actors::projected(&mut tx, campaign, role == "dm", &user).await?;
     let encounter =
@@ -222,9 +223,13 @@ async fn snapshot(
         .iter()
         .flat_map(|s| s.tokens.iter().map(|t| t.id.clone()))
         .collect();
-    Ok(
-        json!({"kind":"snapshot","schemaVersion":1,"streamId":state.live.stream_id,"revision":revision,"role":role,"scenes":scenes,"journals":journals,"actors":actors,"rolls":rolls,"messages":messages,"encounter":encounter,"serverTime":security::now()}),
-    )
+    Ok({
+        let mut value = json!({"kind":"snapshot","schemaVersion":1,"streamId":state.live.stream_id,"revision":revision,"role":role,"scenes":scenes,"journals":journals,"actors":actors,"rolls":rolls,"messages":messages,"encounter":encounter,"serverTime":security::now()});
+        if !folders.is_empty() {
+            value["journalFolders"] = json!(folders);
+        }
+        value
+    })
 }
 trait FrameSink {
     fn write(&mut self, value: Value) -> impl std::future::Future<Output = ApiResult<()>> + Send;

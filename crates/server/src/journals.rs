@@ -23,7 +23,7 @@ fn fields<'a>(title: &'a str, body: &str) -> ApiResult<&'a str> {
     }
     Ok(title)
 }
-async fn version(
+pub(crate) async fn version(
     conn: &mut SqliteConnection,
     campaign: &str,
     id: &str,
@@ -55,6 +55,7 @@ pub(crate) async fn apply(
 ) -> ApiResult<Value> {
     match command {
         TokenCommand::JournalCreate(p) => {
+            crate::journal_folders::destination(conn, campaign, p.folder_id.as_deref()).await?;
             let title = fields(&p.title, &p.body)?;
             let count: i64 =
                 sqlx::query_scalar("SELECT COUNT(*) FROM journals WHERE campaign_id=?")
@@ -66,8 +67,8 @@ pub(crate) async fn apply(
                     "This build supports up to 16 journal pages per campaign.",
                 ));
             }
-            let inserted = sqlx::query("INSERT INTO journals(id,campaign_id,title,body,visibility,created_at) VALUES(?,?,?,?,'dm',?) ON CONFLICT(id) DO NOTHING")
-                .bind(&p.journal_id).bind(campaign).bind(title).bind(&p.body).bind(security::now()).execute(&mut *conn).await?;
+            let inserted = sqlx::query("INSERT INTO journals(id,campaign_id,title,body,visibility,created_at,folder_id) VALUES(?,?,?,?,'dm',?,?) ON CONFLICT(id) DO NOTHING")
+                .bind(&p.journal_id).bind(campaign).bind(title).bind(&p.body).bind(security::now()).bind(&p.folder_id).execute(&mut *conn).await?;
             if inserted.rows_affected() != 1 {
                 return Err(ApiError::invalid("Use a fresh journal ID."));
             }
@@ -86,7 +87,7 @@ pub(crate) async fn apply(
                 .execute(&mut *conn)
                 .await?;
         }
-        _ => return Err(ApiError::invalid("Unsupported journal command.")),
+        _ => return crate::journal_folders::apply(conn, campaign, command).await,
     }
     // Never put private text, title, IDs or historical versions into live events.
     Ok(json!({"projection":"snapshot"}))

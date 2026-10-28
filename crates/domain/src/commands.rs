@@ -66,6 +66,14 @@ pub enum TokenCommand {
     JournalUpdate(UpdateJournal),
     #[serde(rename = "journal.delete")]
     JournalDelete(JournalRef),
+    #[serde(rename = "journal.folder.create")]
+    JournalFolderCreate(CreateJournalFolder),
+    #[serde(rename = "journal.folder.update")]
+    JournalFolderUpdate(UpdateJournalFolder),
+    #[serde(rename = "journal.folder.delete")]
+    JournalFolderDelete(JournalFolderRef),
+    #[serde(rename = "journal.move")]
+    JournalMove(MoveJournal),
     #[serde(rename = "dice.roll")]
     Roll(RollDice),
     #[serde(rename = "fog.configure")]
@@ -155,6 +163,10 @@ impl TokenCommand {
             Self::JournalCreate(p) => &p.journal_id,
             Self::JournalUpdate(p) => &p.journal_id,
             Self::JournalDelete(p) => &p.journal_id,
+            Self::JournalFolderCreate(p) => &p.folder_id,
+            Self::JournalFolderUpdate(p) => &p.folder_id,
+            Self::JournalFolderDelete(p) => &p.folder_id,
+            Self::JournalMove(p) => &p.journal_id,
             Self::Chat(p) => &p.client_message_id,
             Self::Roll(p) => &p.client_roll_id,
             Self::FogConfigure(p) => &p.scene_id,
@@ -418,6 +430,7 @@ pub struct CreateJournal {
     pub journal_id: String,
     pub title: String,
     pub body: String,
+    pub folder_id: Option<String>,
 }
 #[derive(Debug, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase", deny_unknown_fields)]
@@ -438,7 +451,13 @@ impl TokenCommand {
     pub fn is_journal(&self) -> bool {
         matches!(
             self,
-            Self::JournalCreate(_) | Self::JournalUpdate(_) | Self::JournalDelete(_)
+            Self::JournalCreate(_)
+                | Self::JournalUpdate(_)
+                | Self::JournalDelete(_)
+                | Self::JournalFolderCreate(_)
+                | Self::JournalFolderUpdate(_)
+                | Self::JournalFolderDelete(_)
+                | Self::JournalMove(_)
         )
     }
 }
@@ -570,19 +589,51 @@ pub struct UpdateSceneNote {
 pub struct UpdateTokenVitals {
     pub token_id: String,
     pub expected_version: i64,
-    #[serde(deserialize_with = "required_nullable_vitals")]
+    #[serde(deserialize_with = "required_nullable")]
     pub expected_actor_id: Option<String>,
-    #[serde(deserialize_with = "required_nullable_vitals")]
+    #[serde(deserialize_with = "required_nullable")]
     pub expected_actor_version: Option<i64>,
-    #[serde(deserialize_with = "required_nullable_vitals")]
+    #[serde(deserialize_with = "required_nullable")]
     pub hp: Option<i64>,
-    #[serde(deserialize_with = "required_nullable_vitals")]
+    #[serde(deserialize_with = "required_nullable")]
     pub max_hp: Option<i64>,
     pub hp_visibility: String,
     pub statuses: Vec<String>,
 }
-fn required_nullable_vitals<'de, D: serde::Deserializer<'de>, T: serde::Deserialize<'de>>(
+fn required_nullable<'de, D: serde::Deserializer<'de>, T: serde::Deserialize<'de>>(
     d: D,
 ) -> Result<Option<T>, D::Error> {
     Option::<T>::deserialize(d)
+}
+
+#[derive(Debug, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase", deny_unknown_fields)]
+pub struct CreateJournalFolder {
+    pub folder_id: String,
+    pub name: String,
+    #[serde(deserialize_with = "required_nullable")]
+    pub parent_id: Option<String>,
+}
+#[derive(Debug, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase", deny_unknown_fields)]
+pub struct UpdateJournalFolder {
+    pub folder_id: String,
+    pub expected_version: i64,
+    pub name: String,
+    #[serde(deserialize_with = "required_nullable")]
+    pub parent_id: Option<String>,
+}
+#[derive(Debug, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase", deny_unknown_fields)]
+pub struct JournalFolderRef {
+    pub folder_id: String,
+    pub expected_version: i64,
+}
+#[derive(Debug, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase", deny_unknown_fields)]
+pub struct MoveJournal {
+    pub journal_id: String,
+    pub expected_version: i64,
+    #[serde(deserialize_with = "required_nullable")]
+    pub folder_id: Option<String>,
 }

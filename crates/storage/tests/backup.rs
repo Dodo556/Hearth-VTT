@@ -59,7 +59,7 @@ async fn whole_host_backup_restores_committed_data_and_blobs_without_overwriting
     let archive = std::fs::read(&prepared.path).unwrap();
     let (manifest, _) = parts(&archive);
     assert_eq!(manifest["formatVersion"], 1);
-    assert_eq!(manifest["schemaVersion"], 16);
+    assert_eq!(manifest["schemaVersion"], 17);
     assert_eq!(manifest["files"].as_array().unwrap().len(), 2);
     assert_eq!(manifest["files"][0]["path"], "hearth.db");
     assert!(!manifest.to_string().contains("orphan"));
@@ -157,8 +157,8 @@ async fn corrupt_truncated_and_path_forged_archives_leave_no_recovery_copy() {
         changed["files"][0]["byteSize"] = json!(size);
         variants.push(encoded(&changed, &payload));
     }
-    for schema in [10, 11, 12, 13, 14, 15, 17] {
-        // A schema-16 database must not be accepted under a different manifest version.
+    for schema in [10, 11, 12, 13, 14, 15, 16, 18] {
+        // A schema-17 database must not be accepted under a different manifest version.
         let mut changed = manifest.clone();
         changed["schemaVersion"] = json!(schema);
         variants.push(encoded(&changed, &payload));
@@ -463,18 +463,18 @@ async fn schema_ten_backup_restores_and_migrates_without_losing_data() {
             .fetch_one(&reopened.pool)
             .await
             .unwrap(),
-        16
+        17
     );
 }
 
 #[tokio::test]
-async fn newly_created_backups_report_schema_sixteen() {
+async fn newly_created_backups_report_schema_seventeen() {
     let root = tempfile::tempdir().unwrap();
     let store = fixture(root.path()).await;
     let prepared = backup::create(&store, root.path(), "0.0.12", 100)
         .await
         .unwrap();
-    assert_eq!(prepared.summary.schema_version, 16);
+    assert_eq!(prepared.summary.schema_version, 17);
 }
 
 #[tokio::test]
@@ -510,6 +510,12 @@ async fn backup_preserves_shared_and_private_drawings() {
         .unwrap();
     let points = "[{\"x\":10.12,\"y\":10.57},{\"x\":90.0,\"y\":20.0},{\"x\":10.12,\"y\":10.57}]";
     sqlx::query("INSERT INTO drawings(id,scene_id,shape,visibility,color,start_x,start_y,end_x,end_y,points) VALUES('stroke','scene','freehand','dm','#72b7e2',10.12,10.57,10.12,10.57,?)").bind(points).execute(&store.pool).await.unwrap();
+    sqlx::query("INSERT INTO journal_folders(id,campaign_id,name,version) VALUES('folder','campaign','Exact 🐉',7)").execute(&store.pool).await.unwrap();
+    sqlx::query("INSERT INTO journal_folders(id,campaign_id,parent_id,name,version) VALUES('child','campaign','folder','Nested',3)").execute(&store.pool).await.unwrap();
+    sqlx::query("UPDATE journals SET folder_id='child'")
+        .execute(&store.pool)
+        .await
+        .unwrap();
     let prepared = backup::create(&store, root.path(), "0.0.12", 100)
         .await
         .unwrap();
@@ -522,6 +528,25 @@ async fn backup_preserves_shared_and_private_drawings() {
     .await
     .unwrap();
     let copy = Store::open(&restored).await.unwrap();
+    assert_eq!(
+        sqlx::query_as::<_, (String, Option<String>, String, i64)>(
+            "SELECT id,parent_id,name,version FROM journal_folders ORDER BY id"
+        )
+        .fetch_all(&copy.pool)
+        .await
+        .unwrap(),
+        vec![
+            ("child".into(), Some("folder".into()), "Nested".into(), 3),
+            ("folder".into(), None, "Exact 🐉".into(), 7)
+        ]
+    );
+    assert_eq!(
+        sqlx::query_scalar::<_, String>("SELECT folder_id FROM journals")
+            .fetch_one(&copy.pool)
+            .await
+            .unwrap(),
+        "child"
+    );
     assert_eq!(sqlx::query_as::<_,(i64,i64,i64,String,String)>("SELECT hp,max_hp,vitals_version,hp_visibility,statuses FROM tokens WHERE id='vitals-token'").fetch_one(&copy.pool).await.unwrap(),(7,13,9,"shared".into(),"[\"marked\",\"poisoned\"]".into()));
     let notes: Vec<(String, String, i64)> =
         sqlx::query_as("SELECT visibility,body,version FROM scene_notes ORDER BY visibility")
@@ -737,7 +762,7 @@ async fn restore_previous_drawing_schema(schema: i64) {
             .fetch_one(&reopened.pool)
             .await
             .unwrap(),
-        16
+        17
     );
     assert_eq!(
         sqlx::query_as::<_, (String, f64, f64, String)>(
@@ -765,4 +790,9 @@ async fn schema_fourteen_backup_upgrades_without_losing_drawing_state() {
 #[tokio::test]
 async fn schema_fifteen_backup_preserves_notes_and_adds_unconfigured_token_vitals() {
     restore_previous_drawing_schema(15).await;
+}
+
+#[tokio::test]
+async fn schema_sixteen_backup_preserves_notes_and_vitals_and_adds_root_organization() {
+    restore_previous_drawing_schema(16).await;
 }

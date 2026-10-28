@@ -142,7 +142,17 @@ export const SceneSchema = z.object({
   drawings: z.array(DrawingSchema).max(64).optional(),
   canUndoDrawing: z.boolean().optional(),
 });
+export const JournalFolderSchema = z
+  .object({
+    id: z.uuid(),
+    parentId: z.uuid().nullable(),
+    name: z.string().min(1).max(60),
+    version: z.number().int().positive(),
+  })
+  .strict();
+export type JournalFolder = z.infer<typeof JournalFolderSchema>;
 export const JournalSchema = z.object({
+  folderId: z.uuid().optional(),
   version: z.number().int().positive(),
   id: z.string(),
   title: z.string(),
@@ -167,7 +177,11 @@ export const JoinResponse = z.object({ ...version, user: UserSchema, campaignId:
 export const CampaignResponse = z.object({ ...version, campaign: CampaignSchema });
 export const CampaignsResponse = z.object({ ...version, campaigns: z.array(CampaignSchema) });
 export const ScenesResponse = z.object({ ...version, scenes: z.array(SceneSchema) });
-export const JournalsResponse = z.object({ ...version, journals: z.array(JournalSchema) });
+export const JournalsResponse = z.object({
+  ...version,
+  journals: z.array(JournalSchema),
+  folders: z.array(JournalFolderSchema).max(16).optional(),
+});
 export const MembersResponse = z.object({ ...version, members: z.array(MemberSchema) });
 export const InviteResponse = z.object({
   ...version,
@@ -491,8 +505,80 @@ export const TokenCommandSchema = z.discriminatedUnion("type", [
     .strict(),
   z
     .object({
+      type: z.literal("journal.folder.create"),
+      payload: z
+        .object({
+          folderId: z.uuid(),
+          name: z
+            .string()
+            .trim()
+            .refine(
+              (v) => Array.from(v).length >= 1 && Array.from(v).length <= 60 && !/\p{Cc}/u.test(v),
+            ),
+          parentId: z.uuid().nullable(),
+        })
+        .strict(),
+    })
+    .strict(),
+  z
+    .object({
+      type: z.literal("journal.folder.update"),
+      payload: z
+        .object({
+          folderId: z.uuid(),
+          expectedVersion: z
+            .number()
+            .int()
+            .min(1)
+            .max(Number.MAX_SAFE_INTEGER - 1),
+          name: z
+            .string()
+            .trim()
+            .refine(
+              (v) => Array.from(v).length >= 1 && Array.from(v).length <= 60 && !/\p{Cc}/u.test(v),
+            ),
+          parentId: z.uuid().nullable(),
+        })
+        .strict(),
+    })
+    .strict(),
+  z
+    .object({
+      type: z.literal("journal.folder.delete"),
+      payload: z
+        .object({
+          folderId: z.uuid(),
+          expectedVersion: z
+            .number()
+            .int()
+            .min(1)
+            .max(Number.MAX_SAFE_INTEGER - 1),
+        })
+        .strict(),
+    })
+    .strict(),
+  z
+    .object({
+      type: z.literal("journal.move"),
+      payload: z
+        .object({
+          journalId: z.uuid(),
+          expectedVersion: z
+            .number()
+            .int()
+            .min(1)
+            .max(Number.MAX_SAFE_INTEGER - 1),
+          folderId: z.uuid().nullable(),
+        })
+        .strict(),
+    })
+    .strict(),
+  z
+    .object({
       type: z.literal("journal.create"),
-      payload: z.object({ journalId: z.uuid(), ...journalFields }).strict(),
+      payload: z
+        .object({ journalId: z.uuid(), ...journalFields, folderId: z.uuid().nullable().optional() })
+        .strict(),
     })
     .strict(),
   z
@@ -738,6 +824,7 @@ export const ServerFrameSchema = z.union([
       role: z.enum(["dm", "player"]),
       scenes: z.array(SceneSchema),
       journals: z.array(JournalSchema),
+      journalFolders: z.array(JournalFolderSchema).max(16).optional(),
       actors: z.array(ActorSchema).default([]),
       rolls: z.array(RollSchema).max(20).default([]),
       messages: z.array(ChatMessageSchema).max(20).default([]),

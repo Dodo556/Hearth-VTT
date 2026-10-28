@@ -133,6 +133,8 @@ pub struct Journal {
     pub title: String,
     pub body: String,
     pub visibility: String,
+    #[serde(rename = "folderId", skip_serializing_if = "Option::is_none")]
+    pub folder_id: Option<String>,
 }
 
 #[derive(Clone, Debug, Serialize, Deserialize)]
@@ -233,4 +235,13 @@ pub struct Combatant {
     pub max_hp: Option<i64>,
     #[serde(skip_serializing_if = "Option::is_none")]
     pub actor_version: Option<i64>,
+}
+
+#[derive(Clone, Debug, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct JournalFolder {
+    pub id: String,
+    pub parent_id: Option<String>,
+    pub name: String,
+    pub version: i64,
 }

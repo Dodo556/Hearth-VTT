@@ -66,6 +66,12 @@ pub(super) async fn validate(path: &Path, version: i64) -> Result<(Counts, Vec<A
         let check:Vec<String>=sqlx::query_scalar("PRAGMA integrity_check").fetch_all(&mut db).await?;
         ensure!(check==["ok"],"Database integrity failure");
         ensure!(sqlx::query("PRAGMA foreign_key_check").fetch_all(&mut db).await?.is_empty(),"Broken database references");
+        if version>=17 {
+            let invalid:bool=sqlx::query_scalar("SELECT EXISTS(SELECT 1 FROM journal_folders f JOIN journal_folders p ON p.id=f.parent_id WHERE f.campaign_id<>p.campaign_id) OR EXISTS(SELECT 1 FROM journals j JOIN journal_folders f ON f.id=j.folder_id WHERE j.campaign_id<>f.campaign_id) OR EXISTS(SELECT 1 FROM journal_folders GROUP BY campaign_id HAVING COUNT(*)>16)").fetch_one(&mut db).await?;
+            ensure!(!invalid,"Invalid journal organization");
+            let deep:bool=sqlx::query_scalar("WITH RECURSIVE ancestry(id,parent_id,depth) AS (SELECT id,parent_id,1 FROM journal_folders UNION ALL SELECT a.id,f.parent_id,a.depth+1 FROM ancestry a JOIN journal_folders f ON f.id=a.parent_id WHERE a.depth<5) SELECT EXISTS(SELECT 1 FROM ancestry WHERE depth>4)").fetch_one(&mut db).await?;
+            ensure!(!deep,"Invalid journal hierarchy");
+        }
         let owners:i64=sqlx::query_scalar("SELECT COUNT(*) FROM users WHERE is_owner=1").fetch_one(&mut db).await?;
         let profiles:i64=sqlx::query_scalar("SELECT COUNT(*) FROM host_profile h JOIN users u ON u.id=h.owner_id WHERE u.is_owner=1").fetch_one(&mut db).await?;
         ensure!(owners==1 && profiles==1,"Backup must contain one coherent host owner");

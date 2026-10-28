@@ -12,6 +12,7 @@ mod drawings;
 pub mod error;
 mod fog;
 mod invites;
+mod journal_folders;
 mod journals;
 mod live;
 mod media;
