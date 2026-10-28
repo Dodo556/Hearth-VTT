@@ -389,6 +389,26 @@ test("token HP and manual markers stay private, synchronize linked sheets and ex
         },
       },
     ]);
+    // Resource saves replace the client scene with ID-sorted snapshot tokens.
+    // Existing Pixi containers keep their draw order through that replacement.
+    const beforeSnapshot = await token(dm);
+    const resource = beforeSnapshot.vitals;
+    if (!resource) throw new Error("Expected editable token resource");
+    await commands(dm, campaign, [
+      {
+        type: "token.vitals.update",
+        payload: {
+          tokenId: rowan.id,
+          expectedVersion: resource.version,
+          expectedActorId: beforeSnapshot.actorId,
+          expectedActorVersion: resource.actorVersion ?? null,
+          hp: resource.hp,
+          maxHp: resource.maxHp,
+          hpVisibility: resource.hpVisibility,
+          statuses: beforeSnapshot.statuses ?? [],
+        },
+      },
+    ]);
     await dm.getByRole("button", { name: "Close Token inspector", exact: true }).click();
     await menu(dm);
     await expect(dm.getByRole("menu")).toHaveAccessibleName("Actions for Disposable counter");

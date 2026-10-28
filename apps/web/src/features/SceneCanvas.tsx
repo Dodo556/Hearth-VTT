@@ -763,6 +763,19 @@ export function SceneCanvas(props: Props) {
           y: (e.clientY - rect.top - world.y) / world.scale.y,
         };
       }
+      function renderedTokenAt(p: ScenePoint) {
+        // Snapshots may reorder DTOs without recreating existing Pixi containers.
+        // Selection and destructive context actions must follow what is on top.
+        const tokens = new Map(latest.current.scene.tokens.map((token) => [token.id, token]));
+        const rendered = new Map(
+          [...pieces].map(([id, piece]) => [piece.container, tokens.get(id)]),
+        );
+        for (const child of [...world.children].reverse()) {
+          const token = rendered.get(child);
+          if (token && Math.hypot(token.x - p.x, token.y - p.y) <= token.size / 2) return token;
+        }
+        return undefined;
+      }
       function clamped(token: Token, x: number, y: number) {
         const snap = (value: number) => (Math.floor(value / gridSize) + 0.5) * gridSize;
         return {
@@ -855,9 +868,7 @@ export function SceneCanvas(props: Props) {
           canvas.style.cursor = "crosshair";
           return;
         }
-        const token = [...latest.current.scene.tokens]
-          .reverse()
-          .find((token) => Math.hypot(token.x - p.x, token.y - p.y) <= token.size / 2);
+        const token = renderedTokenAt(p);
         if (token && e.button === 0 && !latest.current.panOnly) {
           latest.current.onSelect(token.id);
           if (token.canMove && latest.current.online && !latest.current.busy)
@@ -1144,9 +1155,7 @@ export function SceneCanvas(props: Props) {
         )
           return;
         const p = point(e);
-        const token = [...latest.current.scene.tokens]
-          .reverse()
-          .find((t) => Math.hypot(t.x - p.x, t.y - p.y) <= t.size / 2);
+        const token = renderedTokenAt(p);
         if (token && latest.current.onTokenContext) {
           e.preventDefault();
           canvas.focus();

@@ -4,7 +4,11 @@ Owner-authorized token HP/manual markers/context slice. No dependency, wire1; mi
 
 The initial focused browser run used the local debug host with current web assets. It passed privacy, linked sources, conflict/revocation, decoration reset and context delete before restart exposed Pixi's rejection of compact arc flags in the lightning SVG. A small all-six-marker/cleanup test reproduced the parse failure; explicit equivalent SVG arc separators fix it. Menu-footer geometry test also observed a clipped stage boundary and now clamps/scrolls within the map stage. Exact privacy pixel comparisons cover the complete battlefield rectangle with unrelated HTML chrome hidden; a1-RGB compositing difference outside the scene near the zoom readout is not a map leak. No privacy assertion, timeout or prior browser case removed.
 
-Final candidate identity, independent review, matched optimized gate and inspected captures: pending completion below.
+The first optimized gate on e09e6ef stopped101 at strict Clippy (collapsible-if); an equivalent let-chain passes without suppressions. The66243da run was superseded/cancelled143 to address review before completion; its temporary test host was stopped through its cleanup handler. A targeted launch first refused occupied8790, with no tests run, then restarted after cleanup. Neither interrupted run is a passing gate.
+
+Fresh review: the initially requested gpt-6-astra/high reviewer failed on a usage limit before reviewing; one read-only gpt-6.1-sol/high fallback review completed. It found an Important overlap-targeting bug after an ID-sorted snapshot. The extended real regression observed expected Disposable counter versus actual Rowan after a no-op resource save. Selection/context hit testing now follows actual retained Pixi container order. No second review; final focused/full gate evidence follows. Minor K020 (menu can reappear after another session switches the displayed scene away/back) is deferred; current authorization and delete confirmation still apply. No Critical finding.
+
+Final candidate identity, matched optimized gate and inspected captures: pending completion below.
 
 ## Previous0.0.18 evidence
 
