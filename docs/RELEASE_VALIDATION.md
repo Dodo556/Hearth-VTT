@@ -10,7 +10,16 @@ Fresh review: the initially requested gpt-6-astra/high reviewer failed on a usag
 
 Full7de93be optimized gate passes workflow7/TS94/Rust95/builds/13 browser cases but fails two fixture observations, so it is not a passing gate. The sheet test's global Current HP label matches both hidden retained inspector input and the sheet dialog; scope all four sheet interactions to their existing dialog. Notes resize test reads CSS width after resize but the prior left76 before ResizeObserver clamps it: transient right408 at390px; failure screenshot already shows settled left8/right340. Poll the same complete bounds condition within the existing timeout, preserving full Save hit/sidebar/draft assertions. No production behavior, privacy assertion or timeout changed. A fresh complete gate follows.
 
-Final candidate identity, matched optimized gate and inspected captures: pending completion below.
+## Confirmed0.0.19 candidate evidence
+
+Tested implementation: `fbb8df0109b78d329d08a57d8ee62c7221895f1e`. Later edits are documentation/evidence only. Linux, Node24.19.0/pnpm11.25.0/Rust1.99.1, installed Chromium154.0.8037.57/headless/software WebGL; four Cargo jobs/CARGO_INCREMENTAL=0. Tests use disposable data and matched optimized host/web; application0.0.19/schema16/wire1, no new dependency, migrations0001..0015 byte-identical to0.0.18.
+- Complete `pnpm verify:release` child status0/no signal: workflow7/TS94/Rust95/browser15/15 in6.4m. Types/lint/Rustfmt/Clippy/179-ID inventory/matched builds pass. All14 previous browser cases retained; final token scenario37.3s, including reviewed snapshot-overlap fix. No skipped assertions or timeout increases.
+- Real GM/Alice/Bob: default-private/external shared bars, exact complete-battlefield pixels when private/unset, current raw-event filtering, manual vector marker rendering, source/actor synchronization, stale reload, hidden/revoked resources, clear/delete, restart, real WebGL restore and idle GPU drawing, zoom/drag and keyboard/HUD/context actions.
+- Exact resource/marker/version current backup; original schema15 preserves notes while upgrading default-private unset HP; original10–14 recovery remains. Maximum campaign projection includes resources/all markers within4MiB.
+- Six final captures inspected: GM1440×1000 controls/menu, read-only player,760×700 narrow,390×700 constrained,900×520 short. Save and last menu action are fully visible/clickable; actual sidebar/footer bounds checked. This is not a complete touch/a11y/current-browser/platform audit.
+- One actual independent read-only review, Important overlap fix RED→GREEN and fresh whole gate green. First unavailable reviewer is not counted; no second review. Deferred Minor K020 remains, alongside prior K019. No unresolved review ruling.
+
+Artifact directory `/workspace/artifacts/0.0.19` contains final log/status, captures, source ZIP, review, focused/red regressions, build info and checksums. Source checkpoint/worktree retained locally; no push. Full P0/30-minute/LAN/Windows/macOS/current-browser/distribution gates remain open. Next: handouts/folders/reusable-content and remaining initiative/P0 work.
 
 ## Previous0.0.18 evidence
 

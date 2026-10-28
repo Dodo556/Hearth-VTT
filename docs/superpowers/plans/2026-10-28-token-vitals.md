@@ -37,5 +37,5 @@ Consumes Task1 contract. Use existing inspector/editor/delete flow and renderer 
 
 - [x] Update0.0.19/schema16 guides,API/model/progress and partial matrix.
 - [x] One fresh whole-change review; fix material findings with RED→GREEN evidence.
-- [ ] Freeze source and run complete pnpm verify:release with explicit child exit status and matched captures.
-- [ ] Record tested SHA/counts/limits; commit evidence, package source/logs/checksums and preserve local branch. Continue roadmap on same application.
+- [x] Freeze source and run complete pnpm verify:release with explicit child exit status and matched captures.
+- [x] Record tested SHA/counts/limits; commit evidence, package source/logs/checksums and preserve local branch. Continue roadmap on same application.
