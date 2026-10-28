@@ -8,7 +8,7 @@ One browser application for GM and players with an authoritative Rust host. This
 - **Token controls:** right-click/HUD Actions/Shift+F10 opens Health & status, explicit Save/Reload, six icon markers and GM sharing. Linked HP synchronizes sheet/combat; unset independent HP has no bar. Statuses are visible with the token and do not automate rules. Existing Position & permissions controls remain.
 - **Journal organization:** New folder supports four levels; Move page preserves sharing/content. Delete folder promotes pages/children to its saved parent and deletes no pages. Players retain a flat shared-page list without private folder metadata. Explicit stale reload and removed-destination recovery retain drafts.
 - **Compatibility:** schema17 adds folders/page placement, preserving notes/vitals/history/artwork. Canonical10–16 archives upgrade only in isolated copies; refresh matched host/browser, wire1/no dependency.
-- **Checks:** focused Rust98/TS100/types/lint/Clippy and real three-browser49.4s workflow pass; final review/optimized gate/capture evidence follows in RELEASE_VALIDATION.
+- **Checks:** complete optimized gate exit0: workflow7/TS102/Rust98/browser16/16 in6.7m; types/lint/fmt/Clippy/179 IDs/matched builds pass. Seven real UI captures inspected; one independent review. Exact source/conditions/limits in RELEASE_VALIDATION.
 - **Status:** partially functional; full P0 encounter, actual LAN, platform/browser matrix and ready-to-run host distribution remain open. No broad feature is VERIFIED.
 - **UI standard:** UI_STANDARDS.md and AGENTS rule13 govern tools, spacing, keyboard/focus and responsive checks.
 - **Next:** image handouts/selective sharing/reusable content and remaining initiative/P0 work.
