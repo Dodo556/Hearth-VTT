@@ -46,14 +46,24 @@ DM can edit all initiative and linked HP; current controllers/actor owners can e
 
 ## Freehand map markings
 
-Choose Draw on map, then the Freehand icon, the shared or GM-only layer and a color. Drag a stroke and release to save it. A closed loop is allowed. Enter starts a keyboard stroke, arrows add points and Enter finishes; Escape cancels. Changing tools/settings/scenes, losing the connection or canceling/losing pointer capture discards unfinished work. Undo drawing removes the last saved shape in this scene.
+Choose Draw on map, then the Freehand icon, the shared or GM-only layer and a color. Drag a stroke and release to save it. A closed loop is allowed. Enter starts a keyboard stroke, arrows add points and Enter finishes; Escape cancels. Changing tools/settings/scenes, losing the connection or canceling/losing pointer capture discards unfinished work. Undo drawing reverses the latest drawing creation, edit or erasure in this scene.
 
-Strokes use scene coordinates across pan/zoom, up to128 saved points and64 total shapes per scene. Long strokes may be simplified; a notice explains this. Shared drawings are sent only when their complete bounding rectangle is revealed, so a curve may stay hidden despite its own path looking revealed. GM-only geometry is never delivered to players. Individual stroke editing/erasing remain later work.
+Strokes use scene coordinates across pan/zoom, up to128 saved points and64 total shapes per scene. Long strokes may be simplified; a notice explains this. Shared drawings are sent only when their complete bounding rectangle is revealed, so a curve may stay hidden despite its own path looking revealed. GM-only geometry is never delivered to players. The eraser removes whole strokes; cutting only part of a stroke remains later work.
 
-## Text drawings
+## On-map text editing
 
-Choose Draw on map → Text icon. Enter1–120 characters over at most four lines, select the layer/color, and drag a text box. Text wraps and fits within the box using the local system font; a larger box keeps lettering larger. The preview shows the result before release. Boxes must be40–1024 scene pixels wide and32–512 high. Enter/arrows/Enter places a box without a pointer; Escape or changing the text/settings cancels an unfinished placement. Undo removes the most recent saved drawing. Labels persist and respect the same full-box fog and GM-only filtering. Markup is displayed literally. Scene-linked notes and individual label editing follow separately.
+Choose Draw on map → Text. Click for a default box, or drag its bounds, then type directly on the battlefield. Click an existing label with Text selected to edit it. Use the move handle or resize corner; focused handles accept arrows (Shift moves farther). Choose font size8–96 scene pixels and a swatch or custom color. Text wraps and clips at the box edge; enlarge the box if text is hidden. Existing older labels keep their fitted appearance until edited.
+
+Save text or Ctrl/Command+Enter commits to the host. Escape/Cancel discards the active edit; a failed save retains the draft/error. Offline saving is disabled. Other clients keep the last saved label until the edit is accepted. If another GM changed it, cancel and select it again to load that version. Changing scene/tool cancels the active editor; full navigation/reload can discard drafts.
+
+Limits:1–120 Unicode scalars, up to four lines,40–1024×32–512 scene-pixel boxes. Markup is literal. Shared labels follow full-box fog filtering; GM-only content never reaches players. This is a label editor; scene-linked notes remain separate work.
+
+## Eraser and undo
+
+Choose the eraser icon, hover to identify the target, then click to remove a whole line, rectangle, freehand stroke or text label. The top rendered object wins where objects overlap. With the canvas focused, arrows select an object and Enter erases it. Middle-drag still pans.
+
+Undo drawing or Ctrl/Command+Z on the canvas reverses the latest scene drawing creation, edit or erasure, including another GM's latest action. Up to128 changes per scene are retained across restart. Undo remains available when no drawings remain. There is no redo or partial-stroke rubber yet.
 
 ## Vertical drawing palette
 
-Drawing modes live beside the left tool rail. Hover the line, rectangle, freehand or text icon for its name; keyboard users can Tab to a named button and press Enter or Space. The selected tool has an accent marker. Eye and lock icons choose shared/GM-only drawings, with a visible visibility caption. Click the color chip for swatches. Undo and close use the curved-arrow and × icons. Text opens a small editor beside the palette. Escape in an editor closes the controls and returns to the canvas; Escape on the canvas cancels a gesture. Closing/reopening retains the text draft. Short tool rails scroll; on very small screens, drawing and the sidebar take turns.
+Drawing modes live beside the left tool rail. Hover icons for names; Tab and Enter/Space select tools. Eye/lock choose shared/GM-only with a visible caption. The color chip opens swatches and a custom picker. Text has a compact style/Save/Cancel inspector beside its on-map editor. Close or Escape on the canvas exits drawing mode once any active gesture is canceled. Short rails scroll; on small screens the sidebar and drawing editor take turns.

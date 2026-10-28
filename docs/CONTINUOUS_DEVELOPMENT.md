@@ -37,4 +37,4 @@ Current whole-host archive recovery makes a separate restored copy, preserves st
 
 ## Current recorded status
 
-The policy was established on saved application0.0.12/schema11. Current application0.0.15/schema13 adds bounded literal text drawings after saved freehand and the player-canvas loading correction. It remains partially functional, not verified playable: the complete Phase1 encounter, real LAN/current-browser/platform checks and ready-to-run host distribution remain open. See RELEASE_VALIDATION.md and NEXT_TASKS.md for exact current evidence and next work.
+The policy was established on saved application0.0.12/schema11. Current application0.0.17/schema14 adds undoable object erasing and direct on-map text editing after the vertical UI standard, saved freehand and player-canvas correction. It remains partially functional, not verified playable: the complete Phase1 encounter, real LAN/current-browser/platform checks and ready-to-run host distribution remain open. See RELEASE_VALIDATION.md and NEXT_TASKS.md for exact current evidence and next work.

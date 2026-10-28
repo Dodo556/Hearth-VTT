@@ -4,7 +4,7 @@ Hearth has one maintained application and one primary release line. Development 
 
 ## Current status and terminology
 
-Current application0.0.15/schema13 adds bounded literal text drawings alongside freehand and retains the player-canvas correction on the same source/release line. It remains partially functional with blocked verified-playable promotion until the master P0 and platform/distribution gates pass. RELEASE_VALIDATION.md records exact candidate evidence; historical results remain in PROGRESS.md.
+Current application0.0.17/schema14 adds undoable object erasing and direct on-map text editing alongside freehand, the vertical UI standard and the player-canvas correction on the same source/release line. It remains partially functional with blocked verified-playable promotion until the master P0 and platform/distribution gates pass. RELEASE_VALIDATION.md records exact candidate evidence; historical results remain in PROGRESS.md.
 - **Incomplete source checkpoint:** preserves work, including known blockers. It must not replace a working installation or be called a finished functional iteration.
 - **Candidate:** exact integrated source plus matched host/browser/runtime assets undergoing checks. Any failed/unperformed required gate leaves it blocked.
 - **Verified playable release:** a candidate that passed the original master Phase 1/0.1 acceptance and applicable platform/distribution gates. Later promoted updates must preserve that playable baseline.

@@ -16,11 +16,11 @@ Use `workspace/ToolButton.tsx` and the existing Lucide icon family. Use icons fo
 
 Tool buttons use36×36px targets and18px icons; palette padding6px, spacing4px and restrained dividers. The main rail and drawing palette share hover, disabled and selected styling. Selected tools use the warm accent plus an inset marker and `aria-pressed`; color selection also uses an outline. Show a visible Shared/GM-only caption so privacy does not rely on icon recognition or color. Clicking the main Draw on map button again or the close action closes the secondary palette. Picking a shape keeps drawing mode active. Escape in an editor returns to the canvas; Escape on the canvas cancels its gesture.
 
-Reuse the existing slate surface/text/accent CSS variables. Use restrained borders and one panel shadow; no feature-specific colors for ordinary controls. Keep panel labels12px, secondary help11px and headings compact. Gold marks selection, not destructive actions. Buttons and inputs have a visible keyboard focus outline. Native buttons support Tab and Enter/Space; do not replace them with clickable divs. The4 existing drawing colors are swatches in a small picker, opened from the current-color chip.
+Reuse the existing slate surface/text/accent CSS variables. Use restrained borders and one panel shadow; no feature-specific colors for ordinary controls. Keep panel labels12px, secondary help11px and headings compact. Gold marks selection, not destructive actions. Buttons and inputs have a visible keyboard focus outline. Native buttons support Tab and Enter/Space; do not replace them with clickable divs. The4 drawing swatches and native custom-color control live in a small picker opened from the current-color chip.
 
 ## Size and overflow
 
-Drawing palette width50px; text editor maximum224px. Editors shrink within available map space, leaving a gap before the sidebar. Keep editor fields inside the panel and allow vertical scrolling on short windows. Tool rails scroll independently when they cannot fit; actions must remain reachable above the bottom dock. Do not shrink targets to fit more tools.
+Drawing palette width50px; text style inspector maximum224px. The editable text box is positioned directly on the map in scene coordinates, using explicit font size at the current camera scale. Editors shrink within available map space, leaving a gap before the sidebar. Keep editor fields inside the panel and allow vertical scrolling on short windows. Tool rails scroll independently when they cannot fit; actions must remain reachable above the bottom dock. Do not shrink targets to fit more tools.
 
 At640px or less, or when the chosen sidebar width leaves less than320px for the map editor, opening drawing controls collapses the sidebar; opening a sidebar panel closes drawing controls. Resizing into that condition also collapses the sidebar. Drafts remain in the existing React feature state. Above that width the palette/editor and sidebar can coexist. A larger editing surface is still preferable for GM authoring; do not claim a complete touch/mobile audit from narrow screenshots.
 
@@ -33,3 +33,9 @@ At640px or less, or when the chosen sidebar width leaves less than320px for the 
 5. Capture and inspect the real app with fictional data, including a tool without a form and a tool with its editor. Record evidence and update BUILD_OVERVIEW. A green test suite alone is not visual approval.
 
 These are defaults for future work. Change the standard deliberately when a real workflow needs it, then update this document and the shared control. Avoid parallel one-off toolbar designs.
+
+## Direct text and object erasing
+
+Text starts with click/drag placement, then native typing in the scene-positioned box. Keep style/Save/Cancel in the compact inspector. Use visible36px move/resize handles with pointer capture and arrow/Shift-arrow support. Save is explicit (Ctrl/Command+Enter); Escape/Cancel ends an active edit. Keep failed drafts and disable mutation while pending/offline. New explicit-size text clips at its bounds rather than silently shrinking. Preserve legacy fit until edited. Camera changes must keep editor/handles aligned.
+
+Use the eraser icon for whole-object removal and show its target before click; keyboard arrows/Enter provide equivalent targeting. Undo stays available after the last object is erased. Preserve middle-drag camera motion in every tool. Do not add partial-stroke/redo controls until their host behavior exists.

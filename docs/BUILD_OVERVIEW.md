@@ -1,12 +1,13 @@
-# Current build · 0.0.16
+# Current build · 0.0.17
 
-One browser application for GM and players with an authoritative Rust host. This increment replaces the wide drawing form with a vertical icon palette and compact text editor. Shape icons, layer controls, color swatches, undo and close follow one shared tool-button convention. Existing line/rectangle/freehand/text drawing behavior is preserved.
-- **Included:** campaigns/invitations, uploaded maps/scenes, controlled tokens and generic sheets, manual fog, ruler/pings, drawings, scoped dice/chat/whispers, journals, generic combat and whole-host isolated recovery.
-- **Text:**1–120 Unicode characters, up to four lines; local font, color, fitted box preview, pointer or Enter/arrows placement and last-drawing undo. Labels stay inside their saved box and follow full-box fog filtering. Editing text/settings or canceling discards an unfinished placement.
-- **Compatibility:** schema13 preserves old drawing order/point bytes/nonces. Schema10/11/12 backups remain verifiable and upgrade only after isolated restoration. Refresh matched host/browser assets together; wire schema1 remains. No new dependency.
-- **Checks:** complete optimized gate passes workflow7/TS76/Rust85/types/lint/fmt/Clippy/179-ID inventory/matched builds/browser13 in4.0m with exit0. Review layout/focus fixes pass, real desktop/narrow captures inspected; RELEASE_VALIDATION has exact evidence.
-- **Status:** partially functional; manual P0 encounter, actual LAN, platform/browser matrix and ready-to-run host distribution remain open. No broad feature is VERIFIED.
-- **UI standard:** UI_STANDARDS.md and AGENTS rule13 guide future tools, spacing, icons, keyboard/focus behavior and responsive checks.
-- **Next:** server-persisted scene notes, then token HP/status/context controls and remaining P0 work.
+One browser application for GM and players with an authoritative Rust host. This increment adds whole-object erasing and direct on-map text editing within the existing vertical icon palette.
+- **Included:** campaigns/invitations, uploaded maps/scenes, controlled tokens and generic sheets, manual fog, ruler/pings, drawings, scoped dice/chat/whispers, journals, generic combat and isolated whole-host recovery.
+- **Eraser:** click a shape, freehand stroke or label; removes that whole object. Arrow keys and Enter support keyboard targeting. Undo restores erasures and reverses text edits/creation, retaining the latest128 scene changes across GMs. Middle-drag pans in drawing modes.
+- **Text:** choose Text, click/drag a box and type directly on the map. Click an existing label to edit. Move/resize handles support pointer and arrow keys; choose font8–96px and custom color. Save text or Ctrl/Command+Enter commits; Escape/Cancel discards the active edit. Failed saves keep the draft. Up to120 Unicode scalars/four lines;40–1024×32–512 scene-pixel boxes. Explicit-size text wraps/clips instead of shrinking; old labels retain fitting until edited.
+- **Compatibility:** schema14 adds versioned text/style/history and stable drawing order; exact freehand points/nonces remain. Schema10–13 backups retain canonical verification and upgrade only in an isolated copy. Refresh matched host/browser assets together; wire1, no new dependency.
+- **Checks:** focused protocol/host/UI/browser and review regressions recorded; final complete optimized gate and inspected captures are recorded in RELEASE_VALIDATION.md before delivery.
+- **Status:** partially functional; full P0 encounter, actual LAN, platform/browser matrix and ready-to-run host distribution remain open. No broad feature is VERIFIED.
+- **UI standard:** UI_STANDARDS.md and AGENTS rule13 govern tools, spacing, keyboard/focus and responsive checks.
+- **Next:** persisted scene notes, then token HP/status/context controls and remaining P0 work.
 
-Text wraps and can shrink in a small box; choose a larger box for larger lettering. Individual drawing editing, redo, custom fonts and rich text remain pending. Source hosting requires development tools; players use browser links.
+Partial-stroke erasing, line/shape transforms, redo, rich text and custom fonts remain pending. Source hosting needs development tools; players use browser links.

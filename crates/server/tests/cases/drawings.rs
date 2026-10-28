@@ -592,3 +592,51 @@ async fn erasing_an_old_stroke_restores_exact_points_order_and_bounded_history()
         .unwrap();
     assert_eq!(count, 128);
 }
+
+#[tokio::test]
+async fn erasure_undo_survives_drawing_creation_in_another_scene() {
+    let h = Host::new().await;
+    let owner = h.owner().await;
+    let campaign = h.campaign_id(&owner).await;
+    let server = LiveServer::start(&h).await;
+    let mut dm = server.connect(&campaign, &owner).await;
+    let initial = frame(&mut dm).await;
+    let scene = initial["scenes"][0]["id"].as_str().unwrap().to_owned();
+    let asset = initial["scenes"][0]["backgroundAssetId"]
+        .as_str()
+        .unwrap()
+        .to_owned();
+    let mut rev = initial["revision"].as_i64().unwrap();
+    let make = |scene: &str| json!({"type":"drawing.create","payload":{"sceneId":scene,"clientDrawingId":uuid::Uuid::new_v4().to_string(),"shape":"line","visibility":"dm","color":"#72b7e2","startX":10,"startY":10,"endX":90,"endY":90}});
+    accepted(&mut dm, &mut rev, make(&scene)).await;
+    let mut fresh = server.connect(&campaign, &owner).await;
+    let before = frame(&mut fresh).await;
+    let id = before["scenes"][0]["drawings"][0]["id"]
+        .as_str()
+        .unwrap()
+        .to_owned();
+    accepted(&mut dm,&mut rev,json!({"type":"drawing.delete","payload":{"sceneId":scene,"drawingId":id,"expectedVersion":1}})).await;
+    let other = uuid::Uuid::new_v4().to_string();
+    accepted(&mut dm,&mut rev,json!({"type":"scene.create","payload":{"sceneId":other,"name":"Other scene","assetId":asset,"gridSize":60}})).await;
+    accepted(&mut dm, &mut rev, make(&other)).await;
+    accepted(
+        &mut dm,
+        &mut rev,
+        json!({"type":"drawing.undo","payload":{"sceneId":scene}}),
+    )
+    .await;
+    let mut fresh = server.connect(&campaign, &owner).await;
+    let after = frame(&mut fresh).await;
+    let scenes = after["scenes"].as_array().unwrap();
+    assert_eq!(
+        scenes.iter().find(|s| s["id"] == scene).unwrap()["drawings"][0]["id"],
+        id
+    );
+    assert_eq!(
+        scenes.iter().find(|s| s["id"] == other).unwrap()["drawings"]
+            .as_array()
+            .unwrap()
+            .len(),
+        1
+    );
+}

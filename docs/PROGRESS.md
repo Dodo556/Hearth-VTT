@@ -1,3 +1,13 @@
+# Hearth VTT · Build0.0.17 · eraser/direct text ·2026-10-28
+
+Owner requested whole-object deletion and direct on-battlefield text editing before more roadmap work, with a limited remaining session budget. Implemented versioned GM delete/update commands, bounded128-change undo, schema14 history/style/order and an on-map native editor with move/resize handles, font8–96 and custom color. Existing vertical palette/ToolButton and responsive layouts remain. Whole-object erasing supports mouse and keyboard; saved text remains authoritative until Save. Legacy labels keep fitting until edited; exact freehand points/nonces/order and schema10–13 isolated recovery remain.
+
+Focused protocol/host/UI tests and the expanded retained GM/Alice/Bob workflow pass before final review fixes. One fresh whole-change review found a cross-scene rowid collision; host regression observed RED→GREEN using separate stable sort order. Eraser/render hit order was also corrected. Final optimized gate, screenshot inspection and exact tested source follow in RELEASE_VALIDATION.md; prior0.0.16 counts below are historical.
+
+No push/publication or verified-playable promotion is implied. No broad feature is VERIFIED. Scene notes resume next, followed by token HP/status/context and remaining P0 work. Partial-stroke cutting, shape transforms, redo and rich typography remain pending.
+
+## Previous0.0.16 evidence
+
 # Hearth VTT · Build0.0.16 · vertical drawing UI · 2026-10-28
 
 Owner requested a UI review before further features. The drawing form obscured the map and used shape names in a select. Replace it with a slim vertical icon palette beside the existing tool rail, direct shape/layer buttons, a color-chip swatch picker, icon undo/close and a bounded text editor. Main and drawing tools share ToolButton and standard hover/selected/focus states. Short tool rails scroll above the bottom dock; very small drawing/sidebar views are exclusive while drafts remain. UI_STANDARDS.md and AGENTS rule13 govern future workspace work. No schema/protocol/dependency change; application0.0.16/schema13/wire1.

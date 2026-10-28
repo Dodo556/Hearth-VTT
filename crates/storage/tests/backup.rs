@@ -489,11 +489,11 @@ async fn backup_preserves_shared_and_private_drawings() {
     for visibility in ["shared", "dm"] {
         sqlx::query("INSERT INTO drawings(id,scene_id,shape,visibility,color,start_x,start_y,end_x,end_y,text) VALUES(?,'scene','text',?,'#72b7e2',20,20,140,100,?)").bind(format!("text-{visibility}")).bind(visibility).bind(text).execute(&store.pool).await.unwrap();
     }
-    let row_id: i64 = sqlx::query_scalar("SELECT rowid FROM drawings WHERE id='text-dm'")
+    let sort_order: i64 = sqlx::query_scalar("SELECT sort_order FROM drawings WHERE id='text-dm'")
         .fetch_one(&store.pool)
         .await
         .unwrap();
-    let history=json!({"row_id":row_id,"id":"text-dm","scene_id":"scene","shape":"text","visibility":"dm","color":"#72b7e2","start_x":20.0,"start_y":20.0,"end_x":140.0,"end_y":100.0,"points":"[]","text":text,"font_size":24,"text_fit":true,"version":1}).to_string();
+    let history=json!({"sort_order":sort_order,"id":"text-dm","scene_id":"scene","shape":"text","visibility":"dm","color":"#72b7e2","start_x":20.0,"start_y":20.0,"end_x":140.0,"end_y":100.0,"points":"[]","text":text,"font_size":24,"text_fit":true,"version":1}).to_string();
     sqlx::query("INSERT INTO drawing_history(scene_id,drawing_id,action,before_state) VALUES('scene','text-dm','update',?)").bind(&history).execute(&store.pool).await.unwrap();
     sqlx::query("UPDATE drawings SET font_size=48,text_fit=0,version=2 WHERE id='text-dm'")
         .execute(&store.pool)

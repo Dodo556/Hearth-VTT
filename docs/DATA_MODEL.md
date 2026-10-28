@@ -40,3 +40,9 @@ Forward migration0012 rebuilds drawings with freehand in its shape constraint an
 ## Text storage ·schema13
 
 Forward migration0013 rebuilds drawings with the text shape and nullable `text` column. Its constraint allows1–120 SQLite characters only for text shapes; other shapes retain NULL. The host further validates nonblank/control/line/rectangle bounds. Copy explicit rowids, all existing point bytes and all other fields; preserve the separate nonce table. DTOs omit absent text. Undo order survives upgrade. Migrations0001..0012 remain unchanged. Backup schemas10..13 are each validated against their canonical history before isolated restore and current-host upgrade.
+
+## Drawing edits ·schema14
+
+Forward migration0014 adds integer `font_size`8–96(default24), `text_fit`(default1 for legacy labels), positive `version`(default1) and `sort_order` initialized from existing rowids. New rows use increasing per-scene sort order; projections order by sort_order then rowid. Undo restores the saved sort order while allocating a fresh physical rowid. This prevents an erasure in sceneA from colliding with a later row allocated in sceneB. Original migrations0001..0013 remain unchanged.
+
+`drawing_history` records per-scene create/delete/update actions. Delete/update snapshots retain all drawing fields, exact raw point JSON and order; create needs no before snapshot. Each transactional change prunes to the latest128 actions in its scene. Undo removes a create, restores a delete or restores prior text/style/box while advancing version, then pops that action. Nonces/receipts remain separate and retained. History stays out of player/live DTOs; only GMs receive canUndoDrawing. Whole-host backup includes history/style/version/order.

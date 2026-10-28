@@ -182,10 +182,10 @@ pub(crate) async fn apply(
                 return Err(ApiError::conflict("Use a new drawing ID."));
             }
             let drawing_id = uuid::Uuid::new_v4().to_string();
-            sqlx::query("INSERT INTO drawings(id,scene_id,shape,visibility,color,start_x,start_y,end_x,end_y,points,text,font_size,text_fit) VALUES(?,?,?,?,?,?,?,?,?,?,?,?,?)")
+            sqlx::query("INSERT INTO drawings(id,scene_id,shape,visibility,color,start_x,start_y,end_x,end_y,points,text,font_size,text_fit,sort_order) VALUES(?,?,?,?,?,?,?,?,?,?,?,?,?,(SELECT COALESCE(MAX(sort_order),0)+1 FROM drawings WHERE scene_id=?))")
                 .bind(&drawing_id).bind(scene).bind(&p.shape)
                 .bind(match p.visibility { Visibility::Shared => "shared", Visibility::Dm => "dm" })
-                .bind(&p.color).bind(start_x).bind(start_y).bind(end_x).bind(end_y).bind(serde_json::to_string(&points).map_err(|_|ApiError::internal())?).bind(text).bind(font_size).bind(p.font_size.is_none())
+                .bind(&p.color).bind(start_x).bind(start_y).bind(end_x).bind(end_y).bind(serde_json::to_string(&points).map_err(|_|ApiError::internal())?).bind(text).bind(font_size).bind(p.font_size.is_none()).bind(scene)
                 .execute(&mut *conn).await?;
             history::record(conn, scene, &drawing_id, "create", None).await?;
         }

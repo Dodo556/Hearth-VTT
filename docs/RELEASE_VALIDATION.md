@@ -1,3 +1,11 @@
+# Current cloud candidate ·0.0.17/schema14 ·2026-10-28
+
+Owner-requested whole-object eraser and direct on-map text editing/move/resize/font/custom color within the established vertical UI. No dependency; wire1. Focused protocol/host/editor/hit tests and expanded retained GM/Alice/Bob scenario pass before final review corrections. The complete current gate and inspected captures must be recorded here before delivery; historical0.0.16 evidence follows below.
+
+Single fresh review of4a307c4..72aa488 found no Critical and one Important: restoring a deleted physical rowid could collide with a new row from another scene. Real host RED→GREEN validates stable scene sort order with fresh physical allocation. Preserve exact raw points/order/style/version/history in backups. A panning interaction issue initially labeled Minor is treated as a functional preservation fix; its actual scene-coordinate regression and final result are recorded with the integrated evidence. No second review. Existing deferred K019 remains; trusted manually altered backup semantics stay outside scope.
+
+## Previous0.0.16 evidence
+
 # Current cloud candidate ·0.0.16/schema13 ·2026-10-28
 
 UI correction requested by the owner before further canvas features. No backend/protocol/schema/dependency change. The implementation replaces the horizontal drawing form with a vertical icon palette, shared tool-button states, a contextual editor and responsive overflow behavior; UI_STANDARDS.md is required by AGENTS.

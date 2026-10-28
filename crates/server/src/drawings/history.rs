@@ -4,7 +4,7 @@ use sqlx::SqliteConnection;
 
 #[derive(Serialize, Deserialize, sqlx::FromRow)]
 pub(super) struct SavedDrawing {
-    pub row_id: i64,
+    pub sort_order: i64,
     pub id: String,
     pub scene_id: String,
     pub shape: String,
@@ -26,7 +26,7 @@ pub(super) async fn load(
     id: &str,
     expected: i64,
 ) -> ApiResult<SavedDrawing> {
-    let row=sqlx::query_as::<_,SavedDrawing>("SELECT rowid AS row_id,id,scene_id,shape,visibility,color,start_x,start_y,end_x,end_y,points,text,font_size,text_fit,version FROM drawings WHERE scene_id=? AND id=?").bind(scene).bind(id).fetch_optional(conn).await?.ok_or_else(ApiError::hidden)?;
+    let row=sqlx::query_as::<_,SavedDrawing>("SELECT sort_order,id,scene_id,shape,visibility,color,start_x,start_y,end_x,end_y,points,text,font_size,text_fit,version FROM drawings WHERE scene_id=? AND id=?").bind(scene).bind(id).fetch_optional(conn).await?.ok_or_else(ApiError::hidden)?;
     if !(1..9_007_199_254_740_991).contains(&expected) {
         return Err(ApiError::invalid("Use the current drawing version."));
     }
@@ -90,7 +90,7 @@ pub(super) async fn undo(conn: &mut SqliteConnection, scene: &str) -> ApiResult<
                 ));
             }
             old.version += 1;
-            sqlx::query("INSERT INTO drawings(rowid,id,scene_id,shape,visibility,color,start_x,start_y,end_x,end_y,points,text,font_size,text_fit,version) VALUES(?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)").bind(old.row_id).bind(&old.id).bind(scene).bind(&old.shape).bind(&old.visibility).bind(&old.color).bind(old.start_x).bind(old.start_y).bind(old.end_x).bind(old.end_y).bind(&old.points).bind(&old.text).bind(old.font_size).bind(old.text_fit).bind(old.version).execute(&mut *conn).await?;
+            sqlx::query("INSERT INTO drawings(sort_order,id,scene_id,shape,visibility,color,start_x,start_y,end_x,end_y,points,text,font_size,text_fit,version) VALUES(?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)").bind(old.sort_order).bind(&old.id).bind(scene).bind(&old.shape).bind(&old.visibility).bind(&old.color).bind(old.start_x).bind(old.start_y).bind(old.end_x).bind(old.end_y).bind(&old.points).bind(&old.text).bind(old.font_size).bind(old.text_fit).bind(old.version).execute(&mut *conn).await?;
         } else {
             let current: i64 =
                 sqlx::query_scalar("SELECT version FROM drawings WHERE scene_id=? AND id=?")

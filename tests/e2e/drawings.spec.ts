@@ -419,6 +419,24 @@ test("GM drawings synchronize, remain private, undo and survive a host restart",
     await expect.poll(async () => (await read(players[0])).length).toBe(0);
     await dm.getByRole("button", { name: "Undo drawing", exact: true }).click();
     await expect.poll(async () => (await read(players[0])).length).toBe(1);
+    const panStart = await point(dm, 1200, 300);
+    await dm.mouse.move(panStart.x, panStart.y);
+    await dm.mouse.down({ button: "middle" });
+    await dm.mouse.move(panStart.x + 40, panStart.y + 20, { steps: 5 });
+    await dm.mouse.up({ button: "middle" });
+    await dm.getByRole("button", { name: "Draw text", exact: true }).click();
+    await dm.mouse.click(panStart.x, panStart.y);
+    await dm.getByRole("textbox", { name: "Drawing text", exact: true }).fill("Pan check");
+    await dm.getByRole("button", { name: "Save text", exact: true }).click();
+    await expect
+      .poll(
+        async () => (await read(dm)).find((d: { text?: string }) => d.text === "Pan check")?.startX,
+      )
+      .toBeLessThan(1190);
+    await dm.getByRole("button", { name: "Undo drawing", exact: true }).click();
+    await expect.poll(async () => (await read(dm)).length).toBe(1);
+    await dm.getByRole("button", { name: "Erase drawing", exact: true }).click();
+    await dm.getByRole("button", { name: "Fit scene", exact: true }).click();
     await dm.locator("canvas").focus();
     await dm.keyboard.press("ArrowRight");
     await dm.keyboard.press("Enter");

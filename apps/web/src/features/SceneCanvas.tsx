@@ -860,7 +860,7 @@ export function SceneCanvas(props: Props) {
         canvas.style.cursor = "grabbing";
       };
       const move = (e: PointerEvent) => {
-        if (canAuthor() && latest.current.drawing.erase) {
+        if (canAuthor() && latest.current.drawing.erase && !pan) {
           eraserTarget =
             hitDrawing(latest.current.scene.drawings ?? [], point(e), 8 / world.scale.x)?.id ??
             null;

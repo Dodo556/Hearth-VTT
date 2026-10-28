@@ -1,4 +1,4 @@
-# Run and test Hearth VTT · build0.0.16
+# Run and test Hearth VTT · build0.0.17
 
 Yes: you can run and test this build on your own computer. It is a working self-hosted web app, currently distributed as developer source. Both DM and players use browsers; only the host computer needs the tools below. No native player client is installed. Do not open index.html directly: the Rust web server provides accounts, persistence and live synchronization.
 
@@ -121,3 +121,5 @@ The source launcher and the future ready-to-run package build the same Hearth; t
 ## Text labels on the map
 
 As GM choose **Draw on map → Text icon**. Enter up to120 characters over at most four lines, choose Shared or GM only, and drag a box. The preview shows how the local-font text fits. Use a larger box for larger lettering. Boxes are40–1024 scene pixels wide and32–512 high. Enter/arrows/Enter also works; Escape cancels. Undo drawing removes the last saved shape. Text is literal, persists on the host and follows full-box fog filtering. Scene-linked notes are the next increment.
+
+Drawing tools: use the eraser icon to remove a whole shape/stroke/label; Undo restores it. For text, choose Text and click or drag on the map, then type in the placed box. Handles move/resize it; the inspector sets font size and color. Save with Ctrl/Command+Enter or Save text; Escape cancels. Click a saved label with Text to edit it.

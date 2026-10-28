@@ -121,7 +121,7 @@ pub(crate) async fn projected_scenes(
                 },
             )
             .collect();
-        let drawing_rows: Vec<DrawingRow> = sqlx::query_as("SELECT id,shape,visibility,color,start_x,start_y,end_x,end_y,points,text,font_size,version,text_fit FROM drawings WHERE scene_id=? AND (visibility='shared' OR ?=1) ORDER BY rowid")
+        let drawing_rows: Vec<DrawingRow> = sqlx::query_as("SELECT id,shape,visibility,color,start_x,start_y,end_x,end_y,points,text,font_size,version,text_fit FROM drawings WHERE scene_id=? AND (visibility='shared' OR ?=1) ORDER BY sort_order,rowid")
             .bind(&scene_id).bind(dm).fetch_all(&mut *conn).await?;
         let mut drawings = Vec::new();
         for (

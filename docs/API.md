@@ -210,3 +210,14 @@ Scene DTOs include points for freehand and omit empty points for legacy shapes. 
 For `drawing.create` shape`text`, supply `text` and the existing scene/client nonce, visibility/color and two corners. Text must contain1–120 Unicode scalars, be nonblank and have at most four newline-separated lines. Reject all controls except newline; trim outer whitespace before saving. Markup remains literal. Text is accepted only for text shapes; nonempty points only for freehand. The host validates raw corners inside the scene, rounds text coordinates to0.01 pixels and orders the corners. Width40–1024 and height32–512 scene pixels are required. Invalid commands do not consume nonces or revisions.
 
 The Drawing DTO includes `text` only on text shapes. Shared text is withheld until the entire conservative stroke-expanded rectangle is revealed. GM-only labels never enter player projections. The browser wraps/fits24-pixel local-font text inside the box, with a mask for font overhang. The64-drawing limit,16KiB inbound/4MiB outbound bounds, current authorization, nonce/receipt dedupe and last-created undo remain. Older shape commands retain their fields and semantics.
+
+## Versioned drawing editing ·0.0.17/schema14
+
+All drawing DTOs carry `version`. Text DTOs also carry `fontSize` and `textFit`; scene DTOs expose `canUndoDrawing` only to GMs. History contents are never serialized. `drawing.create` optionally accepts integer `fontSize`8–96 for text only; omission retains legacy24px fitting, while an explicit size uses wrapping/clipping without shrinking.
+
+GM-only commands, in the existing revision/receipt transaction:
+- `drawing.delete`: `{sceneId,drawingId,expectedVersion}` removes one whole object.
+- `drawing.updateText`: `{sceneId,drawingId,expectedVersion,text,visibility,color,fontSize,startX,startY,endX,endY}` replaces the saved text/style/box, preserving its ID and order. Existing text/coordinate/color bounds apply; explicit font8–96 is required.
+- `drawing.undo`: `{sceneId}` now reverses the latest create/delete/update in that scene, including another GM's action. Retain128 changes per scene; no redo. Restored/edited objects advance version, so stale drafts cannot overwrite them.
+
+Unsafe/mismatched expected versions fail; a changed target returns409 `STALE_DRAWING`. Missing/foreign targets remain hidden. Archive/role/scene checks, strict fields, accepted-retry receipts and current filtered snapshots apply. Erasure/update history lives only in the host database/owner backup. Wire1 remains; update matched clients and host together.16KiB inbound/4MiB outbound bounds and64 current drawings/scene remain.
