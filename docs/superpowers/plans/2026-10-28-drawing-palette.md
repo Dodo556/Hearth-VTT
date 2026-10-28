@@ -29,8 +29,12 @@
 ### Task 2: Usable layouts and integrated evidence
 
 **Files:** drawings.spec.ts; capture-drawings.mjs; UI_STANDARDS.md, AGENTS.md, current progress/guides/versions.
-- [ ] Adapt browser selectors to actual accessible buttons, keeping all functional assertions.
-- [ ] Add geometric layout, keyboard close/reopen, narrow/short viewport and sidebar-switch checks; observe new layout fail on the original UI.
-- [ ] Capture and inspect real palette and text-editor desktop/narrow views. Fix observed issues.
-- [ ] Record0.0.16/schema13; run one complete pnpm verify:release; obtain one fresh review and resolve material findings.
-- [ ] Record tested revision and final screenshots, package source and commit. Resume scene notes after this UI pass.
+- [x] Adapt browser selectors to actual accessible buttons, keeping all functional assertions.
+- [x] Add geometric layout, keyboard close/reopen, narrow/short viewport and sidebar-switch checks; observe new layout fail on the original UI.
+- [x] Capture and inspect real palette and text-editor desktop/narrow views. Fix observed issues.
+- [x] Record0.0.16/schema13; run one complete pnpm verify:release; obtain one fresh review and resolve material findings.
+- [x] Record tested revision and final screenshots, package source and commit. Resume scene notes after this UI pass.
+
+## Completion evidence
+
+Implementation d53b3ce: confirmed full optimized gate exit0, TS76/Rust85/browser13 in4.0m; direct workflow7. One fresh review's responsive layout and keyboard focus findings fixed RED→GREEN. Original desktop/760/390/900×520 checks retained and expanded for641px wide-sidebar and resize transitions. Actual desktop/palette/narrow/constrained captures inspected. Exact artifacts, failed intermediate observations and scope limits are in RELEASE_VALIDATION.md.

@@ -8,6 +8,22 @@ The visual check found the390px instruction hint overlapping camera controls; re
 
 One fresh review of7d30bd4..8b9c643 found a supported641px/520px sidebar configuration hiding the editor, plus focus loss when a keyboard-selected swatch unmounts. The sidebar browser regression fails before the fix; available editor space and resize handling now govern sidebar coexistence. Focus-return unit regression also fails then passes after restoring focus to the color trigger on selection/Escape. Outside-pointer dismissal keeps the pointer destination. Final integration/capture evidence follows; no second review.
 
+## Confirmed0.0.16 candidate evidence
+
+Tested implementation: `d53b3cec357ef6a7068ab001dfe33ebb474c9756`; final edits are documentation/evidence only. Linux, Node24.19.0/pnpm11.25.0/Rust1.99.1, installed Chromium154.0.8037.57/headless/software WebGL, four Cargo jobs and CARGO_INCREMENTAL=0. Schema13 and wire1 are unchanged. No new runtime dependency; no backend/protocol/migration files changed.
+
+One complete `pnpm verify:release` rerun is confirmed with child process status `{"code":0,"signal":null}` recorded by a Node spawn wrapper. Workflow assertions7 (direct named run), TypeScript76 in23 files, Rust85, lint/types/Rustfmt/Clippy, all179 IDs, matching optimized host/web and browser13/13 in4.0m pass. Drawing/privacy/restart/undo/context recovery and new responsive case50.4s. Every previous scenario remains; no skipped check, shortened functional assertion or increased timeout.
+
+The prior complete run also printed all checks passed/browser13, but its enclosing shell reported1. Retain that anomalous run separately; it is not the confirmed exit0 evidence. Rerun the unchanged source and identical verification command with actual child status recorded, rather than infer process success from log prose. The final run above resolves the candidate exit-status gate.
+
+The fresh whole-change review found one Important layout issue and a focus-loss issue initially labeled Minor. Focus loss prevented normal continuation/second Escape, so both were treated as functional fixes. Supported520px sidebars near641px and dynamic resize now collapse safely when editor space is insufficient; real browser RED→GREEN covers text and color controls. Swatch selection and picker Escape restore trigger focus, with component RED→GREEN. No new deferred review finding; earlier K019 remains unchanged. No second review.
+
+Captures from the same implementation pass with fictional Game Master/Alice/Bob and zero page errors. Inspected1600×1000 palette-only and text-editor views,760×700 with sidebar, and390×700 with collapsed sidebar. The constrained hint leaves camera controls clear. Browser geometry additionally verifies900×520 short-height action reachability, editor/palette/dock separation, resize transitions and draft retention. Capture ran sequentially outside browser regression jobs:
+
+`HEARTH_TEST_HOST_BIN=target/release/hearth-server node scripts/capture-drawings.mjs /workspace/artifacts/0.0.16/Hearth_VTT_0.0.16.png /workspace/artifacts/0.0.16/Hearth_VTT_0.0.16_narrow.png /workspace/artifacts/0.0.16/Hearth_VTT_0.0.16_palette.png /workspace/artifacts/0.0.16/Hearth_VTT_0.0.16_constrained.png`
+
+This is a validated UI candidate, not verified-playable promotion. Physical LAN/30-minute encounter, target platform/current-browser matrix, accessibility/touch audit and ready-to-run host distribution remain open. Source commits are local; no automatic push/publication. UI_STANDARDS.md and AGENTS rule13 govern following workspace changes. Scene notes resume next.
+
 ## Previous validated0.0.15 evidence
 
 # Current cloud candidate ·0.0.15/schema13 ·2026-10-28
