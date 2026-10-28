@@ -60,6 +60,8 @@ pub struct Scene {
 #[derive(Clone, Debug, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
 pub struct Drawing {
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub text: Option<String>,
     #[serde(default, skip_serializing_if = "Vec::is_empty")]
     pub points: Vec<DrawingPoint>,
     pub id: String,

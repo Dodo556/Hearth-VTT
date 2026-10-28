@@ -59,7 +59,7 @@ async fn whole_host_backup_restores_committed_data_and_blobs_without_overwriting
     let archive = std::fs::read(&prepared.path).unwrap();
     let (manifest, _) = parts(&archive);
     assert_eq!(manifest["formatVersion"], 1);
-    assert_eq!(manifest["schemaVersion"], 12);
+    assert_eq!(manifest["schemaVersion"], 13);
     assert_eq!(manifest["files"].as_array().unwrap().len(), 2);
     assert_eq!(manifest["files"][0]["path"], "hearth.db");
     assert!(!manifest.to_string().contains("orphan"));
@@ -157,8 +157,8 @@ async fn corrupt_truncated_and_path_forged_archives_leave_no_recovery_copy() {
         changed["files"][0]["byteSize"] = json!(size);
         variants.push(encoded(&changed, &payload));
     }
-    for schema in [10, 11, 13] {
-        // A schema-12 database must not be accepted under a different manifest version.
+    for schema in [10, 11, 12, 14] {
+        // A schema-13 database must not be accepted under a different manifest version.
         let mut changed = manifest.clone();
         changed["schemaVersion"] = json!(schema);
         variants.push(encoded(&changed, &payload));
@@ -463,18 +463,18 @@ async fn schema_ten_backup_restores_and_migrates_without_losing_data() {
             .fetch_one(&reopened.pool)
             .await
             .unwrap(),
-        12
+        13
     );
 }
 
 #[tokio::test]
-async fn newly_created_backups_report_schema_twelve() {
+async fn newly_created_backups_report_schema_thirteen() {
     let root = tempfile::tempdir().unwrap();
     let store = fixture(root.path()).await;
     let prepared = backup::create(&store, root.path(), "0.0.12", 100)
         .await
         .unwrap();
-    assert_eq!(prepared.summary.schema_version, 12);
+    assert_eq!(prepared.summary.schema_version, 13);
 }
 
 #[tokio::test]
@@ -484,6 +484,10 @@ async fn backup_preserves_shared_and_private_drawings() {
     sqlx::query("INSERT INTO scenes(id,campaign_id,name,width,height,grid_size,background_asset_id,created_at) VALUES('scene','campaign','Map',160,160,40,'art',1)").execute(&store.pool).await.unwrap();
     for visibility in ["shared", "dm"] {
         sqlx::query("INSERT INTO drawings(id,scene_id,shape,visibility,color,start_x,start_y,end_x,end_y) VALUES(?,'scene','line',?,'#e8bc6a',10,10,20,20)").bind(visibility).bind(visibility).execute(&store.pool).await.unwrap();
+    }
+    let text = "<b>Literal 🐉</b>\nNorth gate";
+    for visibility in ["shared", "dm"] {
+        sqlx::query("INSERT INTO drawings(id,scene_id,shape,visibility,color,start_x,start_y,end_x,end_y,text) VALUES(?,'scene','text',?,'#72b7e2',20,20,140,100,?)").bind(format!("text-{visibility}")).bind(visibility).bind(text).execute(&store.pool).await.unwrap();
     }
     let points = "[{\"x\":10.12,\"y\":10.57},{\"x\":90.0,\"y\":20.0},{\"x\":10.12,\"y\":10.57}]";
     sqlx::query("INSERT INTO drawings(id,scene_id,shape,visibility,color,start_x,start_y,end_x,end_y,points) VALUES('stroke','scene','freehand','dm','#72b7e2',10.12,10.57,10.12,10.57,?)").bind(points).execute(&store.pool).await.unwrap();
@@ -504,7 +508,16 @@ async fn backup_preserves_shared_and_private_drawings() {
             .fetch_all(&copy.pool)
             .await
             .unwrap();
-    assert_eq!(visibility, ["dm", "dm", "shared"]);
+    assert_eq!(visibility, ["dm", "dm", "dm", "shared", "shared"]);
+    assert_eq!(
+        sqlx::query_scalar::<_, String>(
+            "SELECT text FROM drawings WHERE shape='text' ORDER BY rowid"
+        )
+        .fetch_all(&copy.pool)
+        .await
+        .unwrap(),
+        [text, text]
+    );
     assert_eq!(
         sqlx::query_scalar::<_, String>("SELECT points FROM drawings WHERE id='stroke'")
             .fetch_one(&copy.pool)
@@ -516,6 +529,15 @@ async fn backup_preserves_shared_and_private_drawings() {
 
 #[tokio::test]
 async fn schema_eleven_backup_restores_and_migrates_without_losing_data() {
+    restore_previous_drawing_schema(11).await;
+}
+
+#[tokio::test]
+async fn schema_twelve_backup_restores_and_migrates_without_losing_points() {
+    restore_previous_drawing_schema(12).await;
+}
+
+async fn restore_previous_drawing_schema(schema: i64) {
     static MIGRATIONS: sqlx::migrate::Migrator = sqlx::migrate!("./migrations");
     let root = tempfile::tempdir().unwrap();
     let old_db = root.path().join("old.db");
@@ -531,7 +553,7 @@ async fn schema_eleven_backup_restores_and_migrates_without_losing_data() {
     let legacy = sqlx::migrate::Migrator::with_migrations(
         MIGRATIONS
             .iter()
-            .filter(|m| m.version <= 11)
+            .filter(|m| m.version <= schema)
             .cloned()
             .collect(),
     );
@@ -548,13 +570,17 @@ async fn schema_eleven_backup_restores_and_migrates_without_losing_data() {
     }
     sqlx::query("INSERT INTO scenes(id,campaign_id,name,width,height,grid_size,background_asset_id,created_at) VALUES('old-scene','campaign','Old map',1440,960,60,'amber-map',1)").execute(&pool).await.unwrap();
     sqlx::query("INSERT INTO drawings(id,scene_id,shape,visibility,color,start_x,start_y,end_x,end_y) VALUES('old-line','old-scene','line','shared','#e8bc6a',10,20,30,40)").execute(&pool).await.unwrap();
+    let points = "[{\"x\":10.12,\"y\":20.0},{\"x\":30.0,\"y\":40.0}]";
+    if schema == 12 {
+        sqlx::query("INSERT INTO drawings(id,scene_id,shape,visibility,color,start_x,start_y,end_x,end_y,points) VALUES('old-stroke','old-scene','freehand','dm','#e65b5b',10.12,20,30,40,?)").bind(points).execute(&pool).await.unwrap();
+    }
     sqlx::query("INSERT INTO drawing_creation_nonces VALUES('campaign','owner','old-nonce')")
         .execute(&pool)
         .await
         .unwrap();
     pool.close().await;
     let db = std::fs::read(&old_db).unwrap();
-    let manifest = json!({"formatVersion":1,"schemaVersion":11,"appVersion":"0.0.13","createdAt":100,
+    let manifest = json!({"formatVersion":1,"schemaVersion":schema,"appVersion":"0.0.14","createdAt":100,
         "counts":{"users":1,"campaigns":1,"scenes":1,"tokens":0,"actors":0,"journals":1,"messages":0,"rolls":0,"encounters":0,"assets":0},
         "files":[{"path":"hearth.db","byteSize":db.len(),"sha256":hex::encode(Sha256::digest(&db))}]});
     let archive = root.path().join("legacy.hearthbackup");
@@ -568,6 +594,22 @@ async fn schema_eleven_backup_restores_and_migrates_without_losing_data() {
     .await
     .unwrap();
     let reopened = Store::open(&restored).await.unwrap();
+    if schema == 12 {
+        assert_eq!(
+            sqlx::query_scalar::<_, String>("SELECT points FROM drawings WHERE id='old-stroke'")
+                .fetch_one(&reopened.pool)
+                .await
+                .unwrap(),
+            points
+        );
+        assert_eq!(
+            sqlx::query_scalar::<_, i64>("SELECT COUNT(*) FROM drawings WHERE text IS NOT NULL")
+                .fetch_one(&reopened.pool)
+                .await
+                .unwrap(),
+            0
+        );
+    }
     assert_eq!(
         sqlx::query_scalar::<_, String>("SELECT body FROM journals WHERE id='secret'")
             .fetch_one(&reopened.pool)
@@ -587,7 +629,7 @@ async fn schema_eleven_backup_restores_and_migrates_without_losing_data() {
             .fetch_one(&reopened.pool)
             .await
             .unwrap(),
-        12
+        13
     );
     assert_eq!(
         sqlx::query_as::<_, (String, f64, f64, String)>(

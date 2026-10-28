@@ -22,6 +22,27 @@ pub(crate) async fn apply(
     let (width, height) = dimensions.ok_or_else(ApiError::hidden)?;
     match command {
         TokenCommand::DrawingCreate(p) => {
+            let text = if p.shape == "text" {
+                let text = p
+                    .text
+                    .as_deref()
+                    .ok_or_else(|| ApiError::invalid("Enter drawing text."))?;
+                if text.trim().is_empty()
+                    || text.chars().count() > 120
+                    || text.split('\n').count() > 4
+                    || text.chars().any(|c| c.is_control() && c != '\n')
+                {
+                    return Err(ApiError::invalid(
+                        "Use 1–120 plain characters over at most four lines.",
+                    ));
+                }
+                Some(text.trim())
+            } else {
+                if p.text.is_some() {
+                    return Err(ApiError::invalid("Only text drawings accept text."));
+                }
+                None
+            };
             let mut points = Vec::new();
             if p.shape == "freehand" {
                 if !(2..=128).contains(&p.points.len()) {
@@ -59,7 +80,7 @@ pub(crate) async fn apply(
             } else if !p.points.is_empty() {
                 return Err(ApiError::invalid("Only freehand drawings accept points."));
             }
-            let (start_x, start_y, end_x, end_y) =
+            let (mut start_x, mut start_y, mut end_x, mut end_y) =
                 if let (Some(first), Some(last)) = (points.first(), points.last()) {
                     (first.x, first.y, last.x, last.y)
                 } else {
@@ -71,10 +92,8 @@ pub(crate) async fn apply(
                 && p.color.as_bytes()[1..]
                     .iter()
                     .all(|b| b.is_ascii_digit() || (b'a'..=b'f').contains(b));
-            let dx = (end_x - start_x).abs();
-            let dy = (end_y - start_y).abs();
             if uuid::Uuid::parse_str(&p.client_drawing_id).is_err()
-                || !matches!(p.shape.as_str(), "line" | "rectangle" | "freehand")
+                || !matches!(p.shape.as_str(), "line" | "rectangle" | "freehand" | "text")
                 || !valid_color
                 || !coords.iter().all(|v| v.is_finite())
                 || start_x < 0.0
@@ -85,12 +104,26 @@ pub(crate) async fn apply(
                 || end_x > width as f64
                 || start_y > height as f64
                 || end_y > height as f64
-                || match p.shape.as_str() {
-                    "rectangle" => dx < 1.0 || dy < 1.0,
-                    "line" => dx.hypot(dy) < 1.0,
-                    _ => false,
-                }
             {
+                return Err(ApiError::invalid("Choose a valid shape inside the scene."));
+            }
+            if p.shape == "text" {
+                let round = |v: f64| (v * 100.0).round() / 100.0;
+                (start_x, start_y, end_x, end_y) = (
+                    round(start_x.min(end_x)),
+                    round(start_y.min(end_y)),
+                    round(start_x.max(end_x)),
+                    round(start_y.max(end_y)),
+                );
+            }
+            let dx = (end_x - start_x).abs();
+            let dy = (end_y - start_y).abs();
+            if match p.shape.as_str() {
+                "text" => !(40.0..=1024.0).contains(&dx) || !(32.0..=512.0).contains(&dy),
+                "rectangle" => dx < 1.0 || dy < 1.0,
+                "line" => dx.hypot(dy) < 1.0,
+                _ => false,
+            } {
                 return Err(ApiError::invalid("Choose a valid shape inside the scene."));
             }
             let count: i64 = sqlx::query_scalar("SELECT COUNT(*) FROM drawings WHERE scene_id=?")
@@ -105,10 +138,10 @@ pub(crate) async fn apply(
             if nonce.rows_affected() == 0 {
                 return Err(ApiError::conflict("Use a new drawing ID."));
             }
-            sqlx::query("INSERT INTO drawings(id,scene_id,shape,visibility,color,start_x,start_y,end_x,end_y,points) VALUES(?,?,?,?,?,?,?,?,?,?)")
+            sqlx::query("INSERT INTO drawings(id,scene_id,shape,visibility,color,start_x,start_y,end_x,end_y,points,text) VALUES(?,?,?,?,?,?,?,?,?,?,?)")
                 .bind(uuid::Uuid::new_v4().to_string()).bind(scene).bind(&p.shape)
                 .bind(match p.visibility { Visibility::Shared => "shared", Visibility::Dm => "dm" })
-                .bind(&p.color).bind(start_x).bind(start_y).bind(end_x).bind(end_y).bind(serde_json::to_string(&points).map_err(|_|ApiError::internal())?)
+                .bind(&p.color).bind(start_x).bind(start_y).bind(end_x).bind(end_y).bind(serde_json::to_string(&points).map_err(|_|ApiError::internal())?).bind(text)
                 .execute(&mut *conn).await?;
         }
         TokenCommand::DrawingUndo(_) => {

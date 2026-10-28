@@ -171,6 +171,8 @@ impl TokenCommand {
 #[derive(Debug, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase", deny_unknown_fields)]
 pub struct CreateDrawing {
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub text: Option<String>,
     #[serde(default, skip_serializing_if = "Vec::is_empty")]
     pub points: Vec<crate::DrawingPoint>,
     pub scene_id: String,

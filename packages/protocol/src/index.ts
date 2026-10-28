@@ -29,10 +29,21 @@ export const TokenSchema = z.object({
   canMove: z.boolean(),
   visibility: z.enum(["shared", "dm"]),
 });
+export const DrawingTextSchema = z.string().refine(
+  (text) =>
+    text.trim().length > 0 &&
+    [...text].length <= 120 &&
+    text.split("\n").length <= 4 &&
+    [...text].every((character) => {
+      const code = character.codePointAt(0) ?? 0;
+      return character === "\n" || (code >= 32 && !(code >= 127 && code <= 159));
+    }),
+);
 const DrawingFields = z
   .object({
     id: z.uuid(),
-    shape: z.enum(["line", "rectangle", "freehand"]),
+    shape: z.enum(["line", "rectangle", "freehand", "text"]),
+    text: DrawingTextSchema.optional(),
     points: z
       .array(z.object({ x: z.number().finite(), y: z.number().finite() }).strict())
       .max(128)
@@ -45,8 +56,13 @@ const DrawingFields = z
     endY: z.number().finite(),
   })
   .strict();
-const validDrawingPoints = (drawing: { shape: string; points?: { x: number; y: number }[] }) =>
-  drawing.shape === "freehand" ? (drawing.points?.length ?? 0) >= 2 : !drawing.points?.length;
+const validDrawingPoints = (drawing: {
+  shape: string;
+  text?: string;
+  points?: { x: number; y: number }[];
+}) =>
+  (drawing.shape === "freehand" ? (drawing.points?.length ?? 0) >= 2 : !drawing.points?.length) &&
+  (drawing.shape === "text" ? drawing.text !== undefined : drawing.text === undefined);
 export const DrawingSchema = DrawingFields.refine(validDrawingPoints);
 export type Drawing = z.infer<typeof DrawingSchema>;
 export const FogSchema = z

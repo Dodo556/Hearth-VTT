@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { TokenCommandSchema } from "./index";
+import { DrawingSchema, TokenCommandSchema } from "./index";
 
 describe("drawing commands", () => {
   const id = "8f834642-e1a2-42f2-9c5b-a80b91991344";
@@ -38,6 +38,45 @@ describe("drawing commands", () => {
       { ...create.payload, extra: true },
     ])
       expect(TokenCommandSchema.safeParse({ ...create, payload }).success).toBe(false);
+  });
+});
+
+describe("literal text drawings", () => {
+  const id = "8f834642-e1a2-42f2-9c5b-a80b91991344";
+  const payload = {
+    sceneId: id,
+    clientDrawingId: id,
+    shape: "text",
+    visibility: "shared",
+    color: "#72b7e2",
+    startX: 20,
+    startY: 20,
+    endX: 220,
+    endY: 120,
+    text: "<b>Keep</b> 🐉\nNorth gate",
+  };
+  const parse = (changes: Record<string, unknown>) =>
+    TokenCommandSchema.safeParse({ type: "drawing.create", payload: { ...payload, ...changes } });
+  it("preserves literal multiline text and counts Unicode scalars", () => {
+    expect(parse({}).success).toBe(true);
+    expect(parse({ text: "🐉".repeat(120) }).success).toBe(true);
+    expect(parse({ text: "🐉".repeat(121) }).success).toBe(false);
+    const { sceneId: _, clientDrawingId: __, ...saved } = payload;
+    expect(DrawingSchema.parse({ id, ...saved }).text).toBe(payload.text);
+  });
+  it("rejects blank/control/too-many-line text and foreign shape fields", () => {
+    for (const text of [undefined, "", " \n ", "bad\tlabel", "bad\u0000label", "a\nb\nc\nd\ne"])
+      expect(parse({ text }).success).toBe(false);
+    expect(parse({ text: "a\nb\nc\nd" }).success).toBe(true);
+    expect(parse({ shape: "line" }).success).toBe(false);
+    expect(
+      parse({
+        points: [
+          { x: 20, y: 20 },
+          { x: 200, y: 100 },
+        ],
+      }).success,
+    ).toBe(false);
   });
 });
 

@@ -484,6 +484,24 @@ async fn maximum_unicode_actors_and_grants_survive_restart() {
         "Maximum combined freehand snapshot: {} bytes",
         snap.to_string().len()
     );
+    let text = format!("{}\"\\", "🐉".repeat(118));
+    sqlx::query("UPDATE drawings SET shape='text',points='[]',text=?,start_x=20,start_y=20,end_x=1020,end_y=500").bind(&text).execute(&h.state.store.pool).await.unwrap();
+    let mut text_client = server.connect(&camp, &owner).await;
+    let text_snapshot = frame(&mut text_client).await;
+    assert!(text_snapshot.to_string().len() < 4 * 1024 * 1024);
+    assert!(text_snapshot["scenes"].as_array().unwrap().iter().all(|s| {
+        s["drawings"].as_array().unwrap().len() == 64
+            && s["drawings"]
+                .as_array()
+                .unwrap()
+                .iter()
+                .all(|d| d["text"] == text)
+    }));
+    eprintln!(
+        "Maximum combined text snapshot: {} bytes",
+        text_snapshot.to_string().len()
+    );
+    text_client.close(None).await.unwrap();
     accepted(&mut dm,&mut rev,json!({"type":"actor.permission","payload":{"actorId":last,"userId":player,"permission":"owner"}})).await;
     dm.close(None).await.unwrap();
     fresh.close(None).await.unwrap();

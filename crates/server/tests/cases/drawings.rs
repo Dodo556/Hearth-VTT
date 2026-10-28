@@ -1,4 +1,159 @@
 #[tokio::test]
+async fn text_drawings_preserve_literal_content_and_filter_the_entire_box() {
+    let h = Host::new().await;
+    let owner = h.owner().await;
+    let campaign = h.campaign_id(&owner).await;
+    let (alice, _) = h.player(&owner, &campaign, "text_alice").await;
+    let server = LiveServer::start(&h).await;
+    let mut dm = server.connect(&campaign, &owner).await;
+    let initial = frame(&mut dm).await;
+    let scene = initial["scenes"][0]["id"].as_str().unwrap().to_owned();
+    let mut rev = initial["revision"].as_i64().unwrap();
+    let mut player = server.connect(&campaign, &alice).await;
+    frame(&mut player).await;
+    let create = |visibility: &str, text: &str| json!({"type":"drawing.create","payload":{"sceneId":scene,"clientDrawingId":uuid::Uuid::new_v4().to_string(),"shape":"text","visibility":visibility,"color":"#72b7e2","startX":180.1234,"startY":100.5678,"endX":20.1234,"endY":20.5678,"text":text}});
+    let public_text = "<b>North gate</b> 🐉\nKeep left";
+    assert_eq!(
+        command(
+            &mut player,
+            &uuid::Uuid::new_v4().to_string(),
+            rev,
+            create("shared", public_text)
+        )
+        .await["error"]["code"],
+        "FORBIDDEN"
+    );
+    let original = create("shared", public_text);
+    let request = uuid::Uuid::new_v4().to_string();
+    let old_rev = rev;
+    let ack = command(&mut dm, &request, rev, original.clone()).await;
+    assert_eq!(ack["kind"], "ack", "{ack}");
+    rev = ack["revision"].as_i64().unwrap();
+    assert_eq!(
+        command(&mut dm, &request, old_rev, original).await["duplicate"],
+        true
+    );
+    let shared = through(&mut player, rev).await;
+    let label = &shared["scenes"][0]["drawings"][0];
+    assert_eq!(label["text"], public_text);
+    assert_eq!(label["startX"], 20.12);
+    assert_eq!(label["startY"], 20.57);
+    assert_eq!(label["endX"], 180.12);
+    assert_eq!(label["endY"], 100.57);
+    accepted(&mut dm, &mut rev, create("dm", "SECRET LABEL 🐉")).await;
+    let private = through(&mut player, rev).await;
+    assert!(!private.to_string().contains("SECRET LABEL"));
+    assert_eq!(
+        private["scenes"][0]["drawings"].as_array().unwrap().len(),
+        1
+    );
+    accepted(
+        &mut dm,
+        &mut rev,
+        json!({"type":"fog.configure","payload":{"sceneId":scene,"enabled":true}}),
+    )
+    .await;
+    accepted(&mut dm, &mut rev, json!({"type":"fog.paint","payload":{"sceneId":scene,"column":0,"row":0,"width":1,"height":1,"mode":"reveal"}})).await;
+    let concealed = through(&mut player, rev).await;
+    assert!(!concealed.to_string().contains(public_text));
+    assert_eq!(concealed["scenes"][0]["drawings"], json!([]));
+    let (_, rest, _) = h
+        .request(
+            "GET",
+            &format!("/api/campaigns/{campaign}/scenes"),
+            json!({}),
+            Some(&alice),
+        )
+        .await;
+    assert_eq!(rest["scenes"][0]["drawings"], json!([]));
+    accepted(&mut dm, &mut rev, json!({"type":"fog.paint","payload":{"sceneId":scene,"column":0,"row":0,"width":4,"height":2,"mode":"reveal"}})).await;
+    assert_eq!(
+        through(&mut player, rev).await["scenes"][0]["drawings"][0]["text"],
+        public_text
+    );
+    let mut reconnected = server.connect(&campaign, &owner).await;
+    assert_eq!(
+        frame(&mut reconnected).await["scenes"][0]["drawings"][1]["text"],
+        "SECRET LABEL 🐉"
+    );
+    accepted(
+        &mut dm,
+        &mut rev,
+        json!({"type":"drawing.undo","payload":{"sceneId":scene}}),
+    )
+    .await;
+    accepted(
+        &mut dm,
+        &mut rev,
+        json!({"type":"drawing.undo","payload":{"sceneId":scene}}),
+    )
+    .await;
+    assert_eq!(
+        through(&mut player, rev).await["scenes"][0]["drawings"],
+        json!([])
+    );
+}
+
+#[tokio::test]
+async fn text_drawings_reject_invalid_text_and_boxes_without_consuming_nonce() {
+    let h = Host::new().await;
+    let owner = h.owner().await;
+    let campaign = h.campaign_id(&owner).await;
+    let server = LiveServer::start(&h).await;
+    let mut dm = server.connect(&campaign, &owner).await;
+    let initial = frame(&mut dm).await;
+    let scene = initial["scenes"][0]["id"].as_str().unwrap().to_owned();
+    let mut rev = initial["revision"].as_i64().unwrap();
+    let base = json!({"type":"drawing.create","payload":{"sceneId":scene,"clientDrawingId":uuid::Uuid::new_v4().to_string(),"shape":"text","visibility":"dm","color":"#9ad59b","startX":20,"startY":20,"endX":220,"endY":120,"text":"🐉".repeat(120)}});
+    let mut variants = vec![];
+    for text in [
+        json!(null),
+        json!(""),
+        json!(" \n "),
+        json!("🐉".repeat(121)),
+        json!("bad\ttext"),
+        json!("bad\u{0085}text"),
+        json!("a\nb\nc\nd\ne"),
+    ] {
+        let mut bad = base.clone();
+        bad["payload"]["text"] = text;
+        variants.push(bad);
+    }
+    for (field, value) in [
+        ("startX", -1.0),
+        ("endX", 59.99),
+        ("endY", 51.99),
+        ("endX", 1044.01),
+        ("endY", 532.01),
+        ("endX", 99999.0),
+    ] {
+        let mut bad = base.clone();
+        bad["payload"][field] = json!(value);
+        variants.push(bad);
+    }
+    let mut bad = base.clone();
+    bad["payload"]["shape"] = json!("rectangle");
+    variants.push(bad);
+    let mut bad = base.clone();
+    bad["payload"]["points"] = json!([{"x":20,"y":20},{"x":220,"y":120}]);
+    variants.push(bad);
+    for bad in variants {
+        assert_eq!(
+            command(&mut dm, &uuid::Uuid::new_v4().to_string(), rev, bad.clone()).await["error"]["code"],
+            "VALIDATION_FAILED",
+            "{bad}"
+        );
+    }
+    accepted(&mut dm, &mut rev, base).await;
+    let count: i64 = sqlx::query_scalar("SELECT COUNT(*) FROM drawings WHERE scene_id=?")
+        .bind(&scene)
+        .fetch_one(&h.state.store.pool)
+        .await
+        .unwrap();
+    assert_eq!(count, 1);
+}
+
+#[tokio::test]
 async fn drawings_are_saved_synced_filtered_and_undoable() {
     let h = Host::new().await;
     let owner = h.owner().await;
