@@ -136,6 +136,10 @@ test("journal folders organize private preparation without leaking metadata or l
     await dm.getByRole("button", { name: "Edit page", exact: true }).click();
     await dm.getByLabel("Page visibility").selectOption("shared");
     await dm.getByRole("button", { name: "Save and share page", exact: true }).click();
+    await expect(dm.getByLabel("Page title", { exact: true })).toHaveCount(0);
+    await expect(dm.getByRole("navigation", { name: "Journal directory" })).toContainText(
+      "Clue archive",
+    );
     await capture(dm, "journal_nested_directory");
     for (const p of players) {
       await p.getByRole("button", { name: "Gate dispatch", exact: true }).click();

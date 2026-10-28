@@ -8,6 +8,8 @@ First real browser case reached sharing but waited for an incorrect fixture labe
 
 One fresh gpt-6-astra/high read-only review confirms host transactions, hierarchy bounds, private projection and non-destructive promotion. Its suspected response-string Unicode mismatch is disproved against installed Zod, not a finding. It identifies a retained parent that becomes ineligible after concurrent reparenting: the option disappears while the payload retains it. Although initially graded Minor, this is treated as Important editor correctness because displayed and submitted destinations disagree. Two UI regressions (depth change and new descendant) observe RED, then pass after retaining an explicit Unavailable folder option, blocking save and allowing valid destination recovery without losing input. Focused3/3, types/lint pass. No second review/new deferred minor. Review did not independently judge rendered captures or rerun suites; author visual/geometry evidence covers the stated Chromium sizes, with touch/accessibility/platform limits still open.
 
+Full b2b9b7f optimized gate passes with explicit exit0: workflow7/TS102/Rust98/browser16 in7.5m. Visual inspection shows the new nested-directory capture occurred while the shared-page save was pending. Add an explicit read-view/directory readiness assertion before that screenshot; no application behavior, privacy assertion or timeout changes. Preserve this passing log separately and regenerate the matched final evidence with a fresh frozen gate.
+
 Final independent review, complete optimized gate and exact source/capture evidence: pending below.
 
 ## Previous0.0.19 evidence
