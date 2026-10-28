@@ -1,11 +1,11 @@
-# Current build · 0.0.14
+# Current build · 0.0.15
 
-One browser application for GM and players with an independent authoritative Rust host. This increment adds bounded saved freehand strokes alongside existing lines and rectangles. Shared/GM-only layers, colors and last-drawing undo use the same scene commands and storage. Closed paths work; GM-only and fog-hidden geometry is filtered before delivery.
-- **Included:** campaigns/invitations, uploaded maps/scenes, controlled tokens and generic sheets, manual fog, ruler/pings, shared/private line/rectangle/freehand drawings, scoped dice/chat/whispers, plain-text journals, generic combat and whole-host isolated recovery.
-- **Freehand:** 2–128 saved points, 0.01-scene-pixel normalization, bounded live sampling and simplification; 64 total drawings per scene. Pointer and Enter/arrows authoring; Escape, cancellation/capture loss, settings/scene/disconnect/disposal discard unfinished strokes. Rendering remains on change.
-- **Compatibility:** schema12 adds point storage and preserves old drawing order/nonces. Schema10/11 backups remain verifiable and upgrade only in isolated recovered copies. Refresh the matched host and browser bundle together; wire schema stays1.
-- **Checks:** complete optimized gate passes7 direct workflow assertions,67 TypeScript tests,81 Rust tests and13/13 real browser scenarios in3.6m, plus types/lint/format/Clippy/inventory/web/host build. Exact conditions are in RELEASE_VALIDATION.md; manual P0 gates remain open.
-- **Status:** partially functional; full P0 encounter, actual LAN, platform/browser matrix and ready-to-run hosting distribution remain pending. No feature is promoted to VERIFIED.
-- **Next:** bounded text and server-persisted scene notes, then token HP/status/context controls and remaining P0 work. The full advanced roadmap continues on this same application.
+One browser application for GM and players with an authoritative Rust host. This increment adds saved literal text boxes to the existing shared and GM-only drawing layers, alongside lines, rectangles and freehand.
+- **Included:** campaigns/invitations, uploaded maps/scenes, controlled tokens and generic sheets, manual fog, ruler/pings, drawings, scoped dice/chat/whispers, journals, generic combat and whole-host isolated recovery.
+- **Text:**1–120 Unicode characters, up to four lines; local font, color, fitted box preview, pointer or Enter/arrows placement and last-drawing undo. Labels stay inside their saved box and follow full-box fog filtering. Editing text/settings or canceling discards an unfinished placement.
+- **Compatibility:** schema13 preserves old drawing order/point bytes/nonces. Schema10/11/12 backups remain verifiable and upgrade only after isolated restoration. Refresh matched host/browser assets together; wire schema1 remains. No new dependency.
+- **Checks:** focused protocol/host/migration/recovery and TS checks pass. The complete optimized candidate gate and screenshots are in progress; see RELEASE_VALIDATION.md for exact evidence.
+- **Status:** partially functional; manual P0 encounter, actual LAN, platform/browser matrix and ready-to-run host distribution remain open. No broad feature is VERIFIED.
+- **Next:** server-persisted scene notes, then token HP/status/context controls and remaining P0 work.
 
-Source hosting still requires development tools; players use browser links. Shared drawings remain withheld until their complete stroke-expanded bounding rectangle is revealed. Long strokes may be simplified; text, individual drawing editing and redo remain pending.
+Text wraps and can shrink in a small box; choose a larger box for larger lettering. Individual drawing editing, redo, custom fonts and rich text remain pending. Source hosting requires development tools; players use browser links.

@@ -16,6 +16,8 @@ import {
   type ScenePoint,
 } from "./mapTools";
 import { createSceneRenderLoop } from "./sceneRenderLoop";
+import { createTextDrawing } from "./textDrawingRenderer";
+import { textDrawingBounds, validDrawingText } from "./textDrawings";
 
 type Props = {
   scene: Scene;
@@ -167,6 +169,8 @@ export function SceneCanvas(props: Props) {
       const keyboardCursor = new Graphics();
       const privateDrawings = new Graphics();
       const drawingPreview = new Graphics();
+      const textLabels = new Map<string, { signature: string; object: Container }>();
+      let previewText: Container | null = null;
       const rulerLabel = new Text({
         text: "",
         style: {
@@ -197,7 +201,9 @@ export function SceneCanvas(props: Props) {
         latest.current.isDm &&
         latest.current.online &&
         !latest.current.busy &&
-        (latest.current.scene.drawings?.length ?? 0) < 64;
+        (latest.current.scene.drawings?.length ?? 0) < 64 &&
+        (latest.current.drawing.shape !== "text" ||
+          validDrawingText(latest.current.drawing.text ?? ""));
       function drawShape(
         target: Graphics,
         shape: DrawingSettings["shape"],
@@ -206,6 +212,7 @@ export function SceneCanvas(props: Props) {
         end: ScenePoint,
         points: ScenePoint[] = [],
       ) {
+        if (shape === "text") return;
         if (shape === "freehand") {
           const first = points[0];
           if (!first) return;
@@ -224,8 +231,28 @@ export function SceneCanvas(props: Props) {
       function renderDrawings() {
         sharedDrawings.clear();
         privateDrawings.clear();
+        const retained = new Set<string>();
         for (const drawing of latest.current.scene.drawings ?? []) {
           const target = drawing.visibility === "shared" ? sharedDrawings : privateDrawings;
+          if (drawing.shape === "text" && drawing.text !== undefined) {
+            retained.add(drawing.id);
+            const signature = JSON.stringify(drawing);
+            let cached = textLabels.get(drawing.id);
+            if (cached?.signature !== signature) {
+              cached?.object.destroy({ children: true });
+              const object = createTextDrawing(
+                drawing.text,
+                drawing.color,
+                { x: drawing.startX, y: drawing.startY },
+                { x: drawing.endX, y: drawing.endY },
+              );
+              if (!object) continue;
+              cached = { signature, object };
+              textLabels.set(drawing.id, cached);
+            }
+            target.addChild(cached.object);
+            continue;
+          }
           drawShape(
             target,
             drawing.shape,
@@ -235,10 +262,35 @@ export function SceneCanvas(props: Props) {
             drawing.points,
           );
         }
+        for (const [key, cached] of textLabels) {
+          if (!retained.has(key)) {
+            cached.object.destroy({ children: true });
+            textLabels.delete(key);
+          }
+        }
       }
       function showDraft() {
         renderLoop?.invalidate();
         drawingPreview.clear();
+        previewText?.destroy({ children: true });
+        previewText = null;
+        if (draft?.settings.shape === "text") {
+          previewText = createTextDrawing(
+            draft.settings.text ?? "",
+            draft.settings.color,
+            draft.start,
+            draft.end,
+          );
+          if (previewText) drawingPreview.addChild(previewText);
+          drawingPreview
+            .rect(
+              Math.min(draft.start.x, draft.end.x),
+              Math.min(draft.start.y, draft.end.y),
+              Math.abs(draft.end.x - draft.start.x),
+              Math.abs(draft.end.y - draft.start.y),
+            )
+            .stroke({ color: draft.settings.color, width: 1 / world.scale.x, alpha: 0.8 });
+        }
         if (draft)
           drawShape(
             drawingPreview,
@@ -276,6 +328,18 @@ export function SceneCanvas(props: Props) {
             : undefined;
         clearDraft();
         if (!finished || !canDraw()) return;
+        if (finished.settings.shape === "text") {
+          const bounds = textDrawingBounds(finished.start, finished.end);
+          if (!bounds) {
+            setToolMessage(
+              "Text box: use 40–1024 pixels wide and 32–512 high. Drag a new box or use Enter and arrows.",
+            );
+            return;
+          }
+          setToolMessage(null);
+          void latest.current.onDraw(finished.settings, bounds.start, bounds.end);
+          return;
+        }
         const dx = Math.abs(finished.end.x - finished.start.x),
           dy = Math.abs(finished.end.y - finished.start.y);
         const length =
@@ -960,7 +1024,9 @@ export function SceneCanvas(props: Props) {
                 : props.mapTool === "draw"
                   ? props.drawing.shape === "freehand"
                     ? "Freehand: drag a stroke · Enter starts/finishes, arrows add points · Esc cancels · 128 saved points"
-                    : "Draw: drag on the map · Enter, arrows, Enter to place · Esc cancels"
+                    : props.drawing.shape === "text"
+                      ? "Text: enter a label, then drag a box · Enter, arrows, Enter to place · Esc cancels"
+                      : "Draw: drag on the map · Enter, arrows, Enter to place · Esc cancels"
                   : "Ping: click the map · arrows and Enter work from the keyboard")}
           </span>
           {distance !== null && (

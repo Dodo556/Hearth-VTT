@@ -570,7 +570,10 @@ function TableSession({ user, id }: { user: User; id: string }) {
                     payload: {
                       sceneId: scene.id,
                       clientDrawingId: newRequestId(),
-                      ...settings,
+                      shape: settings.shape,
+                      visibility: settings.visibility,
+                      color: settings.color,
+                      ...(settings.shape === "text" ? { text: settings.text?.trim() } : {}),
                       ...(points ? { points } : {}),
                       startX: start.x,
                       startY: start.y,

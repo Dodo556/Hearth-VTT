@@ -145,12 +145,14 @@ async fn text_drawings_reject_invalid_text_and_boxes_without_consuming_nonce() {
         );
     }
     accepted(&mut dm, &mut rev, base).await;
+    let boundary = json!({"type":"drawing.create","payload":{"sceneId":scene,"clientDrawingId":uuid::Uuid::new_v4().to_string(),"shape":"text","visibility":"dm","color":"#9ad59b","startX":24.07,"startY":20,"endX":64.07,"endY":52,"text":"Minimum box"}});
+    accepted(&mut dm, &mut rev, boundary).await;
     let count: i64 = sqlx::query_scalar("SELECT COUNT(*) FROM drawings WHERE scene_id=?")
         .bind(&scene)
         .fetch_one(&h.state.store.pool)
         .await
         .unwrap();
-    assert_eq!(count, 1);
+    assert_eq!(count, 2);
 }
 
 #[tokio::test]

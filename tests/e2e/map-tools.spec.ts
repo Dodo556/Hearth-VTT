@@ -5,48 +5,9 @@ import { join, resolve } from "node:path";
 import { setTimeout as delay } from "node:timers/promises";
 import { expect, type Page, test } from "@playwright/test";
 import { testHostExecutable } from "../../scripts/test-runtime.mjs";
+import { drawCount, expectContextRecovery, expectIdleMap, trackDraws } from "./canvasChecks";
 
 const baseURL = "http://127.0.0.1:8794";
-
-async function trackDraws(page: Page) {
-  await page.addInitScript(() => {
-    const state = window as unknown as Window & { hearthTestDraws: number };
-    state.hearthTestDraws = 0;
-    for (const type of [WebGLRenderingContext, WebGL2RenderingContext]) {
-      for (const method of [
-        "drawArrays",
-        "drawElements",
-        "drawArraysInstanced",
-        "drawElementsInstanced",
-      ]) {
-        const prototype = type.prototype as unknown as Record<
-          string,
-          (...args: unknown[]) => unknown
-        >;
-        const original = prototype[method];
-        if (!original) continue;
-        prototype[method] = function (...args: unknown[]) {
-          state.hearthTestDraws++;
-          return Reflect.apply(original, this, args);
-        };
-      }
-    }
-  });
-}
-
-const drawCount = (page: Page) =>
-  page.evaluate(() => (window as unknown as Window & { hearthTestDraws: number }).hearthTestDraws);
-
-async function expectIdleMap(page: Page) {
-  const count = () => drawCount(page);
-  await expect.poll(count).toBeGreaterThan(0);
-  // Allow pending asset uploads/frames to settle, then observe an unchanged map.
-  await page.locator("canvas").screenshot();
-  await page.waitForTimeout(200);
-  const before = await count();
-  await page.waitForTimeout(200);
-  expect(await count(), "An unchanged tabletop should stop issuing GPU draw calls").toBe(before);
-}
 
 async function scenePoint(page: Page, x: number, y: number) {
   const box = await page.locator("canvas").boundingBox();
@@ -101,36 +62,7 @@ test("ruler remains accurate over zoom and pings reach the other players", async
     await expect(dm.locator(".scene-viewport")).toHaveAttribute("data-renderer", "pixi");
     await expect(dm.getByTestId("connection-status")).toHaveText("Live");
     await expectIdleMap(dm);
-    const beforeContextLoss = await dm.locator("canvas").screenshot();
-    const drawsAtRestore = await dm.evaluate(
-      () =>
-        new Promise<number>((resolveRestored, reject) => {
-          const canvas = document.querySelector("canvas");
-          const gl = canvas?.getContext("webgl2") ?? canvas?.getContext("webgl");
-          const extension = gl?.getExtension("WEBGL_lose_context");
-          if (!canvas || !extension) throw new Error("Context-loss extension is unavailable");
-          const timeout = setTimeout(() => reject(new Error("Context was not restored")), 5000);
-          canvas.addEventListener(
-            "webglcontextrestored",
-            () => {
-              clearTimeout(timeout);
-              resolveRestored(
-                (window as unknown as Window & { hearthTestDraws: number }).hearthTestDraws,
-              );
-            },
-            { once: true },
-          );
-          canvas.addEventListener(
-            "webglcontextlost",
-            () => setTimeout(() => extension.restoreContext(), 0),
-            { once: true },
-          );
-          extension.loseContext();
-        }),
-    );
-    await expect.poll(() => drawCount(dm)).toBeGreaterThan(drawsAtRestore);
-    expect(await dm.locator("canvas").screenshot()).toEqual(beforeContextLoss);
-    await expectIdleMap(dm);
+    await expectContextRecovery(dm);
     const campaign = new URL(dm.url()).pathname.split("/").pop();
     const headers = { "X-Hearth-Request": "1", Origin: baseURL };
     const players: Page[] = [];

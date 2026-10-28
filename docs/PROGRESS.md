@@ -1,3 +1,13 @@
+# Hearth VTT · Build0.0.15 · literal text drawings · 2026-10-28
+
+Continue the owner's existing handoff after pushed0.0.14 (2c8d92e), preserving one application and all179 feature IDs. GM text boxes extend current drawing commands, layers, colors, fog projection, undo and persistence. Text is literal, bounded to120 Unicode scalars/four lines and a normalized40–1024×32–512 scene-pixel box; wrapped/fitted local font is clipped inside its authorized rectangle. No new dependency. Migration0013 preserves old points/rowids/nonces; schema10/11/12 backup validation remains and restored copies upgrade to13.
+
+Initial protocol/host/migration/helper failures were observed before implementation. Focused TS72/Rust85 pass, and the real GM/Alice/Bob text/freehand/undo/restart scenario passed40.5s. A subsequent decimal minimum-box regression reproduced floating subtraction at64.07−24.07 and was corrected with exact integer-hundredth comparisons on both sides. Full optimized validation, final review and capture evidence are being recorded in RELEASE_VALIDATION.md.
+
+Next: server-persisted scene notes, then token HP/status/context controls. Actual LAN/30-minute P0/platform/current-browser/distribution gates remain open. No broad feature is promoted to VERIFIED.
+
+## Previous0.0.14 cloud increment
+
 # Hearth VTT · Build 0.0.14 · cloud continuation · 2026-10-27
 
 Imported and reviewed the supplied0.0.13 archive into the previously empty checkout. CONTINUATION_REVIEW.md records its SHA-256, preserved architecture, actual baseline checks and scope limits. The full baseline optimized gate passed TS63/Rust77/browser13 on Linux with installed Chromium154.0.8037.57; old chat results were not reused as current evidence. Only two handoff Markdown formatting issues were corrected before baseline validation.

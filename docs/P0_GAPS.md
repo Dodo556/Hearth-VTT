@@ -1,11 +1,11 @@
-# P0 gap assessment ·0.0.14
+# P0 gap assessment ·0.0.15
 
 This is a gap report, not a playable-release acceptance claim. The source has functional vertical slices and actual multi-client recovery tests; no master feature has completed every acceptance gate. All179 feature IDs remain.
 
 ## Required next work
 
 The recorded player-canvas regression is corrected in0.0.13, with real rendered-player and idle-draw checks. Keep integrated validation green; these checks do not establish full playable acceptance. The permanent single-application policy preserves this gap list and every original roadmap requirement.
-1. MAP-04/05: drawing text and scene notes; shared/GM lines, rectangles and bounded freehand, ruler and pings are implemented. TOK-03: map HP/status bars and context controls beyond current labels/inspector.
+1. MAP-04/05: scene notes; shared/GM text, lines, rectangles and bounded freehand, ruler and pings are implemented. TOK-03: map HP/status bars and context controls beyond current labels/inspector.
 2. MED-01: thumbnail workflow; JRN-01/02 folders/handouts; EXT-01 reusable content; remaining required initiative/status interactions in CMB-01/02.
 3. Owner host dashboard, actual connection presence/count and practical hosting distribution. Current member strip is membership, never online status.
 4. Complete US-01..05/08/12 and30-minute owner/Alice/Bob encounter, restart/recovery, relevant security cases and actual private LAN join. Current automated recovery is a shorter isolated scenario, not that timed gate.
@@ -24,7 +24,7 @@ The recorded player-canvas regression is corrected in0.0.13, with real rendered-
 | MAP-01  | IN_PROGRESS | Private scenes create/select/activate/conceal/rename/delete; preview and broader tools pending                                                                                      |
 | MAP-02  | IN_PROGRESS | Protected canonical PNG/JPEG/WebP map upload and square grid sizing; calibration/advanced grids pending                                                                             |
 | MAP-03  | IN_PROGRESS | Local Pixi pan/zoom/fit preserved across live updates; sample drag/grid snap, arrow-key and numeric token movement; remaining navigation tools pending                              |
-| MAP-04  | IN_PROGRESS | GM shared/private lines, rectangles and bounded freehand with undo; text, individual editing and full P0 acceptance remain.                                                         |
+| MAP-04  | IN_PROGRESS | GM shared/private lines, rectangles, freehand and literal text with undo; individual editing and full P0 acceptance remain.                                                         |
 | MAP-05  | IN_PROGRESS | Local grid-square ruler and ephemeral shared pings with mouse/keyboard; scene notes, broader camera/measurement options and full P0 acceptance pending                              |
 | TOK-01  | IN_PROGRESS | Create/edit/delete tokens with name/art/size/visibility and position; actor links and broader token tools pending                                                                   |
 | TOK-02  | IN_PROGRESS | Actor owner vs observer control plus independent controllers; broader capabilities pending                                                                                          |

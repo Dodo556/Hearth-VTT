@@ -1,4 +1,4 @@
-# Run and test Hearth VTT · build0.0.14
+# Run and test Hearth VTT · build0.0.15
 
 Yes: you can run and test this build on your own computer. It is a working self-hosted web app, currently distributed as developer source. Both DM and players use browsers; only the host computer needs the tools below. No native player client is installed. Do not open index.html directly: the Rust web server provides accounts, persistence and live synchronization.
 
@@ -117,3 +117,7 @@ In a campaign as the GM, select **Draw on map** (pencil) from the left toolbar. 
 ## One application, safely updated
 
 The source launcher and the future ready-to-run package build the same Hearth; there is no separate playable edition. For development checks use `pnpm verify`; for an optimized candidate use `pnpm verify:release` after installing the documented toolchains and Playwright browser. Never test a candidate against your only real campaign copy. Before an update, preserve the current application/web assets/configuration and a full data/artwork backup. Rollback restores that compatible pair, not just an older server executable. See docs/CONTINUOUS_DEVELOPMENT.md, docs/RELEASE.md and docs/BACKUP_RECOVERY.md.
+
+## Text labels on the map
+
+As GM choose **Draw on map → Shape → Text**. Enter up to120 characters over at most four lines, choose Shared or GM only, and drag a box. The preview shows how the local-font text fits. Use a larger box for larger lettering. Boxes are40–1024 scene pixels wide and32–512 high. Enter/arrows/Enter also works; Escape cancels. Undo drawing removes the last saved shape. Text is literal, persists on the host and follows full-box fog filtering. Scene-linked notes are the next increment.

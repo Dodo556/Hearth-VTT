@@ -1,3 +1,15 @@
+# Current cloud candidate ·0.0.15/schema13 ·2026-10-28
+
+Status: automated candidate checks in progress; no verified-playable promotion. Continue the existing maintained Hearth, with literal text drawings added to saved lines/rectangles/freehand. No new dependency; wire schema1 remains. Manual LAN/30-minute encounter/platform/browser/distribution gates remain open.
+
+Baseline: pushed0.0.14 revision2c8d92e, unchanged before this slice. New protocol/host/migration tests fail before implementation (unsupported text, expected FORBIDDEN instead of malformed frame, missing text column). Helper module initially absent. Pre-feature browser trace reaches final baseline Undo assertions then waits for absent Text select option until the unchanged120-second timeout. Matched0.0.15 focused GM/Alice/Bob scenario passes40.5s, including actual player pixels, exact literal Unicode, outside-box pixel equality, secret-frame absence, keyboard/text-edit cancellation, restart and undo.
+
+Before the final gate, boundary exploration reproduced64.07−24.07 as39.99999999999999: both helper and actual TCP host reject an exactly40-pixel box. Integer-hundredth comparisons correct the root cause with the same tests. The full final scenario also checks text-label context restoration and return to idle using the existing real-GPU assertions, factored into a shared browser utility without weakening the original map-tool case.
+
+Focused checks: `pnpm test`72 passed; `cargo test --workspace --locked`85 passed before the final rounding correction; strict types/lint/web build and optimized0.0.15 host pass. Pnpm's post-version-bump metadata refresh first hit restricted store permissions; normal frozen reinstall with cache access passed with no lockfile/dependency change. These focused results do not replace the pending one-command optimized gate.
+
+## Previous validated0.0.14 evidence
+
 # Current cloud candidate ·0.0.14/schema12 ·2026-10-27
 
 Status: automated candidate gate passed; not verified playable. Verified-playable promotion remains blocked by the existing P0/platform/distribution/LAN/session gates.

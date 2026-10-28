@@ -119,7 +119,12 @@ pub(crate) async fn apply(
             let dx = (end_x - start_x).abs();
             let dy = (end_y - start_y).abs();
             if match p.shape.as_str() {
-                "text" => !(40.0..=1024.0).contains(&dx) || !(32.0..=512.0).contains(&dy),
+                "text" => {
+                    // Exact hundredths avoid rejecting an exactly minimum-size box.
+                    let width = (end_x * 100.0).round() - (start_x * 100.0).round();
+                    let height = (end_y * 100.0).round() - (start_y * 100.0).round();
+                    !(4000.0..=102400.0).contains(&width) || !(3200.0..=51200.0).contains(&height)
+                }
                 "rectangle" => dx < 1.0 || dy < 1.0,
                 "line" => dx.hypot(dy) < 1.0,
                 _ => false,

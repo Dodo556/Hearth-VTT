@@ -5,6 +5,7 @@ import { join, resolve } from "node:path";
 import { setTimeout as delay } from "node:timers/promises";
 import { expect, type Page, test } from "@playwright/test";
 import { testHostExecutable } from "../../scripts/test-runtime.mjs";
+import { expectContextRecovery, expectIdleMap, trackDraws } from "./canvasChecks";
 
 const baseURL = "http://127.0.0.1:8795";
 async function point(page: Page, x: number, y: number, zoom = 1) {
@@ -68,6 +69,7 @@ test("GM drawings synchronize, remain private, undo and survive a host restart",
     const owner = await browser.newContext({ baseURL, viewport: { width: 1440, height: 1000 } });
     contexts.push(owner);
     const dm = await owner.newPage();
+    await trackDraws(dm);
     const errors: string[] = [];
     dm.on("pageerror", (error) => errors.push(error.message));
     await dm.goto("/");
@@ -104,6 +106,7 @@ test("GM drawings synchronize, remain private, undo and survive a host restart",
       });
       expect(joined.ok()).toBe(true);
       const page = await context.newPage();
+      await trackDraws(page);
       page.on("pageerror", (error) => errors.push(error.message));
       page.on("websocket", (socket) =>
         socket.on("framereceived", (frame) => frames.push(String(frame.payload))),
@@ -275,6 +278,92 @@ test("GM drawings synchronize, remain private, undo and survive a host restart",
     await expect.poll(async () => (await read(dm)).length).toBe(3);
     await dm.getByRole("button", { name: "Undo drawing" }).click();
     await expect.poll(async () => (await read(players[0])).length).toBe(1);
+    // Text follows the same authoritative layers and is rendered as literal pixels.
+    await expect(dm.getByRole("button", { name: "Undo drawing" })).toBeEnabled();
+    await dm.getByLabel("Drawing shape").selectOption("text");
+    await dm.getByLabel("Drawing layer").selectOption("shared");
+    await dm.getByLabel("Drawing text", { exact: true }).fill("<b>North gate</b> 🐉\nKeep left");
+    const beforeLabel = await players[0].locator("canvas").screenshot();
+    const outsideStart = await point(players[0], 500, 390);
+    const outsideEnd = await point(players[0], 940, 445);
+    const outsideClip = {
+      x: outsideStart.x,
+      y: outsideStart.y,
+      width: outsideEnd.x - outsideStart.x,
+      height: outsideEnd.y - outsideStart.y,
+    };
+    const outsideBefore = await players[0].screenshot({ clip: outsideClip });
+    await dm.getByRole("button", { name: "Zoom in", exact: true }).click();
+    const textStart = await point(dm, 500, 260, 1.2);
+    const textEnd = await point(dm, 940, 380, 1.2);
+    await dm.mouse.move(textStart.x, textStart.y);
+    await dm.mouse.down();
+    await dm.mouse.move(textEnd.x, textEnd.y, { steps: 8 });
+    await dm.mouse.up();
+    await expect.poll(async () => (await read(dm)).length).toBe(3);
+    const label = (await read(dm))[2];
+    expect(label).toMatchObject({
+      shape: "text",
+      visibility: "shared",
+      text: "<b>North gate</b> 🐉\nKeep left",
+    });
+    expect(label.startX).toBeCloseTo(500, 0);
+    expect(label.endY).toBeCloseTo(380, 0);
+    for (const player of players)
+      await expect.poll(async () => (await read(player)).length).toBe(2);
+    await expect
+      .poll(async () => !(await players[0].locator("canvas").screenshot()).equals(beforeLabel))
+      .toBe(true);
+    expect((await players[0].screenshot({ clip: outsideClip })).equals(outsideBefore)).toBe(true);
+    expect(await dm.locator("b", { hasText: "North gate" }).count()).toBe(0);
+    await expectIdleMap(players[0]);
+    await expectContextRecovery(players[0]);
+    // Editing text or Escape during a keyboard placement cancels the old draft.
+    await expect(dm.getByRole("button", { name: "Undo drawing" })).toBeEnabled();
+    await dm.locator("canvas").focus();
+    await dm.keyboard.press("Enter");
+    await dm.keyboard.press("ArrowRight");
+    await dm.keyboard.press("ArrowDown");
+    await dm.getByLabel("Drawing text", { exact: true }).fill("SECRET TEXT MARKER 🐉");
+    await dm.locator("canvas").focus();
+    await dm.keyboard.press("Enter");
+    await dm.keyboard.press("ArrowRight");
+    await dm.keyboard.press("ArrowDown");
+    await dm.keyboard.press("Escape");
+    await dm.getByLabel("Drawing layer").selectOption("dm");
+    await dm.locator("canvas").focus();
+    await dm.keyboard.press("Enter");
+    await dm.keyboard.press("ArrowRight");
+    await dm.keyboard.press("ArrowDown");
+    await dm.keyboard.press("Enter");
+    await expect.poll(async () => (await read(dm)).length).toBe(4);
+    const privateLabel = (await read(dm))[3];
+    expect(privateLabel.text).toBe("SECRET TEXT MARKER 🐉");
+    for (const player of players) expect(await read(player)).toHaveLength(2);
+    expect(frames.join(" ")).not.toContain("SECRET TEXT MARKER");
+    expect(frames.join(" ")).not.toContain(privateLabel.id);
+    await stop(host);
+    await start();
+    await dm.reload();
+    await expect(dm.getByTestId("connection-status")).toHaveText("Live");
+    await expect(dm.locator(".scene-viewport")).toHaveAttribute("data-renderer", "pixi");
+    expect((await read(dm))[2]).toEqual(label);
+    expect((await read(dm))[3]).toEqual(privateLabel);
+    for (const player of players) {
+      await player.reload();
+      await expect(player.getByTestId("connection-status")).toHaveText("Live");
+      await expect(player.locator(".scene-viewport")).toHaveAttribute("data-renderer", "pixi");
+      expect((await read(player))[1]).toEqual(label);
+    }
+    await dm.getByRole("button", { name: "Draw on map" }).click();
+    await dm.getByRole("button", { name: "Undo drawing" }).click();
+    await expect.poll(async () => (await read(dm)).length).toBe(3);
+    await dm.getByRole("button", { name: "Undo drawing" }).click();
+    await expect.poll(async () => (await read(players[0])).length).toBe(1);
+    await expect
+      .poll(async () => (await players[0].locator("canvas").screenshot()).equals(beforeLabel))
+      .toBe(true);
+    await expectIdleMap(players[0]);
     expect(errors).toEqual([]);
   } finally {
     for (const context of contexts) await context.close();

@@ -1,6 +1,7 @@
 import type { Drawing } from "@hearth/protocol";
+import { validDrawingText } from "./textDrawings";
 
-export type DrawingSettings = Pick<Drawing, "shape" | "visibility" | "color">;
+export type DrawingSettings = Pick<Drawing, "shape" | "visibility" | "color" | "text">;
 export function DrawingControls({
   settings,
   onChange,
@@ -31,6 +32,7 @@ export function DrawingControls({
           <option value="line">Line</option>
           <option value="rectangle">Rectangle</option>
           <option value="freehand">Freehand</option>
+          <option value="text">Text</option>
         </select>
       </label>
       <label>
@@ -63,6 +65,23 @@ export function DrawingControls({
         Undo drawing
       </button>
       {full && <span>Scene limit reached</span>}
+      {settings.shape === "text" && (
+        <label className="drawing-text-control">
+          Drawing text
+          <textarea
+            aria-label="Drawing text"
+            aria-describedby="drawing-text-help"
+            aria-invalid={!!settings.text && !validDrawingText(settings.text)}
+            value={settings.text ?? ""}
+            maxLength={240}
+            rows={2}
+            onChange={(e) => onChange({ ...settings, text: e.target.value })}
+          />
+          <span id="drawing-text-help">
+            {[...(settings.text ?? "")].length}/120 characters · up to 4 lines · fitted to your box
+          </span>
+        </label>
+      )}
     </fieldset>
   );
 }

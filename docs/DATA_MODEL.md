@@ -36,3 +36,7 @@ Each drawing belongs to one scene and stores a host-generated ID, line or rectan
 ## Freehand storage ·schema12
 
 Forward migration0012 rebuilds drawings with freehand in its shape constraint and a `points` JSON array column. Old rows receive `[]`; rowids and creation nonces preserve authoring/undo order. Freehand rows require2–128 stored points; host validation further checks coordinate bounds, normalized geometry and path length. Domain DTOs carry points only when present. Published0001–0011 remain unchanged. Backup canonical schemas10/11/12 are independently verified; old copies upgrade only after isolated restoration.
+
+## Text storage ·schema13
+
+Forward migration0013 rebuilds drawings with the text shape and nullable `text` column. Its constraint allows1–120 SQLite characters only for text shapes; other shapes retain NULL. The host further validates nonblank/control/line/rectangle bounds. Copy explicit rowids, all existing point bytes and all other fields; preserve the separate nonce table. DTOs omit absent text. Undo order survives upgrade. Migrations0001..0012 remain unchanged. Backup schemas10..13 are each validated against their canonical history before isolated restore and current-host upgrade.

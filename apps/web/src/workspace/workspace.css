@@ -1523,6 +1523,7 @@ dialog .button {
   gap: 3px;
 }
 .drawing-controls select,
+.drawing-controls textarea,
 .drawing-controls button {
   min-height: 29px;
   padding: 4px 7px;
@@ -1531,6 +1532,15 @@ dialog .button {
   border: 1px solid #ffffff24;
   border-radius: 3px;
   font-size: 11px;
+}
+.drawing-text-control {
+  flex-basis: 100%;
+  min-width: 0;
+}
+.drawing-controls textarea {
+  width: 100%;
+  resize: vertical;
+  max-height: 120px;
 }
 .drawing-controls button:disabled {
   opacity: 0.45;

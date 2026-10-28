@@ -1,4 +1,4 @@
-# Backup and recovery ·0.0.14
+# Backup and recovery ·0.0.15
 
 The host owner can open **Backup & recovery** from the campaign library or table header. Other campaign DMs and players cannot access host backups. The current format recovers the entire host into a separate directory; the live data directory is never replaced automatically.
 1. Choose **Prepare host backup**. The host snapshots the committed SQLite state and includes every registered uploaded artwork file. Edits committed after that snapshot stay in the current host.
@@ -12,7 +12,7 @@ A successful isolated recovery is not an automatic switch or a password reset. K
 
 Backups are unencrypted whole-host private data, including account password hashes, all participants' private whispers/rolls and hidden campaign content. This is an explicit trusted machine-owner export privilege. Ordinary campaign DMs have no such access; normal Chat/dice/document routes still filter by current permissions. Checksums detect corruption, not who created a file. Store and restore backups you trust.
 
-Current bounds:512MiB archive,128MiB DB,16MiB per PNG,4096 unique uploaded blobs,512million decoded pixels,1MiB manifest. Schema10, schema11 and schema12 archives are supported. Larger stores can use the offline copy procedure below. Scheduled/retained/encrypted/selective backups, imports from other older schemas, automatic host switching and comprehensive crash/platform acceptance remain pending.
+Current bounds:512MiB archive,128MiB DB,16MiB per PNG,4096 unique uploaded blobs,512million decoded pixels,1MiB manifest. Schema10, schema11, schema12 and schema13 archives are supported. Larger stores can use the offline copy procedure below. Scheduled/retained/encrypted/selective backups, imports from other older schemas, automatic host switching and comprehensive crash/platform acceptance remain pending.
 
 ## Open backup format1
 
@@ -45,3 +45,7 @@ A pre-migration SQLite snapshot/checksum is a database safeguard only; preserve 
 ## Build0.0.14 compatibility
 
 The current host writes schema12 archives containing saved freehand point arrays. Schema10 and schema11 archives are still checked against their original migration/schema/checksum histories, then restored into separate roots and upgraded on first startup. Migration0012 preserves old line/rectangle row order and creation nonces. Retain the previous compatible application/web/data/artwork/configuration pair before an actual update; this is not support for running an older host on schema12.
+
+## Build0.0.15 compatibility
+
+Current archives use schema13 and include literal shared/GM-only text drawings as well as exact freehand point bytes. Original schema10/11/12 archives retain canonical-schema/checksum validation and upgrade only in isolated restored copies. Migration0013 preserves drawing rowids, coordinates, points, IDs and creation nonces. Tests retain original-schema fixtures and exercise12→13 upgrade, undo ordering, text/point backup round trips and session reset. Preserve the previous matched application/web/data/artwork/configuration pair; older hosts must not open a schema13 store.

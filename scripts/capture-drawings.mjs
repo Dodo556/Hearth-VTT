@@ -11,8 +11,8 @@ import { testHostExecutable } from "./test-runtime.mjs";
 const expect = baseExpect.configure({ timeout: 20000 });
 const baseURL = "http://127.0.0.1:8792";
 const data = mkdtempSync(join(tmpdir(), "hearth-drawing-preview-"));
-const output = resolve(process.argv[2] || "Hearth_VTT_0.0.14.png");
 const version = JSON.parse(readFileSync("package.json", "utf8")).version;
+const output = resolve(process.argv[2] || `Hearth_VTT_${version}.png`);
 const host = spawn(testHostExecutable(), [], {
   stdio: ["ignore", "ignore", "inherit"],
   env: {
@@ -137,6 +137,11 @@ try {
   await dm.mouse.up();
   await expect.poll(async () => (await drawings(owner)).length).toBe(3);
   for (const player of playerContexts) assert.equal((await drawings(player)).length, 2);
+  await dm.getByLabel("Drawing shape").selectOption("text");
+  await dm.getByLabel("Drawing text", { exact: true }).fill("North gate\nKeep the lantern lit");
+  await draw([800, 150], [1240, 270]);
+  await expect.poll(async () => (await drawings(owner)).length).toBe(4);
+  for (const player of playerContexts) assert.equal((await drawings(player)).length, 3);
   await dm.evaluate(() => document.fonts.ready);
   await expect(dm.getByText("Alice", { exact: true }).first()).toBeVisible();
   assert.deepEqual(errors, []);
