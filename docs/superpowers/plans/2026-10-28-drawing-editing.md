@@ -25,6 +25,8 @@ Preserve GM authority, full-box fog,64 drawings/scene,120-scalar/four-line text,
 
 ### Task 3: Integrated evidence
 
-- [ ] Update0.0.17/schema14 docs and partial feature matrix; one complete pnpm verify:release with explicit exit status.
+- [x] Update0.0.17/schema14 docs and partial feature matrix; one complete pnpm verify:release with explicit exit status.
 - [x] One fresh read-only whole-change review; fix material findings with regression evidence.
-- [ ] Capture/inspect real desktop/narrow inline editing, record tested revision and limitations, package source and commit.
+- [x] Capture/inspect real desktop/narrow inline editing, record tested revision and limitations, package source and commit.
+
+Completed on tested implementation ec12e4a; complete automated gate exit0, TS81/Rust89/browser13 in4.5m. See RELEASE_VALIDATION.md for review regressions, inspected captures, failed/interrupted attempts and limits. Source remains local; scene notes next.
