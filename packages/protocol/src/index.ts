@@ -16,7 +16,33 @@ export const CampaignSchema = z.object({
   createdAt: z.number().int(),
   sceneCount: z.number().int().nonnegative(),
 });
+export const TokenStatusSchema = z.enum([
+  "marked",
+  "bleeding",
+  "poisoned",
+  "prone",
+  "stunned",
+  "concentrating",
+]);
+const TokenStatusesSchema = z
+  .array(TokenStatusSchema)
+  .max(6)
+  .refine((s) => new Set(s).size === s.length);
+const hpValue = z.number().int().min(0).max(1000000);
+const maxHpValue = z.number().int().min(1).max(1000000);
 export const TokenSchema = z.object({
+  statuses: TokenStatusesSchema.optional(),
+  health: z.object({ hp: hpValue, maxHp: maxHpValue }).strict().optional(),
+  vitals: z
+    .object({
+      version: z.number().int().positive().max(Number.MAX_SAFE_INTEGER),
+      hp: hpValue.nullable(),
+      maxHp: maxHpValue.nullable(),
+      hpVisibility: z.enum(["controllers", "shared"]),
+      actorVersion: z.number().int().positive().max(Number.MAX_SAFE_INTEGER).optional(),
+    })
+    .strict()
+    .optional(),
   actorId: z.string().nullable().default(null),
   id: z.string(),
   name: z.string(),
@@ -325,6 +351,37 @@ export const TokenCommandSchema = z.discriminatedUnion("type", [
           endY: z.number().finite(),
         })
         .strict(),
+    })
+    .strict(),
+  z
+    .object({
+      type: z.literal("token.vitals.update"),
+      payload: z
+        .object({
+          tokenId: z.uuid(),
+          expectedVersion: z
+            .number()
+            .int()
+            .positive()
+            .max(Number.MAX_SAFE_INTEGER - 1),
+          expectedActorId: z.uuid().nullable(),
+          expectedActorVersion: z
+            .number()
+            .int()
+            .positive()
+            .max(Number.MAX_SAFE_INTEGER - 1)
+            .nullable(),
+          hp: hpValue.nullable(),
+          maxHp: maxHpValue.nullable(),
+          hpVisibility: z.enum(["controllers", "shared"]),
+          statuses: TokenStatusesSchema,
+        })
+        .strict()
+        .refine(
+          (p) =>
+            (p.hp === null && p.maxHp === null && p.expectedActorId === null) ||
+            (p.hp !== null && p.maxHp !== null && p.hp <= p.maxHp),
+        ),
     })
     .strict(),
   z

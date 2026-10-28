@@ -384,6 +384,7 @@ async fn maximum_unicode_actors_and_grants_survive_restart() {
         }
     }
     drawing_tx.commit().await.unwrap();
+    sqlx::query("UPDATE tokens SET hp=999999,max_hp=1000000,hp_visibility='shared',vitals_version=17,statuses='[\"marked\",\"bleeding\",\"poisoned\",\"prone\",\"stunned\",\"concentrating\"]' WHERE scene_id IN(SELECT id FROM scenes WHERE campaign_id=?)").bind(&camp).execute(&h.state.store.pool).await.unwrap();
     // Also fill all100 token names,32 grants/actor and20 maximum-size dice results.
     let scene: String = sqlx::query_scalar("SELECT id FROM scenes WHERE campaign_id=? LIMIT 1")
         .bind(&camp)

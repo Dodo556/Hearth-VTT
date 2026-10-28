@@ -28,6 +28,8 @@ pub enum ClientFrame {
 #[derive(Debug, Serialize, Deserialize)]
 #[serde(tag = "type", content = "payload", deny_unknown_fields)]
 pub enum TokenCommand {
+    #[serde(rename = "token.vitals.update")]
+    TokenVitalsUpdate(UpdateTokenVitals),
     #[serde(rename = "scene.notes.update")]
     SceneNotesUpdate(UpdateSceneNote),
     #[serde(rename = "drawing.create")]
@@ -135,6 +137,7 @@ pub enum Visibility {
 impl TokenCommand {
     pub fn token_id(&self) -> &str {
         match self {
+            Self::TokenVitalsUpdate(p) => &p.token_id,
             Self::SceneNotesUpdate(p) => &p.scene_id,
             Self::DrawingCreate(p) => &p.scene_id,
             Self::DrawingUndo(p) => &p.scene_id,
@@ -560,4 +563,26 @@ pub struct UpdateSceneNote {
     pub visibility: Visibility,
     pub body: String,
     pub expected_version: i64,
+}
+
+#[derive(Debug, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase", deny_unknown_fields)]
+pub struct UpdateTokenVitals {
+    pub token_id: String,
+    pub expected_version: i64,
+    #[serde(deserialize_with = "required_nullable_vitals")]
+    pub expected_actor_id: Option<String>,
+    #[serde(deserialize_with = "required_nullable_vitals")]
+    pub expected_actor_version: Option<i64>,
+    #[serde(deserialize_with = "required_nullable_vitals")]
+    pub hp: Option<i64>,
+    #[serde(deserialize_with = "required_nullable_vitals")]
+    pub max_hp: Option<i64>,
+    pub hp_visibility: String,
+    pub statuses: Vec<String>,
+}
+fn required_nullable_vitals<'de, D: serde::Deserializer<'de>, T: serde::Deserialize<'de>>(
+    d: D,
+) -> Result<Option<T>, D::Error> {
+    Option::<T>::deserialize(d)
 }

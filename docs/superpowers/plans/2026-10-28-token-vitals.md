@@ -21,9 +21,9 @@ Review managed graphics/idle/drag/zoom/context cleanup; Task2 real WebGL regress
 
 Files: domain DTO/commands; protocol index/recovery/tests; server token_vitals.rs,scenes.rs,commands.rs,actors.rs,combat.rs; migration0016; host token_vitals tests and storage backup/upgrade fixtures.
 Interface: spec's exact token.vitals.update command and optional Token.statuses/health/vitals DTOs.
-- [ ] Write/run missing-command and missing-vitals protocol/host tests; observe RED.
-- [ ] Implement versioned atomic saves, filtered projection, source lifecycle guards and backup16. Verify linked actor fields remain authoritative and events content-free.
-- [ ] Run full Rust/TS relevant checks, old15/current backup and max snapshot regressions; commit.
+- [x] Write/run missing-command and missing-vitals protocol/host tests; observe RED.
+- [x] Implement versioned atomic saves, filtered projection, source lifecycle guards and backup16. Verify linked actor fields remain authoritative and events content-free.
+- [x] Run full Rust/TS relevant checks, old15/current backup and max snapshot regressions; commit.
 
 ### Task2: Inspector, decorations and context menu
 

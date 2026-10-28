@@ -321,3 +321,5 @@ include!("cases/combat.rs");
 include!("cases/drawings.rs");
 
 include!("cases/scene_notes.rs");
+
+include!("cases/token_vitals.rs");

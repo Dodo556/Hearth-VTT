@@ -20,6 +20,7 @@ mod recovery;
 mod scene_notes;
 mod scenes;
 mod security;
+mod token_vitals;
 
 use axum::{
     Json, Router,

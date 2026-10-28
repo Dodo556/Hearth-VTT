@@ -80,7 +80,7 @@ pub(crate) async fn projected_scenes(
         let fog = crate::fog::Mask::new(width, height, grid_size, fog_enabled, fog_bits)?;
         let rows:Vec<TokenRow>=sqlx::query_as("SELECT t.id,t.name,t.x,t.y,t.size,t.color,t.asset_id,t.visibility,c.user_id,t.actor_id,EXISTS(SELECT 1 FROM actor_ownership o WHERE o.actor_id=t.actor_id AND o.user_id=? AND o.permission='owner'),EXISTS(SELECT 1 FROM actors a WHERE a.id=t.actor_id AND (a.visibility='shared' OR EXISTS(SELECT 1 FROM actor_ownership o WHERE o.actor_id=a.id AND o.user_id=?))) FROM tokens t LEFT JOIN token_controllers c ON c.token_id=t.id AND EXISTS(SELECT 1 FROM memberships m JOIN scenes s ON s.campaign_id=m.campaign_id WHERE s.id=t.scene_id AND m.user_id=c.user_id) WHERE t.scene_id=? AND (t.visibility='shared' OR ?=1) ORDER BY t.id")
             .bind(user_id).bind(user_id).bind(&scene_id).bind(dm).fetch_all(&mut *conn).await?;
-        let tokens = rows
+        let mut tokens: Vec<Token> = rows
             .into_iter()
             .filter(|row| dm || fog.visible(row.2, row.3, row.4))
             .map(
@@ -98,6 +98,9 @@ pub(crate) async fn projected_scenes(
                     owns,
                     readable,
                 )| Token {
+                    statuses: Vec::new(),
+                    health: None,
+                    vitals: None,
                     actor_id: if dm || readable { actor.clone() } else { None },
                     can_move: dm
                         || if actor.is_some() {
@@ -121,6 +124,9 @@ pub(crate) async fn projected_scenes(
                 },
             )
             .collect();
+        for token in &mut tokens {
+            crate::token_vitals::decorate(conn, token, dm).await?;
+        }
         let drawing_rows: Vec<DrawingRow> = sqlx::query_as("SELECT id,shape,visibility,color,start_x,start_y,end_x,end_y,points,text,font_size,version,text_fit FROM drawings WHERE scene_id=? AND (visibility='shared' OR ?=1) ORDER BY sort_order,rowid")
             .bind(&scene_id).bind(dm).fetch_all(&mut *conn).await?;
         let mut drawings = Vec::new();

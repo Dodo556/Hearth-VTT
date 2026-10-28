@@ -305,6 +305,17 @@ async fn flush(
             data["token"]["actorId"] = json!(token.actor_id);
             data["token"]["canMove"] = json!(token.can_move);
             data["token"]["controllerUserId"] = json!(token.controller_user_id);
+            let authorized = serde_json::to_value(token).map_err(|_| ApiError::internal())?;
+            let target = data["token"]
+                .as_object_mut()
+                .ok_or_else(ApiError::internal)?;
+            for field in ["health", "vitals", "statuses"] {
+                if let Some(value) = authorized.get(field) {
+                    target.insert(field.into(), value.clone());
+                } else {
+                    target.remove(field);
+                }
+            }
             view.known.insert(id.clone());
             ("token.upsert", data)
         } else if view.known.remove(&id) {

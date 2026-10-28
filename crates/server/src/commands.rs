@@ -74,7 +74,9 @@ pub(crate) async fn execute(
     if archived {
         return Err(ApiError::forbidden());
     }
-    let mut payload = if let TokenCommand::SceneNotesUpdate(p) = &command {
+    let mut payload = if let TokenCommand::TokenVitalsUpdate(p) = &command {
+        crate::token_vitals::apply(&mut tx, campaign, &user, role == "dm", p).await?
+    } else if let TokenCommand::SceneNotesUpdate(p) = &command {
         if role != "dm" {
             return Err(ApiError::forbidden());
         }
@@ -207,7 +209,15 @@ pub(crate) async fn execute(
             .find(|t| t.id == token_id)
             .ok_or_else(ApiError::hidden)?;
 
-        json!({"sceneId":scene_id,"token":token})
+        let mut event = json!({"sceneId":scene_id,"token":token});
+        // Resource/marker fields are always reprojected for the current recipient.
+        for field in ["health", "vitals", "statuses"] {
+            event["token"]
+                .as_object_mut()
+                .ok_or_else(ApiError::internal)?
+                .remove(field);
+        }
+        event
     };
     if crate::combat::reconcile(&mut tx, campaign).await? {
         payload = json!({"projection":"snapshot"});

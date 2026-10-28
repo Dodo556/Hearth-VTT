@@ -27,6 +27,12 @@ pub struct Campaign {
 #[derive(Clone, Debug, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
 pub struct Token {
+    #[serde(default, skip_serializing_if = "Vec::is_empty")]
+    pub statuses: Vec<String>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub health: Option<TokenHealth>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub vitals: Option<TokenVitals>,
     pub actor_id: Option<String>,
     pub id: String,
     pub name: String,
@@ -38,6 +44,23 @@ pub struct Token {
     pub visibility: String,
     pub controller_user_id: Option<String>,
     pub can_move: bool,
+}
+
+#[derive(Clone, Debug, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct TokenHealth {
+    pub hp: i64,
+    pub max_hp: i64,
+}
+#[derive(Clone, Debug, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct TokenVitals {
+    pub version: i64,
+    pub hp: Option<i64>,
+    pub max_hp: Option<i64>,
+    pub hp_visibility: String,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub actor_version: Option<i64>,
 }
 
 #[derive(Clone, Debug, Serialize, Deserialize)]

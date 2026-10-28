@@ -71,8 +71,12 @@ pub(crate) async fn projected(
             can_edit_initiative: token.can_move,
             actor_id: actor.map(|a| a.id.clone()),
             can_edit_hp: actor.is_some_and(|a| a.can_edit),
-            hp: actor.map(|a| a.hp),
-            max_hp: actor.map(|a| a.max_hp),
+            hp: actor
+                .map(|a| a.hp)
+                .or_else(|| token.health.as_ref().map(|h| h.hp)),
+            max_hp: actor
+                .map(|a| a.max_hp)
+                .or_else(|| token.health.as_ref().map(|h| h.max_hp)),
             actor_version: actor.map(|a| a.version),
         });
     }

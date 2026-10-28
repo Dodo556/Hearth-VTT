@@ -59,7 +59,7 @@ async fn whole_host_backup_restores_committed_data_and_blobs_without_overwriting
     let archive = std::fs::read(&prepared.path).unwrap();
     let (manifest, _) = parts(&archive);
     assert_eq!(manifest["formatVersion"], 1);
-    assert_eq!(manifest["schemaVersion"], 15);
+    assert_eq!(manifest["schemaVersion"], 16);
     assert_eq!(manifest["files"].as_array().unwrap().len(), 2);
     assert_eq!(manifest["files"][0]["path"], "hearth.db");
     assert!(!manifest.to_string().contains("orphan"));
@@ -157,8 +157,8 @@ async fn corrupt_truncated_and_path_forged_archives_leave_no_recovery_copy() {
         changed["files"][0]["byteSize"] = json!(size);
         variants.push(encoded(&changed, &payload));
     }
-    for schema in [10, 11, 12, 13, 14, 16] {
-        // A schema-15 database must not be accepted under a different manifest version.
+    for schema in [10, 11, 12, 13, 14, 15, 17] {
+        // A schema-16 database must not be accepted under a different manifest version.
         let mut changed = manifest.clone();
         changed["schemaVersion"] = json!(schema);
         variants.push(encoded(&changed, &payload));
@@ -463,18 +463,18 @@ async fn schema_ten_backup_restores_and_migrates_without_losing_data() {
             .fetch_one(&reopened.pool)
             .await
             .unwrap(),
-        15
+        16
     );
 }
 
 #[tokio::test]
-async fn newly_created_backups_report_schema_fifteen() {
+async fn newly_created_backups_report_schema_sixteen() {
     let root = tempfile::tempdir().unwrap();
     let store = fixture(root.path()).await;
     let prepared = backup::create(&store, root.path(), "0.0.12", 100)
         .await
         .unwrap();
-    assert_eq!(prepared.summary.schema_version, 15);
+    assert_eq!(prepared.summary.schema_version, 16);
 }
 
 #[tokio::test]
@@ -482,6 +482,7 @@ async fn backup_preserves_shared_and_private_drawings() {
     let root = tempfile::tempdir().unwrap();
     let store = fixture(root.path()).await;
     sqlx::query("INSERT INTO scenes(id,campaign_id,name,width,height,grid_size,background_asset_id,created_at) VALUES('scene','campaign','Map',160,160,40,'art',1)").execute(&store.pool).await.unwrap();
+    sqlx::query("INSERT INTO tokens(id,scene_id,name,x,y,size,color,asset_id,visibility,vitals_version,hp,max_hp,hp_visibility,statuses) VALUES('vitals-token','scene','Vitals',80,80,40,'#ffcc00','art','shared',9,7,13,'shared','[\"marked\",\"poisoned\"]')").execute(&store.pool).await.unwrap();
     for visibility in ["dm", "shared"] {
         sqlx::query("INSERT INTO scene_notes VALUES('scene',?,?,7)")
             .bind(visibility)
@@ -521,6 +522,7 @@ async fn backup_preserves_shared_and_private_drawings() {
     .await
     .unwrap();
     let copy = Store::open(&restored).await.unwrap();
+    assert_eq!(sqlx::query_as::<_,(i64,i64,i64,String,String)>("SELECT hp,max_hp,vitals_version,hp_visibility,statuses FROM tokens WHERE id='vitals-token'").fetch_one(&copy.pool).await.unwrap(),(7,13,9,"shared".into(),"[\"marked\",\"poisoned\"]".into()));
     let notes: Vec<(String, String, i64)> =
         sqlx::query_as("SELECT visibility,body,version FROM scene_notes ORDER BY visibility")
             .fetch_all(&copy.pool)
@@ -634,10 +636,19 @@ async fn restore_previous_drawing_schema(schema: i64) {
     if schema == 13 {
         sqlx::query("INSERT INTO drawings(id,scene_id,shape,visibility,color,start_x,start_y,end_x,end_y,text) VALUES('old-text','old-scene','text','dm','#abcdef',20,20,220,120,'Original label')").execute(&pool).await.unwrap();
     }
+    if schema >= 15 {
+        sqlx::query(
+            "INSERT INTO scene_notes VALUES('old-scene','dm','OLD SCHEMA15 PRIVATE NOTE',5)",
+        )
+        .execute(&pool)
+        .await
+        .unwrap();
+        sqlx::query("INSERT INTO tokens(id,scene_id,name,x,y,size,color,asset_id,visibility) VALUES('old-token','old-scene','Old token',40,40,40,'#ffcc00','amber-map','shared')").execute(&pool).await.unwrap();
+    }
     pool.close().await;
     let db = std::fs::read(&old_db).unwrap();
     let manifest = json!({"formatVersion":1,"schemaVersion":schema,"appVersion":"0.0.14","createdAt":100,
-        "counts":{"users":1,"campaigns":1,"scenes":1,"tokens":0,"actors":0,"journals":1,"messages":0,"rolls":0,"encounters":0,"assets":0},
+        "counts":{"users":1,"campaigns":1,"scenes":1,"tokens":if schema>=15 {1} else {0},"actors":0,"journals":1,"messages":0,"rolls":0,"encounters":0,"assets":0},
         "files":[{"path":"hearth.db","byteSize":db.len(),"sha256":hex::encode(Sha256::digest(&db))}]});
     let archive = root.path().join("legacy.hearthbackup");
     std::fs::write(&archive, encoded(&manifest, &db)).unwrap();
@@ -650,6 +661,19 @@ async fn restore_previous_drawing_schema(schema: i64) {
     .await
     .unwrap();
     let reopened = Store::open(&restored).await.unwrap();
+    if schema >= 15 {
+        assert_eq!(
+            sqlx::query_as::<_, (String, i64)>(
+                "SELECT body,version FROM scene_notes WHERE scene_id='old-scene'"
+            )
+            .fetch_one(&reopened.pool)
+            .await
+            .unwrap(),
+            ("OLD SCHEMA15 PRIVATE NOTE".into(), 5)
+        );
+        assert_eq!(sqlx::query_as::<_,(Option<i64>,Option<i64>,i64,String,String)>("SELECT hp,max_hp,vitals_version,hp_visibility,statuses FROM tokens WHERE id='old-token'").fetch_one(&reopened.pool).await.unwrap(),(None,None,1,"controllers".into(),"[]".into()));
+    }
+
     if schema == 13 {
         assert!(
             sqlx::query_scalar::<_, bool>("SELECT text_fit FROM drawings WHERE id='old-text'")
@@ -713,7 +737,7 @@ async fn restore_previous_drawing_schema(schema: i64) {
             .fetch_one(&reopened.pool)
             .await
             .unwrap(),
-        15
+        16
     );
     assert_eq!(
         sqlx::query_as::<_, (String, f64, f64, String)>(
@@ -736,4 +760,9 @@ async fn restore_previous_drawing_schema(schema: i64) {
 #[tokio::test]
 async fn schema_fourteen_backup_upgrades_without_losing_drawing_state() {
     restore_previous_drawing_schema(14).await;
+}
+
+#[tokio::test]
+async fn schema_fifteen_backup_preserves_notes_and_adds_unconfigured_token_vitals() {
+    restore_previous_drawing_schema(15).await;
 }

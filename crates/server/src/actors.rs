@@ -233,6 +233,10 @@ pub(crate) async fn apply(
         }
         TokenCommand::ActorDelete(p) => {
             existing(conn, camp, &p.actor_id).await?;
+            sqlx::query("UPDATE tokens SET vitals_version=vitals_version+1 WHERE actor_id=?")
+                .bind(&p.actor_id)
+                .execute(&mut *conn)
+                .await?;
             sqlx::query("DELETE FROM actors WHERE id=?")
                 .bind(&p.actor_id)
                 .execute(&mut *conn)
@@ -250,7 +254,7 @@ pub(crate) async fn apply(
                 .bind(&p.token_id)
                 .execute(&mut *conn)
                 .await?;
-            sqlx::query("UPDATE tokens SET actor_id=? WHERE id=?")
+            sqlx::query("UPDATE tokens SET actor_id=?,vitals_version=vitals_version+1 WHERE id=?")
                 .bind(&p.actor_id)
                 .bind(&p.token_id)
                 .execute(&mut *conn)
