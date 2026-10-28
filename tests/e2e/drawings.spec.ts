@@ -293,7 +293,10 @@ test("GM drawings synchronize, remain private, undo and survive a host restart",
     await dm.getByRole("button", { name: "Draw text", exact: true }).click();
     await dm.getByRole("button", { name: "Shared drawings", exact: true }).click();
     await dm.getByLabel("Drawing text", { exact: true }).fill("<b>North gate</b> 🐉\nKeep left");
-    const beforeLabel = await players[0].locator("canvas").screenshot();
+    // Compare tabletop pixels; the HTML camera readout is outside the renderer.
+    const labelPixels = () =>
+      players[0].locator("canvas").screenshot({ style: ".canvas-status { visibility: hidden; }" });
+    const beforeLabel = await labelPixels();
     const outsideStart = await point(players[0], 500, 390);
     const outsideEnd = await point(players[0], 940, 445);
     const outsideClip = {
@@ -321,9 +324,7 @@ test("GM drawings synchronize, remain private, undo and survive a host restart",
     expect(label.endY).toBeCloseTo(380, 0);
     for (const player of players)
       await expect.poll(async () => (await read(player)).length).toBe(2);
-    await expect
-      .poll(async () => !(await players[0].locator("canvas").screenshot()).equals(beforeLabel))
-      .toBe(true);
+    await expect.poll(async () => !(await labelPixels()).equals(beforeLabel)).toBe(true);
     expect((await players[0].screenshot({ clip: outsideClip })).equals(outsideBefore)).toBe(true);
     expect(await dm.locator("b", { hasText: "North gate" }).count()).toBe(0);
     await expectIdleMap(players[0]);
@@ -370,9 +371,7 @@ test("GM drawings synchronize, remain private, undo and survive a host restart",
     await expect.poll(async () => (await read(dm)).length).toBe(3);
     await dm.getByRole("button", { name: "Undo drawing" }).click();
     await expect.poll(async () => (await read(players[0])).length).toBe(1);
-    await expect
-      .poll(async () => (await players[0].locator("canvas").screenshot()).equals(beforeLabel))
-      .toBe(true);
+    await expect.poll(async () => (await labelPixels()).equals(beforeLabel)).toBe(true);
     await expectIdleMap(players[0]);
     // Palette controls stay separate from the canvas, editor and right dock.
     await dm.getByRole("button", { name: "Draw text", exact: true }).click();
@@ -411,6 +410,28 @@ test("GM drawings synchronize, remain private, undo and survive a host restart",
     await dm.getByRole("tab", { name: "Chat", exact: true }).click();
     await expect(dm.getByRole("group", { name: "Drawing controls", exact: true })).toHaveCount(0);
     await expect(dm.getByRole("button", { name: "Collapse sidebar", exact: true })).toBeVisible();
+    // A supported wide sidebar must not squeeze the text/color editor underneath it.
+    await dm.setViewportSize({ width: 900, height: 700 });
+    await dm.getByRole("separator", { name: "Sidebar width" }).press("End");
+    await dm.setViewportSize({ width: 641, height: 700 });
+    await dm.getByRole("button", { name: "Draw on map", exact: true }).click();
+    await expect(dm.getByRole("button", { name: "Expand sidebar", exact: true })).toBeVisible();
+    await expect(dm.getByLabel("Drawing text", { exact: true })).toHaveValue("Layout draft");
+    await dm.getByRole("button", { name: "Drawing color", exact: true }).click();
+    const picker = await dm.locator(".drawing-color-options").boundingBox();
+    const rightDock = await dm
+      .getByRole("complementary", { name: "Workspace sidebar" })
+      .boundingBox();
+    if (!picker || !rightDock) throw new Error("Color picker/dock unavailable");
+    expect(picker.width).toBeGreaterThan(150);
+    expect(picker.x + picker.width).toBeLessThanOrEqual(rightDock.x);
+    await dm.getByRole("button", { name: "Drawing color", exact: true }).press("Escape");
+    await dm.getByRole("button", { name: "Close drawing controls", exact: true }).click();
+    await dm.setViewportSize({ width: 900, height: 700 });
+    await dm.getByRole("tab", { name: "Chat", exact: true }).click();
+    await dm.getByRole("button", { name: "Draw on map", exact: true }).click();
+    await dm.setViewportSize({ width: 700, height: 700 });
+    await expect(dm.getByRole("button", { name: "Expand sidebar", exact: true })).toBeVisible();
     expect(errors).toEqual([]);
   } finally {
     for (const context of contexts) await context.close();

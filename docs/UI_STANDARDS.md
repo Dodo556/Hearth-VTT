@@ -22,7 +22,7 @@ Reuse the existing slate surface/text/accent CSS variables. Use restrained borde
 
 Drawing palette width50px; text editor maximum224px. Editors shrink within available map space, leaving a gap before the sidebar. Keep editor fields inside the panel and allow vertical scrolling on short windows. Tool rails scroll independently when they cannot fit; actions must remain reachable above the bottom dock. Do not shrink targets to fit more tools.
 
-At640px or less, opening drawing controls collapses the sidebar; opening a sidebar panel closes drawing controls. Drafts remain in the existing React feature state. Above that width the palette/editor and sidebar can coexist. A larger editing surface is still preferable for GM authoring; do not claim a complete touch/mobile audit from narrow screenshots.
+At640px or less, or when the chosen sidebar width leaves less than320px for the map editor, opening drawing controls collapses the sidebar; opening a sidebar panel closes drawing controls. Resizing into that condition also collapses the sidebar. Drafts remain in the existing React feature state. Above that width the palette/editor and sidebar can coexist. A larger editing surface is still preferable for GM authoring; do not claim a complete touch/mobile audit from narrow screenshots.
 
 ## Adding the next tool
 

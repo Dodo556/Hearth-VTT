@@ -46,7 +46,8 @@ const Combat = lazy(() => import("./Combat").then((module) => ({ default: module
 const SceneCanvas = lazy(() =>
   import("./SceneCanvas").then((module) => ({ default: module.SceneCanvas })),
 );
-const compactTools = () => window.matchMedia("(max-width: 640px)").matches;
+const compactTools = (sidebarWidth: number) =>
+  window.innerWidth <= 640 || window.innerWidth - sidebarWidth < 320;
 
 export function Table({ user }: { user: User }) {
   const { id = "" } = useParams();
@@ -119,7 +120,7 @@ function TableSession({ user, id }: { user: User; id: string }) {
   const layout = useWorkspacePreferences(user.id, id);
   const tab = layout.prefs.panel;
   const setTab = (panel: PanelId) => {
-    if (compactTools()) setMapTool(null);
+    if (compactTools(layout.prefs.width)) setMapTool(null);
     layout.update({ panel, open: true });
   };
   const [visited, setVisited] = useState<Set<PanelId>>(() => new Set(["chat"]));
@@ -137,6 +138,15 @@ function TableSession({ user, id }: { user: User; id: string }) {
     visibility: "shared",
     color: "#e8bc6a",
   });
+  useEffect(() => {
+    const keepEditorVisible = () => {
+      if (mapTool === "draw" && layout.prefs.open && compactTools(layout.prefs.width))
+        layout.update({ open: false });
+    };
+    keepEditorVisible();
+    window.addEventListener("resize", keepEditorVisible);
+    return () => window.removeEventListener("resize", keepEditorVisible);
+  }, [mapTool, layout]);
   const [preparedRoll, setPreparedRoll] = useState<{ formula: string; sequence: number }>();
   const combatDock = useRef<HTMLDivElement>(null),
     combatFloat = useRef<HTMLDivElement>(null);
@@ -160,11 +170,11 @@ function TableSession({ user, id }: { user: User; id: string }) {
       const target = panels[e.key.toLowerCase()];
       if (target) {
         e.preventDefault();
-        if (compactTools()) setMapTool(null);
+        if (compactTools(layout.prefs.width)) setMapTool(null);
         layout.update({ panel: target, open: true });
       } else if (e.key.toLowerCase() === "b") {
         e.preventDefault();
-        if (!layout.prefs.open && compactTools()) setMapTool(null);
+        if (!layout.prefs.open && compactTools(layout.prefs.width)) setMapTool(null);
         layout.update({ open: !layout.prefs.open });
       }
     };
@@ -285,7 +295,7 @@ function TableSession({ user, id }: { user: User; id: string }) {
         if (scene) setFogTool({ sceneId: scene.id, tool: "select" });
         setPanOnly(false);
         setMapTool(tool === "draw" && mapTool === "draw" ? null : tool);
-        if (tool === "draw" && compactTools()) layout.update({ open: false });
+        if (tool === "draw" && compactTools(layout.prefs.width)) layout.update({ open: false });
       }}
       onAddToken={() => setTokenEditor("new")}
       onPanel={setTab}
@@ -519,7 +529,7 @@ function TableSession({ user, id }: { user: User; id: string }) {
         width={layout.prefs.width}
         onWidth={(width) => layout.update({ width })}
         onToggle={() => {
-          if (!layout.prefs.open && compactTools()) setMapTool(null);
+          if (!layout.prefs.open && compactTools(layout.prefs.width)) setMapTool(null);
           layout.update({ open: !layout.prefs.open });
         }}
         panel={effectivePanel}

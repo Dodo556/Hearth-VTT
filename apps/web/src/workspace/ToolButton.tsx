@@ -1,5 +1,5 @@
 import type { LucideIcon } from "lucide-react";
-import type { ButtonHTMLAttributes, ReactNode } from "react";
+import type { ButtonHTMLAttributes, ReactNode, Ref } from "react";
 
 /** Shared canvas tool: native button semantics, named icon, tooltip and selected state. */
 export function ToolButton({
@@ -11,6 +11,7 @@ export function ToolButton({
   title,
   ...props
 }: Omit<ButtonHTMLAttributes<HTMLButtonElement>, "children"> & {
+  ref?: Ref<HTMLButtonElement>;
   label: string;
   icon?: LucideIcon;
   children?: ReactNode;

@@ -36,6 +36,7 @@ export function DrawingControls({
 }) {
   const [colorsOpen, setColorsOpen] = useState(false);
   const root = useRef<HTMLFieldSetElement>(null);
+  const colorTrigger = useRef<HTMLButtonElement>(null);
   useEffect(() => {
     if (!colorsOpen) return;
     const dismiss = (event: PointerEvent) => {
@@ -55,8 +56,10 @@ export function DrawingControls({
         if (e.key === "Escape") {
           e.preventDefault();
           e.stopPropagation();
-          if (colorsOpen) setColorsOpen(false);
-          else onClose();
+          if (colorsOpen) {
+            setColorsOpen(false);
+            colorTrigger.current?.focus();
+          } else onClose();
         }
       }}
     >
@@ -104,6 +107,7 @@ export function DrawingControls({
         </span>
         <span className="tool-divider" />
         <ToolButton
+          ref={colorTrigger}
           label="Drawing color"
           title={`Drawing color · ${colors.find((c) => c.color === settings.color)?.name ?? settings.color}`}
           aria-expanded={colorsOpen}
@@ -163,6 +167,7 @@ export function DrawingControls({
                 onClick={() => {
                   onChange({ ...settings, color });
                   setColorsOpen(false);
+                  colorTrigger.current?.focus();
                 }}
               >
                 <span className="drawing-swatch" style={{ background: color }} />

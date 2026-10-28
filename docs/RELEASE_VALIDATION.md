@@ -4,6 +4,10 @@ UI correction requested by the owner before further canvas features. No backend/
 
 Focused evidence: old select/missing icon component tests RED→GREEN; original browser panel exceeds the56px palette-width assertion. Updated full drawing workflow and1440/760/390/900×520 layout checks pass51.2s. Temporary swatch-picker outside dismissal also observed RED→GREEN. Complete optimized candidate gate, inspected captures and independent review follow here before final delivery. Prior0.0.15 test counts below are historical.
 
+The visual check found the390px instruction hint overlapping camera controls; reserve a right-side lane. A repeat pixel equality failure was traced to a24×18px HTML camera readout region only; the actual tabletop pixels were identical. Hide that DOM readout in both compared canvas screenshots, retaining exact drawing/map equality. The next run passes this comparison and the camera-lane check, then reproduces the review's wide-sidebar case. No renderer behavior, assertion timeout or map assertion is weakened.
+
+One fresh review of7d30bd4..8b9c643 found a supported641px/520px sidebar configuration hiding the editor, plus focus loss when a keyboard-selected swatch unmounts. The sidebar browser regression fails before the fix; available editor space and resize handling now govern sidebar coexistence. Focus-return unit regression also fails then passes after restoring focus to the color trigger on selection/Escape. Outside-pointer dismissal keeps the pointer destination. Final integration/capture evidence follows; no second review.
+
 ## Previous validated0.0.15 evidence
 
 # Current cloud candidate ·0.0.15/schema13 ·2026-10-28

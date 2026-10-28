@@ -5,6 +5,22 @@ import { afterEach, expect, it } from "vitest";
 import { DrawingControls, type DrawingSettings } from "./DrawingControls";
 
 afterEach(cleanup);
+it("returns keyboard focus to the color trigger after selection and picker Escape", () => {
+  render(<Example />);
+  const trigger = screen.getByRole("button", { name: "Drawing color" });
+  fireEvent.click(trigger);
+  let swatch = screen.getByRole("button", { name: "Blue drawing color" });
+  swatch.focus();
+  fireEvent.click(swatch);
+  expect(document.activeElement).toBe(trigger);
+  fireEvent.click(trigger);
+  swatch = screen.getByRole("button", { name: "Gold drawing color" });
+  swatch.focus();
+  fireEvent.keyDown(swatch, { key: "Escape" });
+  expect(document.activeElement).toBe(trigger);
+  fireEvent.keyDown(trigger, { key: "Escape" });
+  expect(screen.queryByRole("group", { name: "Drawing controls" })).toBeNull();
+});
 it("dismisses the temporary color picker on an outside pointer action", () => {
   render(<Example />);
   fireEvent.click(screen.getByRole("button", { name: "Drawing color" }));
