@@ -38,6 +38,8 @@ Consumes Task1 DTO/command; produces retained per-scene/scope editor, explicit p
 ### Task3: Review and delivery evidence
 
 - [x] Update0.0.18/schema15 guides/API/model/progress and partial feature matrix.
-- [ ] One fresh whole-change review; fix material findings with RED→GREEN regressions; no repeated review.
-- [ ] Freeze source; run complete `pnpm verify:release` with explicit child status. Record actual counts/conditions/captures and limitations.
-- [ ] Commit evidence, verify no runtime change after tested revision, package source/logs/checksums and preserve local branch. Scene notes finish here; token controls remain next.
+- [x] One fresh whole-change review; fix material findings with RED→GREEN regressions; no repeated review.
+- [x] Freeze source; run complete `pnpm verify:release` with explicit child status. Record actual counts/conditions/captures and limitations.
+- [x] Commit evidence, verify no runtime change after tested revision, package source/logs/checksums and preserve local branch. Scene notes finish here; token controls remain next.
+
+Completed on tested implementation e5c0193; full optimized gate explicit exit0, TS86/Rust92/browser14 in4.8m. One fresh review has no findings; five inspected UI captures and exact evidence in RELEASE_VALIDATION.md. Preserve local branch/source; token HP/status/context follows.
