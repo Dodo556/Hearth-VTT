@@ -29,9 +29,9 @@ Interface: spec's exact token.vitals.update command and optional Token.statuses/
 
 Files: TokenVitals.tsx/tests,TokenContextMenu.tsx/tests,tokenDecorations.ts,catalog,SceneCanvas.tsx,TokenInspector.tsx,Table.tsx,workspace.css; tests/e2e/token-vitals.spec.ts with optional captures.
 Consumes Task1 contract. Use existing inspector/editor/delete flow and renderer lifecycle.
-- [ ] Write/run missing editor/menu behavior tests; observe RED.
-- [ ] Add explicit Save/Reload/markers/privacy controls, small HP/vector badges and pointer/keyboard context actions; preserve permissions/drafts and disposal.
-- [ ] Run component/types/lint and real GM/Alice/Bob linked/independent HP, privacy, statuses, menu, stale/restart/idle/context and desktop/narrow/short layouts; inspect captures and commit.
+- [x] Write/run missing editor/menu behavior tests; observe RED.
+- [x] Add explicit Save/Reload/markers/privacy controls, small HP/vector badges and pointer/keyboard context actions; preserve permissions/drafts and disposal.
+- [x] Run component/types/lint and real GM/Alice/Bob linked/independent HP, privacy, statuses, menu, stale/restart/idle/context and desktop/narrow/short layouts; inspect captures and commit.
 
 ### Task3: Final validation and saved checkpoint
 

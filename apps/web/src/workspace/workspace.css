@@ -1857,3 +1857,131 @@ dialog .button {
 .scene-note-conflict p {
   margin: 0 0 8px;
 }
+
+.token-inspector-tabs {
+  display: flex;
+  gap: 4px;
+  margin: 0 0 12px;
+  padding: 4px;
+  min-width: 0;
+  border: 1px solid var(--workspace-line);
+  border-radius: 4px;
+  background: #181b21;
+}
+.token-inspector-tabs button {
+  flex: 1;
+  min-height: 36px;
+  padding: 5px;
+  border: 1px solid transparent;
+  border-radius: 3px;
+  background: transparent;
+  color: var(--workspace-text);
+  font-size: 11px;
+}
+.token-inspector-tabs [aria-pressed="true"] {
+  color: var(--workspace-accent);
+  background: #d2ad7015;
+  border-color: #d2ad7040;
+}
+.token-hp-fields {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 8px;
+  margin-bottom: 10px;
+}
+.token-vitals label {
+  display: grid;
+  gap: 5px;
+  font-size: 12px;
+}
+.token-vitals input,
+.token-vitals select {
+  min-width: 0;
+  width: 100%;
+  min-height: 32px;
+  padding: 6px;
+  border: 1px solid #ffffff24;
+  border-radius: 4px;
+  background: #181b21;
+  color: var(--workspace-text);
+}
+.token-marker-picker {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 5px;
+  min-width: 0;
+  margin: 10px 0 0;
+  padding: 8px;
+  border: 1px solid var(--workspace-line);
+  border-radius: 4px;
+}
+.token-marker-picker legend {
+  padding: 0 4px;
+  font-size: 12px;
+}
+.token-marker-picker button,
+.token-status-summary span {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  min-height: 36px;
+  padding: 6px;
+  border: 1px solid #ffffff18;
+  border-radius: 3px;
+  background: #1c2026;
+  color: var(--workspace-text);
+  font-size: 11px;
+}
+.token-marker-picker [aria-pressed="true"] {
+  color: var(--workspace-accent);
+  border-color: #d2ad7080;
+  background: #d2ad7015;
+}
+.token-status-summary {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 5px;
+}
+.token-context-menu {
+  position: fixed;
+  z-index: 100;
+  width: 208px;
+  max-width: calc(100vw - 16px);
+  max-height: calc(100vh - 16px);
+  overflow-y: auto;
+  padding: 5px;
+  border: 1px solid #706550;
+  border-radius: 5px;
+  background: #22262dfc;
+  box-shadow: 0 8px 24px #0008;
+}
+.token-context-name {
+  overflow: hidden;
+  padding: 7px;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  color: var(--workspace-muted);
+  font-size: 11px;
+}
+.token-context-menu button {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  width: 100%;
+  min-height: 36px;
+  padding: 7px;
+  border: 0;
+  border-radius: 3px;
+  background: transparent;
+  color: var(--workspace-text);
+  text-align: left;
+  font-size: 12px;
+}
+.token-context-menu button:hover,
+.token-context-menu button:focus-visible {
+  background: #d2ad7015;
+  color: var(--workspace-accent);
+}
+.token-context-menu button.danger {
+  color: #e5a39a;
+}

@@ -1,11 +1,11 @@
-# P0 gap assessment ·0.0.15
+# P0 gap assessment ·0.0.19
 
 This is a gap report, not a playable-release acceptance claim. The source has functional vertical slices and actual multi-client recovery tests; no master feature has completed every acceptance gate. All179 feature IDs remain.
 
 ## Required next work
 
 The recorded player-canvas regression is corrected in0.0.13, with real rendered-player and idle-draw checks. Keep integrated validation green; these checks do not establish full playable acceptance. The permanent single-application policy preserves this gap list and every original roadmap requirement.
-1. MAP-04/05: scene notes; shared/GM text, lines, rectangles and bounded freehand, ruler and pings are implemented. TOK-03: map HP/status bars and context controls beyond current labels/inspector.
+1. MAP-04/05/TOK-03 now include direct text/whole-object erasing, scoped scene notes, ruler/pings, independent/linked HP, six manual status markers and context actions. Broader tools/resource customization and full P0 acceptance remain.
 2. MED-01: thumbnail workflow; JRN-01/02 folders/handouts; EXT-01 reusable content; remaining required initiative/status interactions in CMB-01/02.
 3. Owner host dashboard, actual connection presence/count and practical hosting distribution. Current member strip is membership, never online status.
 4. Complete US-01..05/08/12 and30-minute owner/Alice/Bob encounter, restart/recovery, relevant security cases and actual private LAN join. Current automated recovery is a shorter isolated scenario, not that timed gate.
@@ -24,11 +24,11 @@ The recorded player-canvas regression is corrected in0.0.13, with real rendered-
 | MAP-01  | IN_PROGRESS | Private scenes create/select/activate/conceal/rename/delete; preview and broader tools pending                                                                                      |
 | MAP-02  | IN_PROGRESS | Protected canonical PNG/JPEG/WebP map upload and square grid sizing; calibration/advanced grids pending                                                                             |
 | MAP-03  | IN_PROGRESS | Local Pixi pan/zoom/fit preserved across live updates; sample drag/grid snap, arrow-key and numeric token movement; remaining navigation tools pending                              |
-| MAP-04  | IN_PROGRESS | GM shared/private lines, rectangles, freehand and literal text with undo; individual editing and full P0 acceptance remain.                                                         |
-| MAP-05  | IN_PROGRESS | Local grid-square ruler and ephemeral shared pings with mouse/keyboard; scene notes, broader camera/measurement options and full P0 acceptance pending                              |
+| MAP-04  | IN_PROGRESS | GM shared/private lines, rectangles, freehand and literal text with undo; text editing/resize and whole-object erasing; shape transforms and full P0 acceptance remain.             |
+| MAP-05  | IN_PROGRESS | Local grid-square ruler and ephemeral shared pings with mouse/keyboard; private GM notes/shared briefings; broader camera/measurement options and full P0 acceptance pending        |
 | TOK-01  | IN_PROGRESS | Create/edit/delete tokens with name/art/size/visibility and position; actor links and broader token tools pending                                                                   |
 | TOK-02  | IN_PROGRESS | Actor owner vs observer control plus independent controllers; broader capabilities pending                                                                                          |
-| TOK-03  | NOT_STARTED | token labels, HP/resource bars, status indicators and basic context menu.                                                                                                           |
+| TOK-03  | IN_PROGRESS | Labels, independent/linked HP, private/shared bars, six manual markers and context menu; arbitrary resources/custom automation/full acceptance pending                              |
 | VIS-01  | IN_PROGRESS | Shared manual cell rectangles/reset, persisted mask and fog-filtered token/art/movement/history; full background confidentiality pending                                            |
 | DICE-01 | IN_PROGRESS | Bounded AST for NdM/arithmetic/grouping, public/DM+roller/self/blind/selected scopes and persisted history; selected recipients covered with chat; full gameplay acceptance pending |
 | DICE-02 | IN_PROGRESS | Dice dock, standard quick rolls, selected scope and compact history; shared chat roll cards included; advanced templates/history and full gameplay acceptance pending               |

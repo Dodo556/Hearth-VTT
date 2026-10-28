@@ -1,4 +1,4 @@
-# Run and test Hearth VTT · build0.0.18
+# Run and test Hearth VTT · build0.0.19
 
 Yes: you can run and test this build on your own computer. It is a working self-hosted web app, currently distributed as developer source. Both DM and players use browsers; only the host computer needs the tools below. No native player client is installed. Do not open index.html directly: the Rust web server provides accounts, persistence and live synchronization.
 
@@ -120,8 +120,12 @@ The source launcher and the future ready-to-run package build the same Hearth; t
 
 ## Text labels on the map
 
-As GM choose **Draw on map → Text icon**. Enter up to120 characters over at most four lines, choose Shared or GM only, and drag a box. The preview shows how the local-font text fits. Use a larger box for larger lettering. Boxes are40–1024 scene pixels wide and32–512 high. Enter/arrows/Enter also works; Escape cancels. Undo drawing removes the last saved shape. Text is literal, persists on the host and follows full-box fog filtering. Scene-linked notes are the next increment.
+As GM choose **Draw on map → Text icon**. Enter up to120 characters over at most four lines, choose Shared or GM only, and drag a box. The preview shows how the local-font text fits. Use a larger box for larger lettering. Boxes are40–1024 scene pixels wide and32–512 high. Enter/arrows/Enter also works; Escape cancels. Undo drawing removes the last saved shape. Text is literal, persists on the host and follows full-box fog filtering. Scene-linked notes are available through the notebook beside scene navigation.
 
 Drawing tools: use the eraser icon to remove a whole shape/stroke/label; Undo restores it. For text, choose Text and click or drag on the map, then type in the placed box. Handles move/resize it; the inspector sets font size and color. Save with Ctrl/Command+Enter or Save text; Escape cancels. Click a saved label with Text to edit it.
 
 Scene notes use the notebook beside the scene tabs (also in Scene controls). GMs get private GM notes and a separate Player briefing with an explicit Share button. Players read only the briefing for the current scene. Notes save on the host and survive restart; drafts stay local until Save/Share. Ctrl/Command+Enter saves; close/Escape keeps a draft while this table remains open.
+
+## Token health and markers
+
+Right-click a token → Token controls, or select it and use the HUD Actions button (keyboard: canvas Shift+F10/ContextMenu). In Health & status, enter current/maximum HP and select icon markers, then Save health & status. Only GM/controllers see a bar by default; the GM can share it. Linked tokens edit the same HP as their character sheet. Blank both fields to remove an independent bar. Markers are manual and visible with the token. Position & permissions retains the existing movement/control/linking fields. Changed-elsewhere drafts require explicit Reload; closing the inspector or selecting another token discards unsaved token-control edits.

@@ -20,6 +20,7 @@ import {
 import { createSceneRenderLoop } from "./sceneRenderLoop";
 import { createTextDrawing } from "./textDrawingRenderer";
 import { textDrawingBounds, validDrawingText } from "./textDrawings";
+import { tokenDecorations } from "./tokenDecorations";
 
 type Props = {
   scene: Scene;
@@ -46,12 +47,14 @@ type Props = {
   busy: boolean;
   selectedId: string | null;
   onSelect: (id: string) => void;
+  onTokenContext?: (id: string, x: number, y: number) => void;
   onMove: (id: string, x: number, y: number) => Promise<void>;
 };
 type Piece = {
   signature: string;
   container: Container;
   label: Text;
+  decorations: ReturnType<typeof tokenDecorations>;
   abort: AbortController;
   state: "loading" | "ready" | "failed";
   bitmap?: ImageBitmap;
@@ -648,7 +651,9 @@ export function SceneCanvas(props: Props) {
           (latest.current.isDm && !footprintRevealed(latest.current.scene.fog, gridSize, token))
             ? 0.6
             : 1;
-        piece.label.text = `${token.visibility === "dm" ? "[DM] " : ""}${token.name}`;
+        piece.decorations.update(token);
+        piece.label.y = token.size / 2 + (token.health ? 14 : 8);
+        piece.label.text = `${token.visibility === "dm" ? "[DM] " : ""}${token.name}${token.health && latest.current.selectedId === token.id ? `\n${token.health.hp} / ${token.health.maxHp} HP` : ""}`;
         piece.label.style.fill = latest.current.selectedId === token.id ? "#f4c974" : "#f4eddc";
       }
       function reconcile() {
@@ -698,11 +703,13 @@ export function SceneCanvas(props: Props) {
             });
             label.anchor.set(0.5, 0);
             label.y = token.size / 2 + 8;
-            container.addChild(label);
+            const decorations = tokenDecorations();
+            container.addChild(decorations.root, label);
             world.addChild(container);
             piece = {
               container,
               label,
+              decorations,
               abort: new AbortController(),
               state: "loading",
               signature: `${token.assetId}:${token.size}`,
@@ -749,7 +756,7 @@ export function SceneCanvas(props: Props) {
         drawMeasurement();
         drawKeyboardCursor();
       }
-      function point(e: PointerEvent) {
+      function point(e: { clientX: number; clientY: number }) {
         const rect = canvas.getBoundingClientRect();
         return {
           x: (e.clientX - rect.left - world.x) / world.scale.x,
@@ -954,6 +961,24 @@ export function SceneCanvas(props: Props) {
       };
       const key = (e: KeyboardEvent) => {
         if (
+          (e.key === "ContextMenu" || (e.key === "F10" && e.shiftKey)) &&
+          latest.current.mapTool === null &&
+          latest.current.fogTool === "select"
+        ) {
+          const token = latest.current.scene.tokens.find((t) => t.id === latest.current.selectedId);
+          if (token && latest.current.onTokenContext) {
+            e.preventDefault();
+            const rect = canvas.getBoundingClientRect();
+            latest.current.onTokenContext(
+              token.id,
+              rect.left + world.x + token.x * world.scale.x,
+              rect.top + world.y + token.y * world.scale.y,
+            );
+            return;
+          }
+        }
+
+        if (
           (e.ctrlKey || e.metaKey) &&
           e.key.toLowerCase() === "z" &&
           latest.current.mapTool === "draw"
@@ -1107,6 +1132,28 @@ export function SceneCanvas(props: Props) {
       const lostCapture = (e: PointerEvent) => {
         if (draft?.pointer === e.pointerId) clearDraft();
       };
+      const contextMenu = (e: MouseEvent) => {
+        if (
+          latest.current.mapTool !== null ||
+          latest.current.fogTool !== "select" ||
+          draft ||
+          drag ||
+          pan ||
+          brush ||
+          measurementPointer !== null
+        )
+          return;
+        const p = point(e);
+        const token = [...latest.current.scene.tokens]
+          .reverse()
+          .find((t) => Math.hypot(t.x - p.x, t.y - p.y) <= t.size / 2);
+        if (token && latest.current.onTokenContext) {
+          e.preventDefault();
+          canvas.focus();
+          latest.current.onTokenContext(token.id, e.clientX, e.clientY);
+        }
+      };
+      canvas.addEventListener("contextmenu", contextMenu);
       canvas.addEventListener("lostpointercapture", lostCapture);
       const contextRestored = () => renderLoop?.invalidate();
       canvas.addEventListener("webglcontextrestored", contextRestored);
@@ -1125,6 +1172,7 @@ export function SceneCanvas(props: Props) {
       };
       cleanup = () => {
         clearDraft();
+        canvas.removeEventListener("contextmenu", contextMenu);
         canvas.removeEventListener("lostpointercapture", lostCapture);
         for (const piece of pieces.values()) piece.abort.abort();
         canvas.removeEventListener("webglcontextrestored", contextRestored);

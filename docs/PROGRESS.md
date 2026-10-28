@@ -1,3 +1,11 @@
+# Hearth VTT · Build0.0.19 · token HP/status/actions ·2026-10-28
+
+Continued TOK-03 within the owner's remaining session budget. Added authoritative independent/linked HP with guarded source versions, default-private/explicit shared map bars, six manual token markers and a compact context menu. Existing inspector sections/WorkspaceWindow and icon styles are reused; no new rail/dependency. Link/unlink/delete and current outbound movement projections preserve private actor/resources and stale guards. Schema16 retains original migrations and canonical10–15 isolated recovery; wire1/179 partial IDs remain.
+
+Focused implementation evidence: missing command/model RED→GREEN; movement metadata privacy and marker-only linked actor-version regressions RED→GREEN; Rust95/TS92 before final graphics/menu tests. Restart uncovered compact Lucide lightning arc parsing in Pixi; all-marker/cleanup test reproduces it and explicit arc separators fix it. Stage-footer menu clamp regression also reproduces and is fixed. Final review/optimized gate/capture evidence is recorded in RELEASE_VALIDATION when completed. No push or playable/P0 promotion.
+
+## Previous0.0.18 evidence
+
 # Hearth VTT · Build0.0.18 · scene notes ·2026-10-28
 
 Continue the owner's plan and user-friendly UI direction after0.0.17. Added scene-owned GM/private notes and a separate explicitly shared player briefing, scoped versions and strict GM saves in migration15. Notes use existing scene authorization/live snapshots; private/inactive-scene bodies and versions never reach players. Clearing retains versions. The existing note window pattern supports literal typing, Save/Share/Cancel, stale reload, close/scope/scene draft retention and keyboard saving; notebook action lives with scene controls.

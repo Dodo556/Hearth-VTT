@@ -1,3 +1,13 @@
+# Current cloud candidate ·0.0.19/schema16 ·2026-10-28
+
+Owner-authorized token HP/manual markers/context slice. No dependency, wire1; migrations0001..0015 unchanged. Current resource metadata is filtered for REST/live/replay; linked source guards and default-private bars preserve actor authority. Missing-feature, live movement privacy and marker-only actor-version regressions observed RED→GREEN. Full Rust95/TS92 passed before additional graphics/menu tests.
+
+The initial focused browser run used the local debug host with current web assets. It passed privacy, linked sources, conflict/revocation, decoration reset and context delete before restart exposed Pixi's rejection of compact arc flags in the lightning SVG. A small all-six-marker/cleanup test reproduced the parse failure; explicit equivalent SVG arc separators fix it. Menu-footer geometry test also observed a clipped stage boundary and now clamps/scrolls within the map stage. Exact privacy pixel comparisons cover the complete battlefield rectangle with unrelated HTML chrome hidden; a1-RGB compositing difference outside the scene near the zoom readout is not a map leak. No privacy assertion, timeout or prior browser case removed.
+
+Final candidate identity, independent review, matched optimized gate and inspected captures: pending completion below.
+
+## Previous0.0.18 evidence
+
 # Current cloud candidate ·0.0.18/schema15 ·2026-10-28
 
 Owner-authorized next planned slice: persisted private GM scene notes and explicit player briefings, using existing scene controls and WorkspaceWindow. No dependency; wire1. Original migrations0001..0014 unchanged. Scoped notes are filtered after scene authorization; no note body in events/layout storage. Focused missing-feature RED→GREEN, Rust92 and TS86/types/lint pass before final browser/review. The complete optimized gate passes with explicit exit0; exact evidence follows below and0.0.17 results are historical.

@@ -2,6 +2,7 @@ import { newRequestId, type User } from "@hearth/protocol";
 import { Button, Dialog, ErrorMessage } from "@hearth/ui";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import {
+  Ellipsis,
   Layers2,
   PanelTopOpen,
   ShieldCheck,
@@ -36,6 +37,7 @@ import type { MapTool } from "./mapTools";
 import { NewSceneDialog, TokenEditor } from "./SceneAuthoring";
 import { SceneNotes } from "./SceneNotes";
 import { PeoplePanel, ScenePanel } from "./TablePanels";
+import { TokenContextMenu } from "./TokenContextMenu";
 import { TokenInspector } from "./TokenInspector";
 import { useCampaignStream } from "./useCampaignStream";
 
@@ -111,6 +113,13 @@ function TableSession({ user, id }: { user: User; id: string }) {
   const [deleteConfirm, setDeleteConfirm] = useState(false);
   const [authorError, setAuthorError] = useState<Error | null>(null);
   const [selectedId, setSelectedId] = useState<string | null>(null);
+  const [inspectorSection, setInspectorSection] = useState<"details" | "vitals">("details");
+  const [tokenContext, setTokenContext] = useState<{
+    sceneId: string;
+    tokenId: string;
+    x: number;
+    y: number;
+  } | null>(null);
   const isDm = campaign.data?.campaign.role === "dm";
   const members = useQuery({
     queryKey: ["members", id],
@@ -122,7 +131,10 @@ function TableSession({ user, id }: { user: User; id: string }) {
   const tab = layout.prefs.panel;
   const setTab = (panel: PanelId) => {
     if (compactTools(layout.prefs.width)) setMapTool(null);
-    if (window.innerWidth <= 800 || compactTools(layout.prefs.width)) setNotesOpen(false);
+    if (window.innerWidth <= 800 || compactTools(layout.prefs.width)) {
+      setNotesOpen(false);
+      setInspectorOpen(false);
+    }
     layout.update({ panel, open: true });
   };
   const [visited, setVisited] = useState<Set<PanelId>>(() => new Set(["chat"]));
@@ -146,14 +158,32 @@ function TableSession({ user, id }: { user: User; id: string }) {
       if (
         layout.prefs.open &&
         ((mapTool === "draw" && compactTools(layout.prefs.width)) ||
-          (notesOpen && (window.innerWidth <= 800 || compactTools(layout.prefs.width))))
+          ((notesOpen || inspectorOpen) &&
+            (window.innerWidth <= 800 || compactTools(layout.prefs.width))))
       )
         layout.update({ open: false });
     };
     keepEditorVisible();
     window.addEventListener("resize", keepEditorVisible);
     return () => window.removeEventListener("resize", keepEditorVisible);
-  }, [mapTool, notesOpen, layout]);
+  }, [mapTool, notesOpen, inspectorOpen, layout]);
+  useEffect(() => {
+    const visible = scenes.data?.scenes.flatMap((item) => item.tokens) ?? [];
+    if (
+      tokenContext &&
+      !scenes.data?.scenes.some(
+        (item) =>
+          item.id === tokenContext.sceneId &&
+          item.tokens.some((t) => t.id === tokenContext.tokenId),
+      )
+    )
+      setTokenContext(null);
+    if (selectedId && !visible.some((t) => t.id === selectedId)) {
+      setSelectedId(null);
+      setInspectorOpen(false);
+      setDeleteConfirm(false);
+    }
+  }, [scenes.data, tokenContext, selectedId]);
   const [preparedRoll, setPreparedRoll] = useState<{ formula: string; sequence: number }>();
   const combatDock = useRef<HTMLDivElement>(null),
     combatFloat = useRef<HTMLDivElement>(null);
@@ -178,13 +208,18 @@ function TableSession({ user, id }: { user: User; id: string }) {
       if (target) {
         e.preventDefault();
         if (compactTools(layout.prefs.width)) setMapTool(null);
-        if (window.innerWidth <= 800 || compactTools(layout.prefs.width)) setNotesOpen(false);
+        if (window.innerWidth <= 800 || compactTools(layout.prefs.width)) {
+          setNotesOpen(false);
+          setInspectorOpen(false);
+        }
         layout.update({ panel: target, open: true });
       } else if (e.key.toLowerCase() === "b") {
         e.preventDefault();
         if (!layout.prefs.open && compactTools(layout.prefs.width)) setMapTool(null);
-        if (!layout.prefs.open && (window.innerWidth <= 800 || compactTools(layout.prefs.width)))
+        if (!layout.prefs.open && (window.innerWidth <= 800 || compactTools(layout.prefs.width))) {
           setNotesOpen(false);
+          setInspectorOpen(false);
+        }
         layout.update({ open: !layout.prefs.open });
       }
     };
@@ -232,12 +267,28 @@ function TableSession({ user, id }: { user: User; id: string }) {
     mapTool === "ping" && (disabled || !scene?.active || scene.visibility !== "shared")
       ? null
       : mapTool;
-  const select = (tokenId: string, inspect = false) => {
+  const select = (tokenId: string, inspect = false, section: "details" | "vitals" = "details") => {
     setDeleteConfirm(false);
     setSelectedId(tokenId);
-    if (inspect) setInspectorOpen(true);
+    if (inspect) {
+      setInspectorSection(section);
+      setInspectorOpen(true);
+      if (window.innerWidth <= 800 || compactTools(layout.prefs.width)) {
+        layout.update({ open: false });
+        setNotesOpen(false);
+      }
+      requestAnimationFrame(() => {
+        const window = document.querySelector<HTMLElement>('[data-window-id="token-inspector"]');
+        (
+          window?.querySelector<HTMLElement>(
+            section === "vitals" ? ".token-vitals input" : ".token-coordinates input",
+          ) ?? window?.querySelector<HTMLElement>(".window-drag-handle")
+        )?.focus();
+      });
+    }
   };
   const chooseScene = (target: string) => {
+    setTokenContext(null);
     setSceneId(target);
     setSelectedId(null);
     setInspectorOpen(false);
@@ -264,6 +315,22 @@ function TableSession({ user, id }: { user: User; id: string }) {
     setAuthorError(null);
     setSceneAction(action);
   };
+  const openTokenContext = (tokenId: string, x: number, y: number) => {
+    if (!scene?.tokens.some((t) => t.id === tokenId)) return;
+    setSelectedId(tokenId);
+    setDeleteConfirm(false);
+    setTokenContext({ sceneId: scene.id, tokenId, x, y });
+    if (window.innerWidth <= 800 || compactTools(layout.prefs.width))
+      layout.update({ open: false });
+  };
+  const closeTokenContext = (restore: boolean) => {
+    setTokenContext(null);
+    if (restore) document.querySelector<HTMLCanvasElement>(".map-area canvas")?.focus();
+  };
+  const menuToken =
+    tokenContext?.sceneId === scene?.id
+      ? scene?.tokens.find((t) => t.id === tokenContext?.tokenId)
+      : undefined;
   const header = (
     <CampaignBar
       world={world}
@@ -279,6 +346,7 @@ function TableSession({ user, id }: { user: User; id: string }) {
     setMapTool(null);
     if (window.innerWidth <= 800 || compactTools(layout.prefs.width))
       layout.update({ open: false });
+    if (window.innerWidth <= 800 || compactTools(layout.prefs.width)) setInspectorOpen(false);
     setNotesOpen(true);
   };
   const closeNotes = () => {
@@ -354,9 +422,20 @@ function TableSession({ user, id }: { user: User; id: string }) {
             type="button"
             aria-label="Inspect selected token"
             title="Token inspector"
-            onClick={() => setInspectorOpen(true)}
+            onClick={() => select(selected.id, true, "details")}
           >
             <SlidersHorizontal size={14} />
+          </button>
+          <button
+            type="button"
+            aria-label="Token actions"
+            title="Token actions · right-click or Shift+F10"
+            onClick={(e) => {
+              const box = e.currentTarget.getBoundingClientRect();
+              openTokenContext(selected.id, box.left, box.bottom + 4);
+            }}
+          >
+            <Ellipsis size={16} />
           </button>
           {selected.actorId && (
             <button
@@ -391,9 +470,9 @@ function TableSession({ user, id }: { user: User; id: string }) {
           onClose={() => setInspectorOpen(false)}
           x={76}
           y={92}
-          height={490}
+          height={600}
         >
-          {isDm && (
+          {isDm && inspectorSection === "details" && (
             <div className="token-author-actions">
               <Button
                 disabled={disabled}
@@ -428,6 +507,8 @@ function TableSession({ user, id }: { user: User; id: string }) {
           <TokenInspector
             key={selected.id}
             token={selected}
+            section={inspectorSection}
+            onSection={setInspectorSection}
             dm={isDm}
             disabled={disabled}
             width={scene.width}
@@ -454,6 +535,37 @@ function TableSession({ user, id }: { user: User; id: string }) {
         >
           <div className="combat-floating-target" ref={combatFloat} />
         </WorkspaceWindow>
+      )}
+      {menuToken && tokenContext && (
+        <TokenContextMenu
+          token={menuToken}
+          dm={isDm}
+          disabled={disabled}
+          x={tokenContext.x}
+          y={tokenContext.y}
+          onClose={closeTokenContext}
+          onAction={(action) => {
+            if (action === "inspect") select(menuToken.id, true, "vitals");
+            else if (action === "sheet" && menuToken.actorId) {
+              setActorId(menuToken.actorId);
+              setTab("actors");
+            } else if (action === "appearance") {
+              setEditorTargetId(menuToken.id);
+              setTokenEditor("edit");
+            } else if (action === "visibility")
+              change({
+                type: "token.visibility",
+                payload: {
+                  tokenId: menuToken.id,
+                  visibility: menuToken.visibility === "shared" ? "dm" : "shared",
+                },
+              });
+            else if (action === "delete") {
+              select(menuToken.id, true, "details");
+              setDeleteConfirm(true);
+            }
+          }}
+        />
       )}
       {(authorError || stream.error) && (
         <div className="workspace-toast">
@@ -564,8 +676,13 @@ function TableSession({ user, id }: { user: User; id: string }) {
         onWidth={(width) => layout.update({ width })}
         onToggle={() => {
           if (!layout.prefs.open && compactTools(layout.prefs.width)) setMapTool(null);
-          if (!layout.prefs.open && (window.innerWidth <= 800 || compactTools(layout.prefs.width)))
+          if (
+            !layout.prefs.open &&
+            (window.innerWidth <= 800 || compactTools(layout.prefs.width))
+          ) {
             setNotesOpen(false);
+            setInspectorOpen(false);
+          }
           layout.update({ open: !layout.prefs.open });
         }}
         panel={effectivePanel}
@@ -612,6 +729,7 @@ function TableSession({ user, id }: { user: User; id: string }) {
           <Suspense fallback={<p role="status">{t.loading}</p>}>
             <SceneCanvas
               scene={scene}
+              onTokenContext={openTokenContext}
               online={stream.status === "live"}
               busy={disabled}
               isDm={isDm}
