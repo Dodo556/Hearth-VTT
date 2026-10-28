@@ -67,3 +67,11 @@ Undo drawing or Ctrl/Command+Z on the canvas reverses the latest scene drawing c
 ## Vertical drawing palette
 
 Drawing modes live beside the left tool rail. Hover icons for names; Tab and Enter/Space select tools. Eye/lock choose shared/GM-only with a visible caption. The color chip opens swatches and a custom picker. Text has a compact style/Save/Cancel inspector beside its on-map editor. Close or Escape on the canvas exits drawing mode once any active gesture is canceled. Short rails scroll; on small screens the sidebar and drawing editor take turns.
+
+## Scene notes and player briefings ·0.0.18
+
+Open the notebook beside scene navigation, or Scene → Scene notes. The compact window moves/resizes like the token inspector and stays bound to the prepared scene. GM notes starts private; only GMs receive that text. Player briefing is separate, read-only for players and available only while that scene is on their table. Notes describe the whole scene and are independent of cell fog; they are not location pins.
+
+Choose Add/Edit, type plain text (up to1000 Unicode characters, line breaks/tabs allowed), then Save GM notes or Share/Update player briefing. Clearing a saved briefing offers Clear player briefing and removes it from current player views; it cannot retract earlier knowledge. Ctrl/Command+Enter saves. Close/Escape, tabs and scene switches retain independent local drafts while the table remains mounted; full navigation/reload can discard them. No note text is saved to layout preferences.
+
+Changed-elsewhere text keeps your draft and blocks stale saves. Reload saved note explicitly replaces that draft; Cancel returns to the current saved text. GM notes and player briefings have separate versions. Offline/archive/pending disables mutation; existing drafts stay readable/editable except while a save is pending. Host errors retain the draft. Scene deletion cascades its notes; players lose the notes view when the scene is concealed. Configurable map pins, journal links, rich text and note undo/history remain later work.

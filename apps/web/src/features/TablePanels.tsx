@@ -14,6 +14,7 @@ export function ScenePanel({
   onScene,
   onSelect,
   onRename,
+  onNotes,
   onDelete,
   fogTool,
   onFogTool,
@@ -26,6 +27,7 @@ export function ScenePanel({
   selectedId: string | null;
   onScene: (id: string) => void;
   onSelect: (id: string) => void;
+  onNotes: () => void;
   onRename: () => void;
   onDelete: () => void;
   fogTool: FogTool;
@@ -70,6 +72,9 @@ export function ScenePanel({
               </Button>
             </div>
           )}
+          <Button type="button" onClick={onNotes}>
+            Scene notes
+          </Button>
           <h3>
             Scene tokens <span>{scene.tokens.length}</span>
           </h3>

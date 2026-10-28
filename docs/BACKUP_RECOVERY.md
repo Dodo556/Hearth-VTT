@@ -12,11 +12,11 @@ A successful isolated recovery is not an automatic switch or a password reset. K
 
 Backups are unencrypted whole-host private data, including account password hashes, all participants' private whispers/rolls and hidden campaign content. This is an explicit trusted machine-owner export privilege. Ordinary campaign DMs have no such access; normal Chat/dice/document routes still filter by current permissions. Checksums detect corruption, not who created a file. Store and restore backups you trust.
 
-Current bounds:512MiB archive,128MiB DB,16MiB per PNG,4096 unique uploaded blobs,512million decoded pixels,1MiB manifest. Schema10, schema11, schema12, schema13 and schema14 archives are supported. Larger stores can use the offline copy procedure below. Scheduled/retained/encrypted/selective backups, imports from other older schemas, automatic host switching and comprehensive crash/platform acceptance remain pending.
+Current bounds:512MiB archive,128MiB DB,16MiB per PNG,4096 unique uploaded blobs,512million decoded pixels,1MiB manifest. Schema10, schema11, schema12, schema13, schema14 and schema15 archives are supported. Larger stores can use the offline copy procedure below. Scheduled/retained/encrypted/selective backups, imports from other older schemas, automatic host switching and comprehensive crash/platform acceptance remain pending.
 
 ## Open backup format1
 
-The uncompressed byte format is8 ASCII bytes `HEARTHB1`, a4-byte little-endian unsigned manifest length, strict UTF-8 JSON, then the concatenated payloads. Manifest fields: `formatVersion:1`, `schemaVersion` (10,11,12,13 or14), `appVersion`, `createdAt` (Unix seconds), `counts` (users/campaigns/scenes/tokens/actors/journals/messages/rolls/encounters/assets) and `files:[{path,byteSize,sha256}]`. Database is first at `hearth.db`; subsequent entries are unique sorted `assets/<lowercase SHA256>.png`. SHA256 refers to each file's complete bytes. No directories, links, arbitrary paths, compression or trailing bytes. Asset count is unique registered blobs. Logs, prior backups/recovery copies, orphan/temp files and external environment configuration are excluded. Original runtime example art stays in the matching host package.
+The uncompressed byte format is8 ASCII bytes `HEARTHB1`, a4-byte little-endian unsigned manifest length, strict UTF-8 JSON, then the concatenated payloads. Manifest fields: `formatVersion:1`, `schemaVersion` (10,11,12,13,14 or15), `appVersion`, `createdAt` (Unix seconds), `counts` (users/campaigns/scenes/tokens/actors/journals/messages/rolls/encounters/assets) and `files:[{path,byteSize,sha256}]`. Database is first at `hearth.db`; subsequent entries are unique sorted `assets/<lowercase SHA256>.png`. SHA256 refers to each file's complete bytes. No directories, links, arbitrary paths, compression or trailing bytes. Asset count is unique registered blobs. Logs, prior backups/recovery copies, orphan/temp files and external environment configuration are excluded. Original runtime example art stays in the matching host package.
 
 ## Offline full-directory alternative
 
@@ -44,7 +44,7 @@ A pre-migration SQLite snapshot/checksum is a database safeguard only; preserve 
 
 ## Build0.0.14 compatibility
 
-The current host writes schema12 archives containing saved freehand point arrays. Schema10 and schema11 archives are still checked against their original migration/schema/checksum histories, then restored into separate roots and upgraded on first startup. Migration0012 preserves old line/rectangle row order and creation nonces. Retain the previous compatible application/web/data/artwork/configuration pair before an actual update; this is not support for running an older host on schema12.
+Build0.0.14 writes schema12 archives containing saved freehand point arrays. Schema10 and schema11 archives are still checked against their original migration/schema/checksum histories, then restored into separate roots and upgraded on first startup. Migration0012 preserves old line/rectangle row order and creation nonces. Retain the previous compatible application/web/data/artwork/configuration pair before an actual update; this is not support for running an older host on schema12.
 
 ## Build0.0.15 compatibility
 
@@ -52,4 +52,8 @@ Build0.0.15 archives use schema13 and include literal shared/GM-only text drawin
 
 ## Drawing editing compatibility ·0.0.17
 
-Current archives use schema14 and include font size, legacy-fit flag, monotonic versions, stable drawing order and bounded edit/erasure undo history, preserving exact freehand point bytes. Schema10–13 archives are validated against their original canonical migration history before isolated restore and current-host upgrade. A schema13 recovery fixture verifies font24/legacy fitting/version1 plus seeded undo; current archives preserve edited styles and real before snapshots. Keep the matched pre-update application/web/data/artwork/configuration for rollback; do not point an older executable at schema14.
+Build0.0.17 archives use schema14 and include font size, legacy-fit flag, monotonic versions, stable drawing order and bounded edit/erasure undo history, preserving exact freehand point bytes. Schema10–13 archives are validated against their original canonical migration history before isolated restore and current-host upgrade. A schema13 recovery fixture verifies font24/legacy fitting/version1 plus seeded undo; current archives preserve edited styles and real before snapshots. Keep the matched pre-update application/web/data/artwork/configuration for rollback; do not point an older executable at schema14.
+
+## Scene-note compatibility ·0.0.18
+
+Current backups use schema15 and preserve both private/shared scene-note bodies and independent versions, including exact literal Unicode/newline/tab bytes. A current archive round trip verifies notes together with saved drawing styles/history/points. An original canonical schema14 archive restores and upgrades to15 without losing drawing data; original10–13 recovery stays covered. Notes are full-host owner data in the unencrypted backup trust boundary. Before an update, retain the matched old executable/web/data/artwork/configuration; older hosts must not open a schema15 database. Rollback requires a compatible pre-update copy, not automatic downgrade.

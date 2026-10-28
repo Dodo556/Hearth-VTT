@@ -34,6 +34,7 @@ import { Journals } from "./Journals";
 import { CampaignEditor } from "./Library";
 import type { MapTool } from "./mapTools";
 import { NewSceneDialog, TokenEditor } from "./SceneAuthoring";
+import { SceneNotes } from "./SceneNotes";
 import { PeoplePanel, ScenePanel } from "./TablePanels";
 import { TokenInspector } from "./TokenInspector";
 import { useCampaignStream } from "./useCampaignStream";
@@ -121,6 +122,7 @@ function TableSession({ user, id }: { user: User; id: string }) {
   const tab = layout.prefs.panel;
   const setTab = (panel: PanelId) => {
     if (compactTools(layout.prefs.width)) setMapTool(null);
+    if (window.innerWidth <= 800 || compactTools(layout.prefs.width)) setNotesOpen(false);
     layout.update({ panel, open: true });
   };
   const [visited, setVisited] = useState<Set<PanelId>>(() => new Set(["chat"]));
@@ -130,6 +132,7 @@ function TableSession({ user, id }: { user: User; id: string }) {
   const [inspectorOpen, setInspectorOpen] = useState(false);
   const [combatPopout, setCombatPopout] = useState(false);
   const [helpOpen, setHelpOpen] = useState(false);
+  const [notesOpen, setNotesOpen] = useState(false);
   const [recoveryOpen, setRecoveryOpen] = useState(false);
   const [panOnly, setPanOnly] = useState(false);
   const [mapTool, setMapTool] = useState<MapTool>(null);
@@ -140,13 +143,17 @@ function TableSession({ user, id }: { user: User; id: string }) {
   });
   useEffect(() => {
     const keepEditorVisible = () => {
-      if (mapTool === "draw" && layout.prefs.open && compactTools(layout.prefs.width))
+      if (
+        layout.prefs.open &&
+        ((mapTool === "draw" && compactTools(layout.prefs.width)) ||
+          (notesOpen && (window.innerWidth <= 800 || compactTools(layout.prefs.width))))
+      )
         layout.update({ open: false });
     };
     keepEditorVisible();
     window.addEventListener("resize", keepEditorVisible);
     return () => window.removeEventListener("resize", keepEditorVisible);
-  }, [mapTool, layout]);
+  }, [mapTool, notesOpen, layout]);
   const [preparedRoll, setPreparedRoll] = useState<{ formula: string; sequence: number }>();
   const combatDock = useRef<HTMLDivElement>(null),
     combatFloat = useRef<HTMLDivElement>(null);
@@ -171,10 +178,13 @@ function TableSession({ user, id }: { user: User; id: string }) {
       if (target) {
         e.preventDefault();
         if (compactTools(layout.prefs.width)) setMapTool(null);
+        if (window.innerWidth <= 800 || compactTools(layout.prefs.width)) setNotesOpen(false);
         layout.update({ panel: target, open: true });
       } else if (e.key.toLowerCase() === "b") {
         e.preventDefault();
         if (!layout.prefs.open && compactTools(layout.prefs.width)) setMapTool(null);
+        if (!layout.prefs.open && (window.innerWidth <= 800 || compactTools(layout.prefs.width)))
+          setNotesOpen(false);
         layout.update({ open: !layout.prefs.open });
       }
     };
@@ -265,12 +275,24 @@ function TableSession({ user, id }: { user: User; id: string }) {
       onRecovery={user.isOwner ? () => setRecoveryOpen(true) : undefined}
     />
   );
+  const openNotes = () => {
+    setMapTool(null);
+    if (window.innerWidth <= 800 || compactTools(layout.prefs.width))
+      layout.update({ open: false });
+    setNotesOpen(true);
+  };
+  const closeNotes = () => {
+    setNotesOpen(false);
+    document.getElementById("scene-notes-trigger")?.focus();
+  };
   const navigation = (
     <SceneNavigation
       scene={scene}
       scenes={allScenes}
       isDm={isDm}
       disabled={disabled}
+      notesOpen={notesOpen}
+      onNotes={() => (notesOpen ? closeNotes() : openNotes())}
       onScene={chooseScene}
       onCreate={() => setNewScene(true)}
       onPublish={(sceneId, active) =>
@@ -314,6 +336,17 @@ function TableSession({ user, id }: { user: User; id: string }) {
   );
   const windows = (
     <>
+      {allScenes.map((item) => (
+        <SceneNotes
+          key={item.id}
+          scene={item}
+          dm={isDm}
+          open={notesOpen && item.id === scene?.id}
+          disabled={disabled}
+          onClose={closeNotes}
+          send={stream.send}
+        />
+      ))}
       {selected && (
         <div className="selected-token-hud">
           <span className="token-hud-name">{selected.name}</span>
@@ -513,6 +546,7 @@ function TableSession({ user, id }: { user: User; id: string }) {
           selectedId={selectedId}
           onScene={chooseScene}
           onSelect={(target) => select(target, true)}
+          onNotes={openNotes}
           onRename={() => sceneActionOpen("rename")}
           onDelete={() => sceneActionOpen("delete")}
           fogTool={paintTool}
@@ -530,6 +564,8 @@ function TableSession({ user, id }: { user: User; id: string }) {
         onWidth={(width) => layout.update({ width })}
         onToggle={() => {
           if (!layout.prefs.open && compactTools(layout.prefs.width)) setMapTool(null);
+          if (!layout.prefs.open && (window.innerWidth <= 800 || compactTools(layout.prefs.width)))
+            setNotesOpen(false);
           layout.update({ open: !layout.prefs.open });
         }}
         panel={effectivePanel}

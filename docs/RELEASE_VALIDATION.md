@@ -1,3 +1,15 @@
+# Current cloud candidate ·0.0.18/schema15 ·2026-10-28
+
+Owner-authorized next planned slice: persisted private GM scene notes and explicit player briefings, using existing scene controls and WorkspaceWindow. No dependency; wire1. Original migrations0001..0014 unchanged. Scoped notes are filtered after scene authorization; no note body in events/layout storage. Focused missing-feature RED→GREEN, Rust92 and TS86/types/lint pass before final browser/review. Complete optimized gate, tested revision and inspected captures must be recorded below before delivery;0.0.17 results are historical.
+
+Initial three-browser flow reaches successful saves, literal player rendering, concurrent stale reload, per-scene draft retention and scene concealment. It then clicks an already-open player notes toggle after reactivation; remove that extra click and explicitly assert the preserved open preference before checking restored briefing content. All privacy/body assertions and timeouts remain. The next focused/final gate records the result.
+
+Focused final notes scenario passes32.5s (explicit child exit0), covering real GM/Alice/Bob save/share/clear/literal text, stale reload, close/reopen, independent scene drafts, hidden/private scenes, conceal/reactivate, restart and idle rendering. Two fixture-only fixes preserve the open window preference and disambiguate the toolbar from the Scene panel. All timeouts/privacy assertions remain.
+
+Visual inspection found a partially clipped desktop Save and a sidebar covering the window at760/390. Real geometry regression fails with64px/324px overlap. The notes/sidebar now take turns at the existing800px overlay breakpoint or insufficient map space; resizing and explicit sidebar opening preserve drafts. Default window height540 reveals desktop actions. Final assertions require full Save visibility, actual hit testing and no sidebar overlap, including900×520 coexistence and390px close/reopen via the Scene panel. Five actual captures were produced; final matched-candidate gate/review evidence follows.
+
+## Previous0.0.17 evidence
+
 # Current cloud candidate ·0.0.17/schema14 ·2026-10-28
 
 Owner-requested whole-object eraser and direct on-map text editing/move/resize/font/custom color within the established vertical UI. No dependency; wire1. Focused protocol/host/editor/hit tests and expanded retained GM/Alice/Bob scenario pass before final review corrections. The complete optimized automated gate passes with explicit exit0; historical0.0.16 evidence follows below.

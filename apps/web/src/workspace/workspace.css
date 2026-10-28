@@ -1775,3 +1775,85 @@ dialog .button {
   font-size: 11px;
   padding: 6px 9px;
 }
+
+.scene-notes-trigger {
+  flex-shrink: 0;
+}
+.scene-note-tabs {
+  display: flex;
+  gap: 4px;
+  padding: 4px;
+  border: 1px solid #ffffff16;
+  border-radius: 5px;
+  background: #181b21;
+}
+.scene-note-tabs button {
+  flex: 1;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  min-height: 36px;
+  padding: 6px;
+  color: var(--workspace-text);
+  background: transparent;
+  border: 1px solid transparent;
+  border-radius: 3px;
+  font-size: 12px;
+}
+.scene-note-tabs [aria-selected="true"] {
+  color: var(--workspace-accent);
+  border-color: #d2ad7040;
+  background: #d2ad7015;
+}
+.note-draft-dot {
+  width: 5px;
+  height: 5px;
+  border-radius: 50%;
+  background: var(--workspace-accent);
+}
+.scene-notes h2 {
+  margin: 14px 0 6px;
+  font-size: 14px;
+}
+.scene-notes form label {
+  display: grid;
+  gap: 6px;
+  font-size: 12px;
+}
+.scene-notes textarea {
+  width: 100%;
+  min-height: 120px;
+  resize: vertical;
+  padding: 8px;
+  border: 1px solid #ffffff24;
+  border-radius: 4px;
+  background: #181b21;
+  color: var(--workspace-text);
+  font: 13px / 1.5 var(--font);
+}
+.scene-note-meta {
+  display: flex;
+  justify-content: space-between;
+  gap: 8px;
+  margin: 5px 0;
+  font-size: 11px;
+  color: var(--workspace-muted);
+}
+.scene-note-body {
+  min-height: 96px;
+  overflow-wrap: anywhere;
+  white-space: pre-wrap;
+  font-size: 13px;
+  line-height: 1.6;
+}
+.scene-note-conflict {
+  margin-bottom: 10px;
+  padding: 8px;
+  border: 1px solid #d2ad7050;
+  border-radius: 4px;
+  font-size: 12px;
+}
+.scene-note-conflict p {
+  margin: 0 0 8px;
+}

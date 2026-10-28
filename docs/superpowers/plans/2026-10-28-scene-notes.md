@@ -23,21 +23,21 @@ Window actions stay reachable beside tool rails on narrow/short screens; Task2 r
 
 Files: domain commands/DTO; protocol index/recovery + scene-notes.test.ts; server scene_notes.rs/scenes.rs/commands.rs/lib.rs; server tests/cases/scene_notes.rs; migration0015; storage backup/tests.
 Interfaces: `scene.notes.update {sceneId,visibility,body,expectedVersion}`; `Scene.notes?:{dm?:{body,version},shared?:{body,version}}`.
-- [ ] Write/run protocol missing-command and real-host tests; expect unsupported/missing-note RED.
-- [ ] Add strict command, transactional scoped save/versioning, migration and role-filtered projection; expected host/protocol GREEN.
-- [ ] Extend backup original14/current-note and maximum snapshot cases; run Rust/TS suites, types/lint and commit.
+- [x] Write/run protocol missing-command and real-host tests; expect unsupported/missing-note RED.
+- [x] Add strict command, transactional scoped save/versioning, migration and role-filtered projection; expected host/protocol GREEN.
+- [x] Extend backup original14/current-note and maximum snapshot cases; run Rust/TS suites, types/lint and commit.
 
 ### Task2: Scene-context note window
 
 Files: SceneNotes.tsx/tests; Table.tsx; TablePanels.tsx; WorkspaceChrome.tsx; workspace.css; tests/e2e/scene-notes.spec.ts; capture-scene-notes.mjs.
 Consumes Task1 DTO/command; produces retained per-scene/scope editor, explicit privacy/save/conflict/keyboard behavior and real UI fixture.
-- [ ] Write/run component tests for private/shared save, retained drafts, failed/stale reload and Unicode; expect missing component/controls RED.
-- [ ] Implement window/tabs/editor and scene actions using existing UI; run component/types/lint GREEN.
-- [ ] Exercise GM/Alice/Bob private/share/clear/stale/restart/scene transitions and responsive layouts on the optimized matched host; capture and inspect actual UI. Commit.
+- [x] Write/run component tests for private/shared save, retained drafts, failed/stale reload and Unicode; expect missing component/controls RED.
+- [x] Implement window/tabs/editor and scene actions using existing UI; run component/types/lint GREEN.
+- [x] Exercise GM/Alice/Bob private/share/clear/stale/restart/scene transitions and responsive layouts on the optimized matched host; capture and inspect actual UI. Commit.
 
 ### Task3: Review and delivery evidence
 
-- [ ] Update0.0.18/schema15 guides/API/model/progress and partial feature matrix.
+- [x] Update0.0.18/schema15 guides/API/model/progress and partial feature matrix.
 - [ ] One fresh whole-change review; fix material findings with RED→GREEN regressions; no repeated review.
 - [ ] Freeze source; run complete `pnpm verify:release` with explicit child status. Record actual counts/conditions/captures and limitations.
 - [ ] Commit evidence, verify no runtime change after tested revision, package source/logs/checksums and preserve local branch. Scene notes finish here; token controls remain next.

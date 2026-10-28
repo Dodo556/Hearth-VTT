@@ -1,3 +1,13 @@
+# Hearth VTT · Build0.0.18 · scene notes ·2026-10-28
+
+Continue the owner's plan and user-friendly UI direction after0.0.17. Added scene-owned GM/private notes and a separate explicitly shared player briefing, scoped versions and strict GM saves in migration15. Notes use existing scene authorization/live snapshots; private/inactive-scene bodies and versions never reach players. Clearing retains versions. The existing note window pattern supports literal typing, Save/Share/Cancel, stale reload, close/scope/scene draft retention and keyboard saving; notebook action lives with scene controls.
+
+Protocol/host missing-feature RED→GREEN; full Rust92 and TS86/types/lint pass before final browser/review. Current notes backup preserves exact bytes/versions; original14 recovery joins10–13 coverage, and the maximum campaign fixture includes16 maximum-Unicode notes. Real GM/Alice/Bob scenario and inspected layout captures, independent final review and full optimized gate are recorded in RELEASE_VALIDATION before delivery. Earlier0.0.17 counts below are historical.
+
+No new dependency; application0.0.18/schema15/wire1;179 IDs retained with partial states. Notes are scene-wide, not map pins/rich text/history. No push or playable/P0 promotion. Token HP/status/context controls follow next.
+
+## Previous0.0.17 evidence
+
 # Hearth VTT · Build0.0.17 · eraser/direct text ·2026-10-28
 
 Owner requested whole-object deletion and direct on-battlefield text editing before more roadmap work, with a limited remaining session budget. Implemented versioned GM delete/update commands, bounded128-change undo, schema14 history/style/order and an on-map native editor with move/resize handles, font8–96 and custom color. Existing vertical palette/ToolButton and responsive layouts remain. Whole-object erasing supports mouse and keyboard; saved text remains authoritative until Save. Legacy labels keep fitting until edited; exact freehand points/nonces/order and schema10–13 isolated recovery remain.

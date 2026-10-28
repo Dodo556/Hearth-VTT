@@ -11,6 +11,7 @@ import {
   LockKeyhole,
   MapPin,
   MousePointer2,
+  NotebookPen,
   Pencil,
   Plus,
   Ruler,
@@ -107,7 +108,11 @@ export function SceneNavigation({
   onScene,
   onCreate,
   onPublish,
+  onNotes,
+  notesOpen,
 }: {
+  onNotes?: () => void;
+  notesOpen?: boolean;
   scene: Scene | undefined;
   scenes: Scene[];
   isDm: boolean;
@@ -174,6 +179,18 @@ export function SceneNavigation({
             </button>
           )}
         </>
+      )}
+      {scene && onNotes && (
+        <ToolButton
+          id="scene-notes-trigger"
+          label="Scene notes"
+          icon={NotebookPen}
+          pressed={notesOpen}
+          aria-expanded={notesOpen}
+          aria-controls={`scene-notes-${scene.id}`}
+          onClick={onNotes}
+          className="scene-notes-trigger"
+        />
       )}
     </>
   );
