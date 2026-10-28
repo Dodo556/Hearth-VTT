@@ -1,15 +1,16 @@
-# Current build · 0.0.19
+# Current build · 0.0.20
 
-One browser application for GM and players with an authoritative Rust host. This increment adds independent/linked token HP, private/shared map bars, six manual status icons and a compact token context menu. Scene notes and briefings remain in their scene-context window. Existing vertical drawing tools and direct text editor remain.
+One browser application for GM and players with an authoritative Rust host. This increment adds nested private GM journal folders and authorized title/body search in the existing Journal sidebar. HP/status/context controls remain. Scene notes and briefings remain in their scene-context window. Existing vertical drawing tools and direct text editor remain.
 - **Included:** campaigns/invitations, uploaded maps/scenes, controlled tokens and generic sheets, manual fog, ruler/pings, drawings, scoped dice/chat/whispers, journals, generic combat and isolated whole-host recovery.
 - **Eraser:** click a shape, freehand stroke or label; removes that whole object. Arrow keys and Enter support keyboard targeting. Undo restores erasures and reverses text edits/creation, retaining the latest128 scene changes across GMs. Middle-drag pans in drawing modes.
 - **Text:** choose Text, click/drag a box and type directly on the map. Click an existing label to edit. Move/resize handles support pointer and arrow keys; choose font8–96px and custom color. Save text or Ctrl/Command+Enter commits; Escape/Cancel discards the active edit. Failed saves keep the draft. Up to120 Unicode scalars/four lines;40–1024×32–512 scene-pixel boxes. Explicit-size text wraps/clips instead of shrinking; old labels retain fitting until edited.
 - **Scene notes:** notebook beside scene tabs or Scene → Scene notes. GM notes stay private; Player briefing is explicitly shared only on the active shared scene.1000 Unicode scalars each, literal text, independent versions, retained local drafts and explicit stale reload. Save/Share or Ctrl/Command+Enter; close/Escape keeps a draft while this table is mounted.
 - **Token controls:** right-click/HUD Actions/Shift+F10 opens Health & status, explicit Save/Reload, six icon markers and GM sharing. Linked HP synchronizes sheet/combat; unset independent HP has no bar. Statuses are visible with the token and do not automate rules. Existing Position & permissions controls remain.
-- **Compatibility:** schema16 adds guarded token resources and preserves notes/drawings/history/points. Canonical10–15 archives verify and upgrade only in isolated copies. Refresh matched host/browser assets; wire1, no new dependency.
-- **Checks:** complete optimized gate exit0: workflow7/TS94/Rust95/browser15/15 in6.4m; types/lint/fmt/Clippy/179 IDs/matched builds pass. Six actual UI captures inspected. One independent review; overlap-target fix RED→GREEN, Minor K020 deferred. Exact tested source/limits in RELEASE_VALIDATION.
+- **Journal organization:** New folder supports four levels; Move page preserves sharing/content. Delete folder promotes pages/children to its saved parent and deletes no pages. Players retain a flat shared-page list without private folder metadata. Explicit stale reload and removed-destination recovery retain drafts.
+- **Compatibility:** schema17 adds folders/page placement, preserving notes/vitals/history/artwork. Canonical10–16 archives upgrade only in isolated copies; refresh matched host/browser, wire1/no dependency.
+- **Checks:** focused Rust98/TS100/types/lint/Clippy and real three-browser49.4s workflow pass; final review/optimized gate/capture evidence follows in RELEASE_VALIDATION.
 - **Status:** partially functional; full P0 encounter, actual LAN, platform/browser matrix and ready-to-run host distribution remain open. No broad feature is VERIFIED.
 - **UI standard:** UI_STANDARDS.md and AGENTS rule13 govern tools, spacing, keyboard/focus and responsive checks.
-- **Next:** handouts/folders/reusable-content and remaining initiative/P0 work.
+- **Next:** image handouts/selective sharing/reusable content and remaining initiative/P0 work.
 
 Partial-stroke erasing, line/shape transforms, redo, rich text and custom fonts remain pending. Source hosting needs development tools; players use browser links.

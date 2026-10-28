@@ -92,7 +92,11 @@ export function useCampaignStream(id: string, enabled: boolean) {
           revision.current = frame.revision;
           stream = frame.streamId;
           client.setQueryData(["scenes", id], { schemaVersion: 1, scenes: frame.scenes });
-          client.setQueryData(["journals", id], { schemaVersion: 1, journals: frame.journals });
+          client.setQueryData(["journals", id], {
+            schemaVersion: 1,
+            journals: frame.journals,
+            ...(frame.journalFolders ? { folders: frame.journalFolders } : {}),
+          });
           client.setQueryData(["actors", id], { schemaVersion: 1, actors: frame.actors });
           client.setQueryData(["rolls", id], { schemaVersion: 1, rolls: frame.rolls });
           client.setQueryData(["chat", id], { schemaVersion: 1, messages: frame.messages });

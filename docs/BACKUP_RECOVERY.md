@@ -12,7 +12,7 @@ A successful isolated recovery is not an automatic switch or a password reset. K
 
 Backups are unencrypted whole-host private data, including account password hashes, all participants' private whispers/rolls and hidden campaign content. This is an explicit trusted machine-owner export privilege. Ordinary campaign DMs have no such access; normal Chat/dice/document routes still filter by current permissions. Checksums detect corruption, not who created a file. Store and restore backups you trust.
 
-Current bounds:512MiB archive,128MiB DB,16MiB per PNG,4096 unique uploaded blobs,512million decoded pixels,1MiB manifest. Schema10, schema11, schema12, schema13, schema14, schema15 and schema16 archives are supported. Larger stores can use the offline copy procedure below. Scheduled/retained/encrypted/selective backups, imports from other older schemas, automatic host switching and comprehensive crash/platform acceptance remain pending.
+Current bounds:512MiB archive,128MiB DB,16MiB per PNG,4096 unique uploaded blobs,512million decoded pixels,1MiB manifest. Schema10, schema11, schema12, schema13, schema14, schema15, schema16 and schema17 archives are supported. Larger stores can use the offline copy procedure below. Scheduled/retained/encrypted/selective backups, imports from other older schemas, automatic host switching and comprehensive crash/platform acceptance remain pending.
 
 ## Open backup format1
 
@@ -61,3 +61,7 @@ Current backups use schema15 and preserve both private/shared scene-note bodies 
 ## Token-resource compatibility ·0.0.19
 
 Current backups use schema16. They include exact independent HP/max, sharing policy, marker array and token resource version alongside actors, notes, drawings/history and artwork. Current roundtrip covers these fields. An original canonical schema15 archive preserves note content/version and upgrades tokens to unset HP/default controllers/no markers/version1 in an isolated copy; original10–14 recovery remains covered. Archives contain all private resources under the existing unencrypted host-owner trust model. Retain matched executable/web/data/artwork/configuration before migration. An older host must not open schema16; rollback uses the compatible prior snapshot, not downgrade.
+
+## Journal-folder compatibility ·0.0.20
+
+Current archives use schema17 and retain exact folder names, hierarchy, versions and page placement. Recovery verifies campaign coherence and bounded/cycle-free hierarchy as well as canonical schema/checksums/FKs. Current roundtrip includes nested folders and placed private pages alongside notes/vitals/drawings. Original canonical16 recovery preserves pages/notes/vitals and adds root organization; original10–15 recovery remains supported. Older hosts must not open schema17. Keep matched executable/web/configuration and full pre-update data/artwork copies; rollback uses a compatible prior copy, never automatic downgrade.

@@ -1,12 +1,12 @@
-# Hearth VTT · Build0.0.19
+# Hearth VTT · Build0.0.20
 
 Cloud continuation review and imported-source provenance: [CONTINUATION_REVIEW](docs/CONTINUATION_REVIEW.md). Current next work is in [NEXT_TASKS](docs/NEXT_TASKS.md).
 
 Continuing development in Codex cloud/GitHub: read [CODEX_HANDOFF.md](CODEX_HANDOFF.md) for setup, current evidence and the next implementation plan.
 
-Hearth is one continuously evolving application. Source/debug and optimized builds are configurations of the same code, not separate editions. The permanent policy is in [CONTINUOUS_DEVELOPMENT](docs/CONTINUOUS_DEVELOPMENT.md); current promotion blockers are in [RELEASE_VALIDATION](docs/RELEASE_VALIDATION.md). Build0.0.19 adds token HP, six manual status icons and contextual token actions alongside persisted scene notes, the vertical drawing palette, eraser and direct text editor while retaining the player-canvas startup and WebGL restoration corrections; verified-playable promotion still requires the recorded P0/platform gates.
+Hearth is one continuously evolving application. Source/debug and optimized builds are configurations of the same code, not separate editions. The permanent policy is in [CONTINUOUS_DEVELOPMENT](docs/CONTINUOUS_DEVELOPMENT.md); current promotion blockers are in [RELEASE_VALIDATION](docs/RELEASE_VALIDATION.md). Build0.0.20 adds nested private GM journal folders and title/body search alongside token HP, six manual status icons and contextual token actions alongside persisted scene notes, the vertical drawing palette, eraser and direct text editor while retaining the player-canvas startup and WebGL restoration corrections; verified-playable promotion still requires the recorded P0/platform gates.
 
-Build0.0.19 renders static scenes on change and keeps active pings animated. Player maps, ruler/zoom, drawing restart and context restoration have real browser regressions. Shared/GM lines, rectangles, bounded freehand strokes and editable literal text boxes, font/custom color controls and undo are included and respect manual fog.
+Build0.0.20 renders static scenes on change and keeps active pings animated. Player maps, ruler/zoom, drawing restart and context restoration have real browser regressions. Shared/GM lines, rectangles, bounded freehand strokes and editable literal text boxes, font/custom color controls and undo are included and respect manual fog.
 
 A private, self-hosted **web application** under development. The DM runs the hosting server and opens the DM interface in a browser. Players open an invitation link in their browsers; no player installation is required. There is no separate Windows/macOS desktop app planned. This increment supplies accounts, saved campaigns, one-use player invitations, custom private scenes/map uploads, generic actor sheets and permissions, linked token control, synchronized movement, shared manual fog, ruler/pings, host-generated private/blind/selected dice, chat/whispers, journals, generic combat and whole-host backup/isolated recovery. **It is not yet a playable VTT or release 0.1.**
 
@@ -72,3 +72,5 @@ Workspace UI conventions for future development are maintained in [UI_STANDARDS]
 Scene notes: use the notebook beside scene navigation or Scene → Scene notes. GM notes are private; Player briefing shares only the saved text while that scene is on the players’ table. Close/reopen, visibility tabs and scene switches retain drafts until table navigation/reload. Saves check independent note versions; changed-elsewhere drafts require explicit reload.
 
 Token controls: right-click a visible token, use Shift+F10 on a selected map token, or choose its HUD Actions button. Health & status has explicit Save/Reload, current/max HP, six manual markers and GM-controlled map-bar sharing. Linked HP uses the character sheet. Bars default to GM/controllers; statuses are visible to token readers. See [DM guide](docs/DM_GUIDE.md) for limits and stale-edit behavior.
+
+Journal organization: Journal → New folder creates private GM folders, up to four levels. Move page changes its folder without changing content/sharing. Deleting a folder moves its contents to the saved parent; pages survive. Players see a flat shared-page list with no folder metadata. Search filters permitted titles/body text.

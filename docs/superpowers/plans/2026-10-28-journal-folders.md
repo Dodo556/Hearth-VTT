@@ -31,13 +31,13 @@ Interface: spec commands; optional Journal.folderId, optional JournalsResponse.f
 
 Files: JournalDirectory.tsx/JournalFolderManager.tsx/tests; Journals.tsx/tests; campaign stream/Table; workspace.css; journal-folders.spec.ts.
 Consumes Task1 DTO; reuses current page form, Send command and sidebar/dialog primitives.
-- [ ] Write/run missing search/folder UI checks RED.
-- [ ] Add tree/search and bounded folder forms/create-folder selection/page move; preserve privacy/drafts/keyboard and existing tests.
-- [ ] Real GM/Alice/Bob folder CRUD/move/delete/reveal/conflicts/restart/privacy and four layouts; inspect captures and commit.
+- [x] Write/run missing search/folder UI checks RED.
+- [x] Add tree/search and bounded folder forms/create-folder selection/page move; preserve privacy/drafts/keyboard and existing tests.
+- [x] Real GM/Alice/Bob folder CRUD/move/delete/reveal/conflicts/restart/privacy and four layouts; inspect captures and commit.
 
 ### Task3: Review, full gate and checkpoint
 
-- [ ] Update0.0.20/schema17 guides, partial matrix and next work.
+- [x] Update0.0.20/schema17 guides, partial matrix and next work.
 - [ ] One fresh whole-change review; fix material findings with RED→GREEN.
 - [ ] Freeze candidate and complete pnpm verify:release; record exact exit/SHA/counts/conditions, inspect final captures.
 - [ ] Docs-only final commit, source ZIP/logs/checksums; retain managed work branch.

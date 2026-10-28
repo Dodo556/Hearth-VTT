@@ -630,6 +630,7 @@ function TableSession({ user, id }: { user: User; id: string }) {
         <Journals
           key={id}
           journals={journals.data?.journals ?? []}
+          folders={journals.data?.folders ?? []}
           dm={isDm}
           disabled={disabled}
           send={stream.send}

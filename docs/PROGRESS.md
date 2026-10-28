@@ -1,3 +1,11 @@
+# Hearth VTT · Build0.0.20 · journal organization ·2026-10-28
+
+Continued JRN-02 under the owner's autonomous roadmap/UI direction. Added versioned private GM folders, four-level hierarchy, page moves, non-destructive folder deletion and local authorized title/body search in the existing Journal sidebar. Players retain flat shared pages with no folder metadata. Schema17 preserves existing pages, notes/vitals and migrations1–16; canonical10–16 recovery remains. No dependency; wire1/179 partial IDs retained.
+
+Missing-command/host/UI RED→GREEN; current focused Rust98/TS100/types/lint/Clippy pass. Exact nested folder/page backup and original16 upgrade join earlier fixtures. Real GM/Alice/Bob workflow49.4s passes create/nest/search/private-first/reveal/move/stale/delete/restart/raw privacy and four layouts. Removed destinations and invalid hierarchy choices have RED→GREEN UI regressions. Six initial captures inspected; aligned action targets and an additional nested-directory capture join final validation. One final review/full optimized gate and exact source evidence follow in RELEASE_VALIDATION. Image handouts/selective sharing/reusable content remain next; no P0 promotion.
+
+## Previous0.0.19 evidence
+
 # Hearth VTT · Build0.0.19 · token HP/status/actions ·2026-10-28
 
 Continued TOK-03 within the owner's remaining session budget. Added authoritative independent/linked HP with guarded source versions, default-private/explicit shared map bars, six manual token markers and a compact context menu. Existing inspector sections/WorkspaceWindow and icon styles are reused; no new rail/dependency. Link/unlink/delete and current outbound movement projections preserve private actor/resources and stale guards. Schema16 retains original migrations and canonical10–15 isolated recovery; wire1/179 partial IDs remain.

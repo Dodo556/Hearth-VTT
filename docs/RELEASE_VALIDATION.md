@@ -1,3 +1,15 @@
+# Current cloud candidate ·0.0.20/schema17 ·2026-10-28
+
+Private nested GM journal folders and permission-safe title/body filtering in the existing Journal panel. App0.0.20/schema17/wire1, no dependency, original migrations1–16 unchanged. Current host guards enforce quotas/depth/cycles/campaign/version/GM authority. Player REST/live projections contain no folder metadata. Exact folder/page backup and old16 upgrade are covered alongside earlier schemas.
+
+Initial missing command/host malformed-frame/UI missing controls RED→GREEN. Current focused Rust98/TS100/types/lint/Clippy pass. A quota test exceeded the unchanged20-frame/s transport limiter; seed its remaining quota rows directly and retain the real host refusal assertion. Canonical archive mismatch fixtures now reject10..16/18 against schema17. JSDOM dialog test uses the project's native-dialog shim; removed destination and subtree-choice regressions then pass RED→GREEN.
+
+First real browser case reached sharing but waited for an incorrect fixture label (Save shared page; actual Save and share page); correction preserves all assertions and timeout. Fixture cleanup always stops its temporary host. The optimized-host GM/Alice/Bob workflow then passes49.4s with explicit child exit0: folders/nesting/search/private-first/reveal/page move/concurrent content and folder reload/non-destructive delete/restart/idle/raw privacy and four sizes. Six actual captures inspected; header action alignment36px and an additional still-nested-directory capture are included in the final candidate.
+
+Final independent review, complete optimized gate and exact source/capture evidence: pending below.
+
+## Previous0.0.19 evidence
+
 # Current cloud candidate ·0.0.19/schema16 ·2026-10-28
 
 Owner-authorized token HP/manual markers/context slice. No dependency, wire1; migrations0001..0015 unchanged. Current resource metadata is filtered for REST/live/replay; linked source guards and default-private bars preserve actor authority. Missing-feature, live movement privacy and marker-only actor-version regressions observed RED→GREEN. Full Rust95/TS92 passed before additional graphics/menu tests.

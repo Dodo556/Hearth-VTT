@@ -1235,7 +1235,7 @@ dialog::backdrop {
   gap: 6px;
   margin-bottom: 25px;
 }
-.journal-pages > button {
+.journal-pages button {
   display: flex;
   align-items: center;
   gap: 10px;
@@ -1248,15 +1248,15 @@ dialog::backdrop {
   text-align: left;
   font-size: 10px;
 }
-.journal-pages > button.selected {
+.journal-pages button.selected {
   color: #d8dbca;
   background: #d1b37008;
   border-color: #d1b37022;
 }
-.journal-pages > button > svg {
+.journal-pages button > svg {
   flex-shrink: 0;
 }
-.journal-pages > button > svg:last-child {
+.journal-pages button > svg:last-child {
   margin-left: auto;
 }
 .journal-page {

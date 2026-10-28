@@ -1,4 +1,4 @@
-# Run and test Hearth VTT · build0.0.19
+# Run and test Hearth VTT · build0.0.20
 
 Yes: you can run and test this build on your own computer. It is a working self-hosted web app, currently distributed as developer source. Both DM and players use browsers; only the host computer needs the tools below. No native player client is installed. Do not open index.html directly: the Rust web server provides accounts, persistence and live synchronization.
 
@@ -129,3 +129,7 @@ Scene notes use the notebook beside the scene tabs (also in Scene controls). GMs
 ## Token health and markers
 
 Right-click a token → Token controls, or select it and use the HUD Actions button (keyboard: canvas Shift+F10/ContextMenu). In Health & status, enter current/maximum HP and select icon markers, then Save health & status. Only GM/controllers see a bar by default; the GM can share it. Linked tokens edit the same HP as their character sheet. Blank both fields to remove an independent bar. Markers are manual and visible with the token. Position & permissions retains the existing movement/control/linking fields. Changed-elsewhere drafts require explicit Reload; closing the inspector or selecting another token discards unsaved token-control edits.
+
+## Organize journal pages
+
+In Journal, use New folder and choose a parent. The disclosure arrows expand nested folders; the adjacent sliders button manages rename/move/delete. New page can choose its folder; an existing page has Move page. Search pages matches title/body over permitted pages. Organization stays private to GMs; player sharing remains the explicit page visibility choice. Folder deletion moves direct pages/child folders to its saved parent and deletes no pages. See docs/DM_GUIDE.md for bounds and stale-edit behavior.
