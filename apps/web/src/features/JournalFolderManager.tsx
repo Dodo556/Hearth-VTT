@@ -42,7 +42,9 @@ export function JournalFolderManager({
       : undefined;
   const stale = base !== null && current?.version !== base;
   const destinationGone = !!parent && !folders.some((f) => f.id === parent);
-  const blocked = disabled || pending || stale || destinationGone;
+  const choices = folderChoices(folders, folder?.id, !page);
+  const destinationUnavailable = !!parent && !choices.some((f) => f.id === parent);
+  const blocked = disabled || pending || stale || destinationUnavailable;
   async function save(remove = false) {
     if (blocked) return;
     const command: TokenCommand = page
@@ -154,7 +156,12 @@ export function JournalFolderManager({
                 Removed folder
               </option>
             )}
-            {folderChoices(folders, folder?.id, !page).map((f) => (
+            {!destinationGone && destinationUnavailable && (
+              <option value={parent} disabled>
+                Unavailable folder
+              </option>
+            )}
+            {choices.map((f) => (
               <option value={f.id} key={f.id}>
                 {f.label}
               </option>
@@ -164,6 +171,12 @@ export function JournalFolderManager({
         {!page && <p className="panel-hint">Folder names use up to 60 characters.</p>}
         {destinationGone && (
           <p role="status">The destination was removed. Choose another folder.</p>
+        )}
+        {!destinationGone && destinationUnavailable && (
+          <p role="status">
+            This parent is no longer available at the current depth or position. Choose another
+            folder; your draft is kept.
+          </p>
         )}
         <p className="panel-hint">
           Folders organize GM preparation. Players see shared pages in a flat list; folder names

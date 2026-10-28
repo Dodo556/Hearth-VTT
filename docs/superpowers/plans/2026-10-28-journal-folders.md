@@ -38,6 +38,6 @@ Consumes Task1 DTO; reuses current page form, Send command and sidebar/dialog pr
 ### Task3: Review, full gate and checkpoint
 
 - [x] Update0.0.20/schema17 guides, partial matrix and next work.
-- [ ] One fresh whole-change review; fix material findings with RED→GREEN.
+- [x] One fresh whole-change review; fix material findings with RED→GREEN.
 - [ ] Freeze candidate and complete pnpm verify:release; record exact exit/SHA/counts/conditions, inspect final captures.
 - [ ] Docs-only final commit, source ZIP/logs/checksums; retain managed work branch.
