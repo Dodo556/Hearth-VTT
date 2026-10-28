@@ -1,4 +1,4 @@
-# Run and test Hearth VTT · build0.0.15
+# Run and test Hearth VTT · build0.0.16
 
 Yes: you can run and test this build on your own computer. It is a working self-hosted web app, currently distributed as developer source. Both DM and players use browsers; only the host computer needs the tools below. No native player client is installed. Do not open index.html directly: the Rust web server provides accounts, persistence and live synchronization.
 
@@ -111,7 +111,7 @@ Choose the ruler on the left toolbar and drag across the map. Distance is a stra
 
 ## Draw on a map
 
-In a campaign as the GM, select **Draw on map** (pencil) from the left toolbar. Choose **Line** or **Rectangle**, a color and either **Shared** or **GM only**, then drag across the map. **Undo drawing** removes the most recently added drawing in that scene. For keyboard use, focus the map, press Enter to start, use arrow keys to move the end, then press Enter to finish; Escape cancels. Drawings save with the scene. A shared drawing appears to players only when its entire bounding box is revealed.
+In a campaign as the GM, select **Draw on map** (pencil) from the left toolbar. Choose the line or rectangle icon from the vertical palette, the shared eye or GM lock layer, then a swatch from the color chip and drag across the map. Hover icons for names. **Undo drawing** removes the most recently added drawing in that scene. For keyboard use, focus the map, press Enter to start, use arrow keys to move the end, then press Enter to finish; Escape cancels. Drawings save with the scene. A shared drawing appears to players only when its entire bounding box is revealed.
 
 
 ## One application, safely updated
@@ -120,4 +120,4 @@ The source launcher and the future ready-to-run package build the same Hearth; t
 
 ## Text labels on the map
 
-As GM choose **Draw on map → Shape → Text**. Enter up to120 characters over at most four lines, choose Shared or GM only, and drag a box. The preview shows how the local-font text fits. Use a larger box for larger lettering. Boxes are40–1024 scene pixels wide and32–512 high. Enter/arrows/Enter also works; Escape cancels. Undo drawing removes the last saved shape. Text is literal, persists on the host and follows full-box fog filtering. Scene-linked notes are the next increment.
+As GM choose **Draw on map → Text icon**. Enter up to120 characters over at most four lines, choose Shared or GM only, and drag a box. The preview shows how the local-font text fits. Use a larger box for larger lettering. Boxes are40–1024 scene pixels wide and32–512 high. Enter/arrows/Enter also works; Escape cancels. Undo drawing removes the last saved shape. Text is literal, persists on the host and follows full-box fog filtering. Scene-linked notes are the next increment.

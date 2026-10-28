@@ -122,14 +122,16 @@ try {
   await dm.getByRole("button", { name: "Draw on map" }).click();
   await draw([570, 420], [750, 660]);
   await expect.poll(async () => (await drawings(owner)).length).toBe(1);
-  await dm.getByLabel("Drawing shape").selectOption("rectangle");
-  await dm.getByLabel("Drawing layer").selectOption("dm");
-  await dm.getByLabel("Drawing color").selectOption("#e65b5b");
+  await dm.getByRole("button", { name: "Draw rectangle", exact: true }).click();
+  await dm.getByRole("button", { name: "GM-only drawings", exact: true }).click();
+  await dm.getByRole("button", { name: "Drawing color", exact: true }).click();
+  await dm.getByRole("button", { name: "Red drawing color", exact: true }).click();
   await draw([880, 300], [1100, 520]);
   await expect.poll(async () => (await drawings(owner)).length).toBe(2);
-  await dm.getByLabel("Drawing shape").selectOption("freehand");
-  await dm.getByLabel("Drawing layer").selectOption("shared");
-  await dm.getByLabel("Drawing color").selectOption("#72b7e2");
+  await dm.getByRole("button", { name: "Draw freehand", exact: true }).click();
+  await dm.getByRole("button", { name: "Shared drawings", exact: true }).click();
+  await dm.getByRole("button", { name: "Drawing color", exact: true }).click();
+  await dm.getByRole("button", { name: "Blue drawing color", exact: true }).click();
   const start = await mapPoint(500, 650);
   await dm.mouse.move(start.x, start.y);
   await dm.mouse.down();
@@ -146,7 +148,9 @@ try {
   await dm.mouse.up();
   await expect.poll(async () => (await drawings(owner)).length).toBe(3);
   for (const player of playerContexts) assert.equal((await drawings(player)).length, 2);
-  await dm.getByLabel("Drawing shape").selectOption("text");
+  if (process.argv[4])
+    await dm.screenshot({ path: resolve(process.argv[4]), fullPage: true, animations: "disabled" });
+  await dm.getByRole("button", { name: "Draw text", exact: true }).click();
   await dm.getByLabel("Drawing text", { exact: true }).fill("North gate\nKeep the lantern lit");
   await draw([820, 190], [1260, 310]);
   await expect.poll(async () => (await drawings(owner)).length).toBe(4);
@@ -169,6 +173,17 @@ try {
     );
     await dm.screenshot({ path: resolve(process.argv[3]), fullPage: true, animations: "disabled" });
     console.log("Captured narrow drawing controls.");
+    if (process.argv[5]) {
+      await dm.getByRole("button", { name: "Close drawing controls", exact: true }).click();
+      await dm.setViewportSize({ width: 390, height: 700 });
+      await dm.getByRole("button", { name: "Draw on map", exact: true }).click();
+      await dm.getByRole("button", { name: "Fit scene", exact: true }).click();
+      await dm.screenshot({
+        path: resolve(process.argv[5]),
+        fullPage: true,
+        animations: "disabled",
+      });
+    }
     assert.deepEqual(errors, []);
   }
 } finally {

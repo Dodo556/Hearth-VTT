@@ -34,6 +34,7 @@ type Props = {
     points?: ScenePoint[],
   ) => Promise<void>;
   onUndoDrawing: () => void;
+  onCloseDrawing: () => void;
   onPing: (x: number, y: number) => boolean;
   panOnly?: boolean;
   onFog: (rect: FogRect, mode: "reveal" | "hide") => Promise<void>;
@@ -973,6 +974,10 @@ export function SceneCanvas(props: Props) {
         <DrawingControls
           settings={props.drawing}
           onChange={props.onDrawingSettings}
+          onClose={() => {
+            props.onCloseDrawing();
+            host.current?.querySelector("canvas")?.focus();
+          }}
           onUndo={props.onUndoDrawing}
           disabled={!props.online || props.busy}
           empty={(scene.drawings?.length ?? 0) === 0}

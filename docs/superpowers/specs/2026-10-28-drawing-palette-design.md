@@ -1,0 +1,11 @@
+# Vertical drawing palette and UI conventions
+
+The owner requested a UI correction before further roadmap features: icon-based shape tools, a vertical palette, consistent VTT conventions and less repeated UI rework. Implement that direction in the existing workspace; no gameplay/schema/dependency change.
+
+Use the current left tool rail with a compact secondary vertical drawing palette beside it. Line, rectangle, freehand and text are direct icon buttons with accessible names, native tooltips and explicit pressed states. Shared/GM-only layers remain explicit icon choices with a visible visibility caption; colors become swatches. Undo and close use icons. A compact text editor appears beside the palette only for text. Drafts remain in Table; closing tools does not clear saved text or place a drawing. Escape within controls closes the palette and returns focus to the canvas. Existing canvas Escape still cancels gestures.
+
+Choose this over a permanent wide inspector (uses map space) or an unlabeled nested menu (hides frequent tools). Keep field labels where typing is required. Reuse one ToolButton component for drawing and the main tool rail, existing Lucide icons, slate surfaces and warm selected state. Cap both tool rails to available height with scroll rather than clip actions. Keep contextual help clear of the palette and the bottom dock. On small screens (640px or less), drawing and the open sidebar are mutually exclusive; retain drafts when switching.
+
+Publish UI_STANDARDS.md and link it from AGENTS.md: stable regions, icon/tooltip/accessibility conventions, shared dimensions/tokens, contextual editor widths, selection/disabled/focus states and required desktop/narrow/short-height visual checks. Apply conventions to changed surfaces; existing complex forms remain forms. Do not introduce unsupported shapes, custom palettes, new backend controls or a global visual rewrite.
+
+Verify direct icon actions and draft preservation with focused component tests. Retain the complete authoritative three-browser drawing/privacy/restart/undo acceptance using new accessible selectors. Add real palette layout/close/reopen/narrow/short-height checks, inspect screenshots and run the integrated optimized gate. One fresh whole-change review. Deliver0.0.16/schema13; scene notes resume afterward.

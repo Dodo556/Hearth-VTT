@@ -120,13 +120,19 @@ test("GM drawings synchronize, remain private, undo and survive a host restart",
       (await (await page.request.get(`/api/campaigns/${campaign}/scenes`)).json()).scenes[0]
         .drawings;
     await dm.getByRole("button", { name: "Draw on map" }).click();
-    await expect(dm.getByLabel("Drawing shape")).toBeVisible();
+    await expect
+      .poll(async () => (await dm.locator(".drawing-controls").boundingBox())?.width)
+      .toBeLessThanOrEqual(56);
+    const palette = await dm.locator(".drawing-controls").boundingBox();
+    if (!palette) throw new Error("Drawing palette unavailable");
+    expect(palette.height).toBeGreaterThan(palette.width * 4);
     await drag(dm, [570, 420], [750, 660]);
     await expect.poll(async () => (await read(dm)).length).toBe(1);
     await expect.poll(async () => (await read(players[0])).length).toBe(1);
-    await dm.getByLabel("Drawing shape").selectOption("rectangle");
-    await dm.getByLabel("Drawing layer").selectOption("dm");
-    await dm.getByLabel("Drawing color").selectOption("#e65b5b");
+    await dm.getByRole("button", { name: "Draw rectangle", exact: true }).click();
+    await dm.getByRole("button", { name: "GM-only drawings", exact: true }).click();
+    await dm.getByRole("button", { name: "Drawing color", exact: true }).click();
+    await dm.getByRole("button", { name: "Red drawing color", exact: true }).click();
     await drag(dm, [850, 300], [1100, 520]);
     await expect.poll(async () => (await read(dm)).length).toBe(2);
     const drawings = await read(dm);
@@ -158,9 +164,10 @@ test("GM drawings synchronize, remain private, undo and survive a host restart",
     for (const page of players) expect(await read(page)).toHaveLength(1);
     // Closed freehand strokes are real saved geometry, not raster overlays.
     await dm.getByRole("button", { name: "Draw on map" }).click();
-    await dm.getByLabel("Drawing shape").selectOption("freehand");
-    await dm.getByLabel("Drawing layer").selectOption("shared");
-    await dm.getByLabel("Drawing color").selectOption("#72b7e2");
+    await dm.getByRole("button", { name: "Draw freehand", exact: true }).click();
+    await dm.getByRole("button", { name: "Shared drawings", exact: true }).click();
+    await dm.getByRole("button", { name: "Drawing color", exact: true }).click();
+    await dm.getByRole("button", { name: "Blue drawing color", exact: true }).click();
     const beforeStroke = await players[0].locator("canvas").screenshot();
     const curve = [
       [300, 300],
@@ -232,7 +239,10 @@ test("GM drawings synchronize, remain private, undo and survive a host restart",
     await dm.keyboard.press("Escape");
     await dm.mouse.up();
     await beginDraft();
-    await dm.getByLabel("Drawing color").selectOption("#9ad59b");
+    await dm.getByRole("button", { name: "Drawing color", exact: true }).focus();
+    await dm.keyboard.press("Space");
+    await dm.getByRole("button", { name: "Green drawing color", exact: true }).focus();
+    await dm.keyboard.press("Space");
     await dm.mouse.up();
     await beginDraft();
     await owner.setOffline(true);
@@ -247,8 +257,8 @@ test("GM drawings synchronize, remain private, undo and survive a host restart",
     await expect(dm.getByTestId("connection-status")).toHaveText("Live");
     await expect(dm.locator(".scene-viewport")).toHaveAttribute("data-renderer", "pixi");
     await dm.getByRole("button", { name: "Draw on map" }).click();
-    await dm.getByLabel("Drawing shape").selectOption("freehand");
-    await dm.getByLabel("Drawing layer").selectOption("dm");
+    await dm.getByRole("button", { name: "Draw freehand", exact: true }).click();
+    await dm.getByRole("button", { name: "GM-only drawings", exact: true }).click();
     await dm.locator("canvas").focus();
     await dm.keyboard.press("Enter");
     await dm.keyboard.press("ArrowRight");
@@ -280,8 +290,8 @@ test("GM drawings synchronize, remain private, undo and survive a host restart",
     await expect.poll(async () => (await read(players[0])).length).toBe(1);
     // Text follows the same authoritative layers and is rendered as literal pixels.
     await expect(dm.getByRole("button", { name: "Undo drawing" })).toBeEnabled();
-    await dm.getByLabel("Drawing shape").selectOption("text");
-    await dm.getByLabel("Drawing layer").selectOption("shared");
+    await dm.getByRole("button", { name: "Draw text", exact: true }).click();
+    await dm.getByRole("button", { name: "Shared drawings", exact: true }).click();
     await dm.getByLabel("Drawing text", { exact: true }).fill("<b>North gate</b> 🐉\nKeep left");
     const beforeLabel = await players[0].locator("canvas").screenshot();
     const outsideStart = await point(players[0], 500, 390);
@@ -330,7 +340,7 @@ test("GM drawings synchronize, remain private, undo and survive a host restart",
     await dm.keyboard.press("ArrowRight");
     await dm.keyboard.press("ArrowDown");
     await dm.keyboard.press("Escape");
-    await dm.getByLabel("Drawing layer").selectOption("dm");
+    await dm.getByRole("button", { name: "GM-only drawings", exact: true }).click();
     await dm.locator("canvas").focus();
     await dm.keyboard.press("Enter");
     await dm.keyboard.press("ArrowRight");
@@ -364,6 +374,43 @@ test("GM drawings synchronize, remain private, undo and survive a host restart",
       .poll(async () => (await players[0].locator("canvas").screenshot()).equals(beforeLabel))
       .toBe(true);
     await expectIdleMap(players[0]);
+    // Palette controls stay separate from the canvas, editor and right dock.
+    await dm.getByRole("button", { name: "Draw text", exact: true }).click();
+    await dm.getByLabel("Drawing text", { exact: true }).fill("Layout draft");
+    await dm.getByLabel("Drawing text", { exact: true }).press("Escape");
+    await expect(dm.getByRole("group", { name: "Drawing controls", exact: true })).toHaveCount(0);
+    await expect(dm.locator("canvas")).toBeFocused();
+    for (const viewport of [
+      { width: 760, height: 700 },
+      { width: 900, height: 520 },
+      { width: 390, height: 700 },
+    ]) {
+      await dm.setViewportSize(viewport);
+      await dm.getByRole("button", { name: "Draw on map", exact: true }).click();
+      await expect(dm.getByLabel("Drawing text", { exact: true })).toHaveValue("Layout draft");
+      const tools = await dm.locator(".drawing-controls").boundingBox();
+      const editor = await dm.locator(".drawing-text-options").boundingBox();
+      const dock = await dm.getByRole("complementary", { name: "Workspace sidebar" }).boundingBox();
+      if (!tools || !editor || !dock) throw new Error("Palette/editor/dock missing");
+      expect(tools.width).toBeLessThanOrEqual(56);
+      expect(tools.x + tools.width).toBeLessThan(editor.x);
+      expect(editor.x + editor.width).toBeLessThanOrEqual(dock.x);
+      const hint = await dm.locator(".map-tool-hint").boundingBox();
+      const camera = await dm.locator(".canvas-controls").boundingBox();
+      if (!hint || !camera) throw new Error("Map guidance/camera controls missing");
+      expect(hint.x + hint.width).toBeLessThanOrEqual(camera.x);
+      const undo = dm.getByRole("button", { name: "Undo drawing", exact: true });
+      await undo.scrollIntoViewIfNeeded();
+      await expect(undo).toBeInViewport();
+      const undoBox = await undo.boundingBox();
+      if (!undoBox) throw new Error("Undo missing");
+      expect(undoBox.y + undoBox.height).toBeLessThan(viewport.height - 96);
+      await dm.getByRole("button", { name: "Close drawing controls", exact: true }).click();
+    }
+    await dm.getByRole("button", { name: "Draw on map", exact: true }).click();
+    await dm.getByRole("tab", { name: "Chat", exact: true }).click();
+    await expect(dm.getByRole("group", { name: "Drawing controls", exact: true })).toHaveCount(0);
+    await expect(dm.getByRole("button", { name: "Collapse sidebar", exact: true })).toBeVisible();
     expect(errors).toEqual([]);
   } finally {
     for (const context of contexts) await context.close();

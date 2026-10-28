@@ -6,6 +6,8 @@ Build0.0.15 adds literal text boxes; build0.0.14 adds bounded persisted freehand
 
 ## 1. Close the P0 gap report in phase order
 
+The owner requested the0.0.16 UI consistency pass before scene notes. Continue all future workspace features using UI_STANDARDS.md and ToolButton; keep vertical canvas palettes and bounded contextual editors.
+
 See P0_GAPS.md. The recorded player-canvas loading blocker is corrected in0.0.13. Keep the rendered-player, idle GPU-draw and drawing/restart assertions in the integrated gate; fix any remaining gate failure before expansion. Then continue missing canvas basics (scene notes and richer drawing editing) and token HP/status/context controls. The basic ruler and pings are implemented; configurable units, advanced paths and the rest of MAP-05 remain later work. Then finish required handout/folder/reusable-content and remaining initiative/status workflows. Keep host dashboard/network status and actual connected-user count distinct from membership. Do not move to elaborate vision/rules automation while these P0 gaps remain.
 
 ## 2. T015 / complete playable acceptance and distribution

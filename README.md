@@ -1,12 +1,12 @@
-# Hearth VTT · Build0.0.15
+# Hearth VTT · Build0.0.16
 
 Cloud continuation review and imported-source provenance: [CONTINUATION_REVIEW](docs/CONTINUATION_REVIEW.md). Current next work is in [NEXT_TASKS](docs/NEXT_TASKS.md).
 
 Continuing development in Codex cloud/GitHub: read [CODEX_HANDOFF.md](CODEX_HANDOFF.md) for setup, current evidence and the next implementation plan.
 
-Hearth is one continuously evolving application. Source/debug and optimized builds are configurations of the same code, not separate editions. The permanent policy is in [CONTINUOUS_DEVELOPMENT](docs/CONTINUOUS_DEVELOPMENT.md); current promotion blockers are in [RELEASE_VALIDATION](docs/RELEASE_VALIDATION.md). Build0.0.15 adds bounded persisted literal text alongside freehand while retaining the player-canvas startup and WebGL restoration corrections; verified-playable promotion still requires the recorded P0/platform gates.
+Hearth is one continuously evolving application. Source/debug and optimized builds are configurations of the same code, not separate editions. The permanent policy is in [CONTINUOUS_DEVELOPMENT](docs/CONTINUOUS_DEVELOPMENT.md); current promotion blockers are in [RELEASE_VALIDATION](docs/RELEASE_VALIDATION.md). Build0.0.16 adds a vertical icon drawing palette and shared workspace UI conventions while retaining the player-canvas startup and WebGL restoration corrections; verified-playable promotion still requires the recorded P0/platform gates.
 
-Build0.0.15 renders static scenes on change and keeps active pings animated. Player maps, ruler/zoom, drawing restart and context restoration have real browser regressions. Shared/GM lines, rectangles, bounded freehand strokes and fitted literal text boxes, color choices and undo are included and respect manual fog.
+Build0.0.16 renders static scenes on change and keeps active pings animated. Player maps, ruler/zoom, drawing restart and context restoration have real browser regressions. Shared/GM lines, rectangles, bounded freehand strokes and fitted literal text boxes, color choices and undo are included and respect manual fog.
 
 A private, self-hosted **web application** under development. The DM runs the hosting server and opens the DM interface in a browser. Players open an invitation link in their browsers; no player installation is required. There is no separate Windows/macOS desktop app planned. This increment supplies accounts, saved campaigns, one-use player invitations, custom private scenes/map uploads, generic actor sheets and permissions, linked token control, synchronized movement, shared manual fog, ruler/pings, host-generated private/blind/selected dice, chat/whispers, journals, generic combat and whole-host backup/isolated recovery. **It is not yet a playable VTT or release 0.1.**
 
@@ -66,3 +66,5 @@ Saved public chat, private group whispers, chronological roll cards and selected
 Build0.0.9 replaces the table dashboard with a compact VTT workspace: scene tabs, Select/Pan/fog tools, resizable/collapsible sidebar, floating token/combat windows and privacy-preserving quick-dice preparation. Combat is persisted and host-authorized; hidden tokens/fog/actor fields are filtered before delivery. Open Combat to prepare an encounter, add tokens and set initiative. See DM_GUIDE for the complete current workflow.
 
 Build0.0.10 adds **Backup & recovery** for the host owner, available from the library and table header. Download a full host snapshot, verify a .hearthbackup file and create a separate recovery folder. No live overwrite; restart with that data directory. See [backup/recovery](docs/BACKUP_RECOVERY.md) for format, limits, privacy and actual startup instructions. [P0 gaps](docs/P0_GAPS.md) remain open.
+
+Workspace UI conventions for future development are maintained in [UI_STANDARDS](docs/UI_STANDARDS.md). Drawing tools use a vertical icon palette; hover for names, choose the layer icons and color chip, and use Text for a compact label editor.

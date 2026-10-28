@@ -1,3 +1,11 @@
+# Current cloud candidate ·0.0.16/schema13 ·2026-10-28
+
+UI correction requested by the owner before further canvas features. No backend/protocol/schema/dependency change. The implementation replaces the horizontal drawing form with a vertical icon palette, shared tool-button states, a contextual editor and responsive overflow behavior; UI_STANDARDS.md is required by AGENTS.
+
+Focused evidence: old select/missing icon component tests RED→GREEN; original browser panel exceeds the56px palette-width assertion. Updated full drawing workflow and1440/760/390/900×520 layout checks pass51.2s. Temporary swatch-picker outside dismissal also observed RED→GREEN. Complete optimized candidate gate, inspected captures and independent review follow here before final delivery. Prior0.0.15 test counts below are historical.
+
+## Previous validated0.0.15 evidence
+
 # Current cloud candidate ·0.0.15/schema13 ·2026-10-28
 
 Status: **complete automated candidate gate passed; not verified playable**. This is the same maintained Hearth application with literal text drawings added to saved lines/rectangles/freehand. No new dependency; wire schema1 remains. Manual LAN/30-minute encounter/platform/browser/distribution gates remain open.

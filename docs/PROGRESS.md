@@ -1,3 +1,11 @@
+# Hearth VTT · Build0.0.16 · vertical drawing UI · 2026-10-28
+
+Owner requested a UI review before further features. The drawing form obscured the map and used shape names in a select. Replace it with a slim vertical icon palette beside the existing tool rail, direct shape/layer buttons, a color-chip swatch picker, icon undo/close and a bounded text editor. Main and drawing tools share ToolButton and standard hover/selected/focus states. Short tool rails scroll above the bottom dock; very small drawing/sidebar views are exclusive while drafts remain. UI_STANDARDS.md and AGENTS rule13 govern future workspace work. No schema/protocol/dependency change; application0.0.16/schema13/wire1.
+
+Initial component and real-layout tests fail against0.0.15. New component checks and the retained GM/Alice/Bob drawing/secret/undo/restart/context recovery scenario pass; desktop/narrow/constrained/short geometry checks pass51.2s. Final matched captures, independent review and the complete optimized gate are recorded in RELEASE_VALIDATION.md. Scene notes remain next.
+
+## Previous0.0.15 increment
+
 # Hearth VTT · Build0.0.15 · literal text drawings · 2026-10-28
 
 Continue the owner's existing handoff after pushed0.0.14 (2c8d92e), preserving one application and all179 feature IDs. GM text boxes extend current drawing commands, layers, colors, fog projection, undo and persistence. Text is literal, bounded to120 Unicode scalars/four lines and a normalized40–1024×32–512 scene-pixel box; wrapped/fitted local font is clipped inside its authorized rectangle. No new dependency. Migration0013 preserves old points/rowids/nonces; schema10/11/12 backup validation remains and restored copies upgrade to13.

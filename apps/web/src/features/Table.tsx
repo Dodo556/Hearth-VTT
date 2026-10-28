@@ -46,6 +46,8 @@ const Combat = lazy(() => import("./Combat").then((module) => ({ default: module
 const SceneCanvas = lazy(() =>
   import("./SceneCanvas").then((module) => ({ default: module.SceneCanvas })),
 );
+const compactTools = () => window.matchMedia("(max-width: 640px)").matches;
+
 export function Table({ user }: { user: User }) {
   const { id = "" } = useParams();
   return <TableSession key={`${user.id}:${id}`} user={user} id={id} />;
@@ -116,7 +118,10 @@ function TableSession({ user, id }: { user: User; id: string }) {
   });
   const layout = useWorkspacePreferences(user.id, id);
   const tab = layout.prefs.panel;
-  const setTab = (panel: PanelId) => layout.update({ panel, open: true });
+  const setTab = (panel: PanelId) => {
+    if (compactTools()) setMapTool(null);
+    layout.update({ panel, open: true });
+  };
   const [visited, setVisited] = useState<Set<PanelId>>(() => new Set(["chat"]));
   useEffect(() => {
     if (!visited.has(tab)) setVisited((old) => new Set([...old, tab]));
@@ -155,9 +160,11 @@ function TableSession({ user, id }: { user: User; id: string }) {
       const target = panels[e.key.toLowerCase()];
       if (target) {
         e.preventDefault();
+        if (compactTools()) setMapTool(null);
         layout.update({ panel: target, open: true });
       } else if (e.key.toLowerCase() === "b") {
         e.preventDefault();
+        if (!layout.prefs.open && compactTools()) setMapTool(null);
         layout.update({ open: !layout.prefs.open });
       }
     };
@@ -277,7 +284,8 @@ function TableSession({ user, id }: { user: User; id: string }) {
       onMapTool={(tool) => {
         if (scene) setFogTool({ sceneId: scene.id, tool: "select" });
         setPanOnly(false);
-        setMapTool(tool);
+        setMapTool(tool === "draw" && mapTool === "draw" ? null : tool);
+        if (tool === "draw" && compactTools()) layout.update({ open: false });
       }}
       onAddToken={() => setTokenEditor("new")}
       onPanel={setTab}
@@ -510,7 +518,10 @@ function TableSession({ user, id }: { user: User; id: string }) {
         open={layout.prefs.open}
         width={layout.prefs.width}
         onWidth={(width) => layout.update({ width })}
-        onToggle={() => layout.update({ open: !layout.prefs.open })}
+        onToggle={() => {
+          if (!layout.prefs.open && compactTools()) setMapTool(null);
+          layout.update({ open: !layout.prefs.open });
+        }}
         panel={effectivePanel}
         onPanel={setTab}
         dm={isDm}
@@ -563,6 +574,7 @@ function TableSession({ user, id }: { user: User; id: string }) {
               pings={stream.pings}
               drawing={drawing}
               onDrawingSettings={setDrawing}
+              onCloseDrawing={() => setMapTool(null)}
               onDraw={async (settings, start, end, points) => {
                 await stream
                   .send({

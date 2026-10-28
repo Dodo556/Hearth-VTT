@@ -26,6 +26,7 @@ import type { FogTool } from "../features/fog";
 import type { MapTool } from "../features/mapTools";
 import { t } from "../i18n/en";
 import type { PanelId } from "./preferences";
+import { ToolButton } from "./ToolButton";
 export function CampaignBar({
   world,
   scene,
@@ -206,9 +207,9 @@ export function CanvasTools({
 }) {
   return (
     <>
-      <button
+      <ToolButton
         type="button"
-        aria-label="Select tokens"
+        label="Select tokens"
         title="Select tokens"
         className={!panOnly && paintTool === "select" && !mapTool ? "active" : ""}
         aria-pressed={!panOnly && paintTool === "select" && !mapTool}
@@ -218,10 +219,10 @@ export function CanvasTools({
         }}
       >
         <MousePointer2 size={18} />
-      </button>
-      <button
+      </ToolButton>
+      <ToolButton
         type="button"
-        aria-label="Pan canvas"
+        label="Pan canvas"
         title="Pan canvas"
         className={panOnly ? "active" : ""}
         aria-pressed={panOnly}
@@ -231,10 +232,10 @@ export function CanvasTools({
         }}
       >
         <Hand size={18} />
-      </button>
-      <button
+      </ToolButton>
+      <ToolButton
         type="button"
-        aria-label="Measure distance"
+        label="Measure distance"
         title="Measure distance in grid squares"
         aria-pressed={mapTool === "measure"}
         className={mapTool === "measure" ? "active" : ""}
@@ -242,10 +243,10 @@ export function CanvasTools({
         onClick={() => onMapTool("measure")}
       >
         <Ruler size={18} />
-      </button>
-      <button
+      </ToolButton>
+      <ToolButton
         type="button"
-        aria-label="Ping map"
+        label="Ping map"
         title="Ping a revealed point on the active scene"
         aria-pressed={mapTool === "ping"}
         className={mapTool === "ping" ? "active" : ""}
@@ -253,13 +254,13 @@ export function CanvasTools({
         onClick={() => onMapTool("ping")}
       >
         <MapPin size={18} />
-      </button>
+      </ToolButton>
       <span className="tool-divider" />
       {isDm && (
         <>
-          <button
+          <ToolButton
             type="button"
-            aria-label="Draw on map"
+            label="Draw on map"
             title="Draw on map"
             aria-pressed={mapTool === "draw"}
             className={mapTool === "draw" ? "active" : ""}
@@ -267,71 +268,71 @@ export function CanvasTools({
             onClick={() => onMapTool("draw")}
           >
             <Pencil size={18} />
-          </button>
-          <button
+          </ToolButton>
+          <ToolButton
             type="button"
-            aria-label={t.addToken}
+            label={t.addToken}
             title={t.addToken}
             disabled={disabled || !scene}
             onClick={() => onAddToken()}
           >
             <Plus size={19} />
-          </button>
-          <button
+          </ToolButton>
+          <ToolButton
             type="button"
-            aria-label="Reveal fog tool"
+            label="Reveal fog tool"
             title="Reveal fog · enable in Scene controls"
             className={paintTool === "reveal" ? "active" : ""}
             disabled={disabled || !scene?.fog.enabled}
             onClick={() => onFog("reveal")}
           >
             <ScanEye size={18} />
-          </button>
-          <button
+          </ToolButton>
+          <ToolButton
             type="button"
-            aria-label="Hide fog tool"
+            label="Hide fog tool"
             title="Hide fog · enable in Scene controls"
             className={paintTool === "hide" ? "active" : ""}
             disabled={disabled || !scene?.fog.enabled}
             onClick={() => onFog("hide")}
           >
             <EyeOff size={18} />
-          </button>
+          </ToolButton>
         </>
       )}
-      <button
+      <ToolButton
         type="button"
-        aria-label="Open scene controls"
+        label="Open scene controls"
         title="Scene controls"
         onClick={() => onPanel("scene")}
       >
         <SlidersHorizontal size={18} />
-      </button>
+      </ToolButton>
       <span className="tool-divider" />
-      <button
+      <ToolButton
         type="button"
-        aria-label="Open dice roller"
+        label="Open dice roller"
         title="Dice roller · Shift+D"
         onClick={() => onPanel("dice")}
       >
         <Dices size={18} />
-      </button>
-      <button
+      </ToolButton>
+      <ToolButton
         type="button"
-        aria-label="Open combat tracker"
+        label="Open combat tracker"
         title="Combat tracker · Shift+I"
         onClick={() => onPanel("combat")}
       >
         <Swords size={18} />
-      </button>
-      <button
+      </ToolButton>
+      <ToolButton
         type="button"
-        aria-label="Tabletop help"
+        label="Tabletop help"
         title="Tabletop help"
         onClick={() => onHelp()}
       >
         <CircleHelp size={18} />
-      </button>
+      </ToolButton>
     </>
   );
 }
