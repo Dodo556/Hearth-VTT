@@ -20,6 +20,10 @@ Codex cloud is the development workspace, not a change to Hearth's product hosti
 
 Maintain ONE authoritative codebase and primary release line. Temporary branches, worktrees, debug/release builds and disposable test hosts are engineering tools. Integrate or discard temporary work; do not maintain separate development/playable products. Playability is an early milestone, not the end of the full roadmap.
 
+## Cloud continuation ·2026-10-28
+
+Current source is0.0.19/schema16/wire1, with direct text/eraser tools, vertical UI standard, private GM notes/shared briefings and token HP/manual markers/context actions. Preserve the newer commits; the0.0.13 baseline below is provenance. Consult BUILD_OVERVIEW, PROGRESS and RELEASE_VALIDATION for the tested candidate and remaining gates. Handouts/folders/reusable-content and remaining initiative/P0 workflows follow next; use UI_STANDARDS for all new workspace controls.
+
 ## Exact handoff baseline
 
 - Application **0.0.13** in package.json, Cargo workspace and the three workspace Cargo.lock entries.
