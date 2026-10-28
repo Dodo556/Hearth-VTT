@@ -150,3 +150,5 @@ Final independent review found no blocking code issue. Its stale API bound state
 ## Literal text drawings (0.0.15)
 
 Continue the owner's existing handoff order using current authoritative drawings. Use literal1–120-scalar/four-line text and a normalized40–1024×32–512 scene-pixel rectangle; wrap/fit the local font and mask glyphs to that rectangle. This keeps fog projection independent of platform font measurements. Cost: small boxes shrink lettering and glyph appearance varies by installed font. Reuse layers/nonces/receipts/undo, preserve rowids/points in forward migration0013, and retain original-schema10/11/12 backup verification. No separate note store is implied: scene-linked notes remain the next bounded slice.
+
+Text review found no blocking issue. Retain the correct production mask and defer the stronger all-edge/fallback clipping regression as K019; the existing outside-strip assertion is described precisely. The capture fixture's original start fell inside the larger toolbar; move that point and guard against future overlap rather than change application behavior or increase timeouts.

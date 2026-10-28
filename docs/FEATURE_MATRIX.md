@@ -1,4 +1,4 @@
-# Master feature matrix · Build0.0.14
+# Master feature matrix · Build0.0.15
 
 All **179** feature IDs from master plan §11 are retained. Status applies to the entire original feature, not only the implemented sub-behavior. No master feature is VERIFIED yet; automated evidence proves narrower foundation behaviors. Full requirements remain authoritative in the master plan.
 

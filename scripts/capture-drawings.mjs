@@ -102,6 +102,15 @@ try {
   async function draw(from, to) {
     const a = await mapPoint(...from),
       b = await mapPoint(...to);
+    const controls = await dm.locator(".drawing-controls").boundingBox();
+    assert(
+      !controls ||
+        a.x < controls.x ||
+        a.x > controls.x + controls.width ||
+        a.y < controls.y ||
+        a.y > controls.y + controls.height,
+      "Capture gesture starts underneath the drawing controls",
+    );
     await dm.mouse.move(a.x, a.y);
     await dm.mouse.down();
     await dm.mouse.move(b.x, b.y, { steps: 8 });
@@ -139,7 +148,7 @@ try {
   for (const player of playerContexts) assert.equal((await drawings(player)).length, 2);
   await dm.getByLabel("Drawing shape").selectOption("text");
   await dm.getByLabel("Drawing text", { exact: true }).fill("North gate\nKeep the lantern lit");
-  await draw([800, 150], [1240, 270]);
+  await draw([820, 190], [1260, 310]);
   await expect.poll(async () => (await drawings(owner)).length).toBe(4);
   for (const player of playerContexts) assert.equal((await drawings(player)).length, 3);
   await dm.evaluate(() => document.fonts.ready);

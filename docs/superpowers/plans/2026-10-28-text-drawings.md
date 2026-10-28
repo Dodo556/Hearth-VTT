@@ -43,15 +43,19 @@
 **Files:** DrawingControls, SceneCanvas, Table, workspace.css; text drawing helper/tests; drawings browser case; capture harness.
 
 **Interfaces:** DrawingSettings retains draft text locally; Table sends it only for text shapes. Preview and saved rendering share fitted, masked text behavior. `textDrawingBounds(start,end)` validates/normalizes rectangle; `validDrawingText(text)` supplies literal draft validation.
-- [ ] Add failing helper/controls tests for text validity and reversed/min/max/normalized rectangles.
-- [ ] Add browser tests for Text selection, box preview/placement at zoom, actual visible player pixels/literal Unicode, private frames, settings/Escape cancellation, restart and undo; observe failure.
-- [ ] Implement controls and keyed renderer lifecycle; preserve existing gestures and idle/context recovery.
-- [ ] Run TS/types/build and focused real three-browser drawing case. Commit.
+- [x] Add failing helper/controls tests for text validity and reversed/min/max/normalized rectangles.
+- [x] Add browser tests for Text selection, box preview/placement at zoom, actual visible player pixels/literal Unicode, private frames, settings/Escape cancellation, restart and undo; observe failure.
+- [x] Implement controls and keyed renderer lifecycle; preserve existing gestures and idle/context recovery.
+- [x] Run TS/types/build and focused real three-browser drawing case. Commit.
 
 ### Task 3: Integrated candidate and evidence
 
 **Files:** version manifests/lock, API/model/backup/user guides and progress/release evidence; feature matrix MAP-04 row; capture harness.
-- [ ] Update application0.0.15/schema13 documentation and keep every feature ID/partial state.
-- [ ] Run one complete `pnpm verify:release`; resolve failures without weakening checks.
-- [ ] Obtain one fresh read-only whole-change review, resolve material findings with regression evidence.
-- [ ] Capture/inspect actual desktop/narrow views, record exact tested revision and evidence, package source, commit. Continue next with scene-linked notes.
+- [x] Update application0.0.15/schema13 documentation and keep every feature ID/partial state.
+- [x] Run one complete `pnpm verify:release`; resolve failures without weakening checks.
+- [x] Obtain one fresh read-only whole-change review, resolve material findings with regression evidence.
+- [x] Capture/inspect actual desktop/narrow views, record exact tested revision and evidence, package source, commit. Continue next with scene-linked notes.
+
+## Completion evidence
+
+Implementation b2a6e09 passed one complete optimized gate (workflow7/TS72/Rust85/browser13,3.7m) and the text scenario43.5s. One fresh review found no blocking issue; additional all-edge/fallback clipping coverage is deferred as K019. The existing pixel-strip assertion is narrower than that desired regression. Final screenshots and source-delivery identity are recorded in RELEASE_VALIDATION.md; manual P0/platform/LAN/distribution gates stay open.

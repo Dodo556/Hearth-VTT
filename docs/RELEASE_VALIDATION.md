@@ -1,12 +1,42 @@
 # Current cloud candidate ·0.0.15/schema13 ·2026-10-28
 
-Status: automated candidate checks in progress; no verified-playable promotion. Continue the existing maintained Hearth, with literal text drawings added to saved lines/rectangles/freehand. No new dependency; wire schema1 remains. Manual LAN/30-minute encounter/platform/browser/distribution gates remain open.
+Status: **complete automated candidate gate passed; not verified playable**. This is the same maintained Hearth application with literal text drawings added to saved lines/rectangles/freehand. No new dependency; wire schema1 remains. Manual LAN/30-minute encounter/platform/browser/distribution gates remain open.
 
-Baseline: pushed0.0.14 revision2c8d92e, unchanged before this slice. New protocol/host/migration tests fail before implementation (unsupported text, expected FORBIDDEN instead of malformed frame, missing text column). Helper module initially absent. Pre-feature browser trace reaches final baseline Undo assertions then waits for absent Text select option until the unchanged120-second timeout. Matched0.0.15 focused GM/Alice/Bob scenario passes40.5s, including actual player pixels, exact literal Unicode, outside-box pixel equality, secret-frame absence, keyboard/text-edit cancellation, restart and undo.
+## Actual0.0.15 evidence
 
-Before the final gate, boundary exploration reproduced64.07−24.07 as39.99999999999999: both helper and actual TCP host reject an exactly40-pixel box. Integer-hundredth comparisons correct the root cause with the same tests. The full final scenario also checks text-label context restoration and return to idle using the existing real-GPU assertions, factored into a shared browser utility without weakening the original map-tool case.
+Tested implementation revision: `b2a6e09ac336b6a85ea934605ffb4d99a2d8cdf6`. Later commits record documentation and the screenshot-fixture correction only; application source stays unchanged. Baseline is pushed0.0.14 revision2c8d92e. Linux, Node24.19.0/pnpm11.25.0/Rust1.99.1, installed Chromium154.0.8037.57/headless/software WebGL, four Cargo jobs and CARGO_INCREMENTAL=0. Every browser/recovered host uses the matched optimized0.0.15 candidate and disposable data.
 
-Focused checks: `pnpm test`72 passed; `cargo test --workspace --locked`85 passed before the final rounding correction; strict types/lint/web build and optimized0.0.15 host pass. Pnpm's post-version-bump metadata refresh first hit restricted store permissions; normal frozen reinstall with cache access passed with no lockfile/dependency change. These focused results do not replace the pending one-command optimized gate.
+Command: `source /workspace/hearth-tools/activate.sh`, then `pnpm verify:release`. One complete run, exit0. No retries/skips/assertion removal or timeout increases. Browser13/13 in3.7m; text scenario43.5s. `node scripts/verification.test.mjs` separately passes all7 named assertions; the shared runner reports one aggregate Node test file in this runtime.
+
+| Check                    | Actual result                                                                                                                              |
+| ------------------------ | ------------------------------------------------------------------------------------------------------------------------------------------ |
+| Workflow                 | PASS7 direct assertions; shared runner aggregate passes                                                                                    |
+| TypeScript               | PASS72 tests in22 files; strict web/test types pass                                                                                        |
+| Rust                     | PASS85 workspace tests, none ignored; Rustfmt and Clippy pass                                                                              |
+| Inventory                | PASS179 distinct IDs retained, none VERIFIED                                                                                               |
+| Builds                   | PASS matching0.0.15 web and optimized host                                                                                                 |
+| Browser suite            | PASS13/13 in3.7m, including every prior flow                                                                                               |
+| Compatibility            | PASS12→13 rowids/order/nonces/point preservation, original-schema10/11/12 isolated recovery, literal shared/private text backup round trip |
+| Snapshot bounds          | PASS full maximum-freehand and maximum-Unicode/escaped-text campaign snapshots, each within4MiB; inbound remains16KiB                      |
+| Fresh independent review | No Critical/Important issue; one deferred Minor test-coverage gap K019                                                                     |
+
+Browser evidence includes actual rendered GM/Alice/Bob text, literal markup/Unicode in authoritative data,1.2× zoom coordinates, an unchanged pixel strip below the box, private text/ID absence from player frames, text-edit/Escape cancellation, restart, reconnect and undo. Existing drawing/freehand/capture-loss/multiple-pointer/settings/offline/navigation coverage remains. Text is present during forced actual WebGL context loss/restoration; exact canvas pixels recover and real GPU draw calls return to idle. The strip comparison is not an all-edge/fallback clipping proof; see K019. The production mask and managed text-resource cleanup were independently inspected.
+
+## Failures observed and resolved
+
+New protocol/host/migration tests failed before implementation: unsupported text, malformed frame instead of expected player FORBIDDEN, and missing text column. Helper module initially absent. A pre-feature browser trace reached the final original Undo assertions then waited for the absent Text select option until the unchanged120-second timeout; it did not fail an earlier player-rendering assertion. Matched0.0.15 focused scenario then passed40.5s before the added text context/idle assertions.
+
+Boundary exploration reproduced64.07−24.07 as39.99999999999999. Both helper and actual TCP host rejected an exactly40-pixel box; comparing normalized integer hundredths fixes the same failing tests, and the complete final gate includes that correction. After the version bump, pnpm's metadata refresh first hit restricted cache/store permissions; frozen reinstall with normal cache access passed without dependency/lockfile changes. No failed required check remains hidden by combining subset results.
+
+## Review and retained boundaries
+
+One fresh gpt-6-astra/high read-only review covered2c8d92e..b2a6e09: no Critical/Important correctness, authorization, privacy, migration or lifecycle issue. Minor K019: a below-box screenshot strip does not establish immediate all-edge clipping with difficult fallback/combining glyphs. Defer that additional rendering regression; no production mask defect was found and no stronger test claim is made. No second review.
+
+Rulings on the review's declined scope: retain manual Windows/macOS/current-browser/LAN/session/distribution gates as explicit open acceptance work (cost: no portability or verified-playable guarantee); retain the existing trusted-backup contract rather than promise semantic repair of arbitrarily edited databases (cost: manual semantic corruption may leave restored content unusable); keep rich text/individual editing/scene notes in the subsequent handoff slices (cost: those tools are unavailable in0.0.15). No new runtime trust boundary or source-publication action.
+
+## Captures and delivery
+
+Desktop/narrow capture is run sequentially after the complete browser gate with fictional Game Master/Alice/Bob and actual saved shared text/freehand plus a private rectangle. Exact command after activation: `HEARTH_TEST_HOST_BIN=target/release/hearth-server node scripts/capture-drawings.mjs /workspace/artifacts/0.0.15/Hearth_VTT_0.0.15.png /workspace/artifacts/0.0.15/Hearth_VTT_0.0.15_narrow.png`. PASS: actual1600×1000 desktop and760×700 narrow images captured and visually inspected, zero page errors; narrow text controls are reachable without sidebar overlap. The first capture failed because the chosen start point(678.97,248.25) lay inside the measured toolbar rectangle(78,102)–(690.14,256). A separate diagnostic screenshot/bounds confirmed this; moving the gesture to scene(820,190)–(1260,310) fixes the fixture, with a guard that reports future toolbar overlap. No application code or test timeout changed and the integrated browser gate remained intact. Source packaging excludes databases, uploaded campaign artwork, dependencies, builds and credentials. Migrations0001..0012 remain byte-identical to the preceding source.
 
 ## Previous validated0.0.14 evidence
 
