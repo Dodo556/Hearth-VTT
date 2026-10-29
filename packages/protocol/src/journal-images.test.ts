@@ -69,3 +69,23 @@ it("accepts explicit journal formatting while retaining old plain payloads", () 
     "markdown",
   );
 });
+it("accepts journal reuse references but never audience or copied-content overrides", () => {
+  const payload = { sourceJournalId: id, expectedVersion: 1, journalId: id, title: "Reused clue" };
+  expect(TokenCommandSchema.safeParse({ type: "journal.copy", payload }).success).toBe(true);
+  for (const fields of [
+    { visibility: "shared" },
+    { recipientIds: [id] },
+    { body: "forged" },
+    { assetId: id },
+    { folderId: id },
+    { sourceJournalId: "bad" },
+    { expectedVersion: 0 },
+    { expectedVersion: Number.MAX_SAFE_INTEGER },
+    { title: " " },
+    { title: "x".repeat(81) },
+  ])
+    expect(
+      TokenCommandSchema.safeParse({ type: "journal.copy", payload: { ...payload, ...fields } })
+        .success,
+    ).toBe(false);
+});

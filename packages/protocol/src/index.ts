@@ -588,6 +588,23 @@ export const TokenCommandSchema = z.discriminatedUnion("type", [
     .strict(),
   z
     .object({
+      type: z.literal("journal.copy"),
+      payload: z
+        .object({
+          sourceJournalId: z.uuid(),
+          expectedVersion: z
+            .number()
+            .int()
+            .positive()
+            .max(Number.MAX_SAFE_INTEGER - 1),
+          journalId: z.uuid(),
+          title: journalFields.title,
+        })
+        .strict(),
+    })
+    .strict(),
+  z
+    .object({
       type: z.literal("journal.update"),
       payload: z
         .object({

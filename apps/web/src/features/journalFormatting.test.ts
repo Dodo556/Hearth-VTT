@@ -21,3 +21,16 @@ it("refuses markup that exceeds the persisted Unicode limit without truncating",
     `**${"🧙".repeat(996)}**`,
   );
 });
+it.each([
+  ["Heading", "# "],
+  ["Bullet list", "- "],
+  ["Numbered list", "1. "],
+  ["Checklist", "- [ ] "],
+] as const)(
+  "keeps %s within selected lines and preserves collapsed caret behavior",
+  (style, prefix) => {
+    expect(formatJournalSelection("one\ntwo", 0, 4, style)?.body).toBe(`${prefix}one\ntwo`);
+    expect(formatJournalSelection("one\ntwo", 4, 4, style)?.body).toBe(`one\n${prefix}two`);
+    expect(formatJournalSelection("one\n", 0, 4, style)?.body).toBe(`${prefix}one\n`);
+  },
+);

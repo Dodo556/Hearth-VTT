@@ -280,6 +280,66 @@ test("journal image handouts stay private until reveal and revoke future image a
     await expect(
       players[0].locator(".journal-rich script,.journal-rich img,.journal-rich a"),
     ).toHaveCount(0);
+    const sourceBeforeCopy = (await read(dm)).journals.find(
+      (j: { id: string }) => j.id === saved.id,
+    );
+    for (const p of players)
+      await expect(p.getByRole("button", { name: "Use as template", exact: true })).toHaveCount(0);
+    await dm.getByRole("button", { name: "Use as template", exact: true }).click();
+    const reuse = dm.getByRole("dialog", { name: "Use page as template", exact: true });
+    await reuse.getByLabel("Copy title", { exact: true }).fill("Amber mission copy");
+    await capture(dm, "reuse-desktop");
+    for (const viewport of [
+      { width: 760, height: 700 },
+      { width: 390, height: 700 },
+      { width: 900, height: 520 },
+    ]) {
+      await dm.setViewportSize(viewport);
+      const action = reuse.getByRole("button", { name: "Create private copy", exact: true });
+      await action.scrollIntoViewIfNeeded();
+      await expect(action).toBeInViewport({ ratio: 1 });
+      await action.click({ trial: true });
+      const box = await reuse.boundingBox();
+      expect(box && box.x >= 0 && box.x + box.width <= viewport.width).toBe(true);
+      await capture(dm, `reuse-${viewport.width}`);
+    }
+    await dm.setViewportSize({ width: 1440, height: 1000 });
+    await reuse.getByRole("button", { name: "Create private copy", exact: true }).click();
+    await expect(reuse).toHaveCount(0);
+    await expect(
+      dm.getByRole("heading", { name: "Amber mission copy", exact: true }),
+    ).toBeVisible();
+    const copied = (await read(dm)).journals.find(
+      (j: { title: string }) => j.title === "Amber mission copy",
+    );
+    expect(copied).toMatchObject({
+      body: sourceBeforeCopy.body,
+      bodyFormat: "markdown",
+      assetId: art,
+      visibility: "dm",
+      version: 1,
+    });
+    expect(copied.recipientIds).toBeUndefined();
+    expect(copied.folderId).toBeUndefined();
+    expect((await read(dm)).journals.find((j: { id: string }) => j.id === saved.id)).toEqual(
+      sourceBeforeCopy,
+    );
+    for (const p of players) {
+      expect(JSON.stringify(await read(p))).not.toContain(copied.id);
+      expect(
+        (await p.request.get(`/api/campaigns/${campaign}/journals/${copied.id}`)).status(),
+      ).toBe(404);
+    }
+    expect(playerFrames.every((messages) => messages.every((f) => !f.includes(copied.id)))).toBe(
+      true,
+    );
+    await dm.getByRole("button", { name: "Edit page", exact: true }).click();
+    await dm.getByLabel("Page text", { exact: true }).fill("PRIVATE COPY CLUE");
+    await dm.getByRole("button", { name: "Save private page", exact: true }).click();
+    await expect(
+      dm.getByRole("heading", { name: "Amber mission copy", exact: true }),
+    ).toBeVisible();
+    await dm.getByRole("button", { name: "The amber seal", exact: true }).click();
     const other = await owner.newPage();
     await other.goto(path);
     await expect(other.getByTestId("connection-status")).toHaveText("Live");
@@ -318,6 +378,16 @@ test("journal image handouts stay private until reveal and revoke future image a
       (await read(dm)).journals.find((p: { id: string }) => p.id === saved.id).bodyFormat,
     ).toBe("markdown");
     await expect(players[1].getByRole("heading", { name: "Encrypted dispatch" })).toBeVisible();
+    expect((await read(dm)).journals.find((j: { id: string }) => j.id === copied.id)).toMatchObject(
+      {
+        body: "PRIVATE COPY CLUE",
+        bodyFormat: "markdown",
+        assetId: art,
+        visibility: "dm",
+        version: 2,
+      },
+    );
+    for (const p of players) expect(JSON.stringify(await read(p))).not.toContain(copied.id);
     const people = (await (await dm.request.get(`/api/campaigns/${campaign}/participants`)).json())
       .participants;
     const bob = people.find((p: { displayName: string }) => p.displayName === "Bob");
@@ -344,6 +414,43 @@ test("journal image handouts stay private until reveal and revoke future image a
     expect(
       (await read(dm)).journals.find((j: { id: string }) => j.id === saved.id).assetId,
     ).toBeUndefined();
+    // Independent copied-page grants survive removal of the original page's image.
+    await dm.getByRole("button", { name: "Amber mission copy", exact: true }).click();
+    await dm.getByRole("button", { name: "Reveal to players", exact: true }).click();
+    await players[0].getByRole("button", { name: "Amber mission copy", exact: true }).click();
+    await expect(
+      players[0].getByRole("img", { name: "Amber mission copy", exact: true }),
+    ).toBeVisible();
+    expect((await players[0].request.get(imageURL)).ok()).toBe(true);
+    for (const viewport of [
+      { width: 1440, height: 1000 },
+      { width: 760, height: 700 },
+      { width: 390, height: 700 },
+      { width: 900, height: 520 },
+    ]) {
+      await dm.setViewportSize(viewport);
+      const actions = dm.locator(".journal-page > .dialog-actions > button");
+      await expect(actions).toHaveCount(6);
+      await actions.last().scrollIntoViewIfNeeded();
+      const panel = await dm
+        .getByRole("complementary", { name: "Workspace sidebar" })
+        .boundingBox();
+      for (const action of await actions.all()) {
+        await expect(action).toBeInViewport({ ratio: 1 });
+        const box = await action.boundingBox();
+        expect(panel && box && box.x >= panel.x && box.x + box.width <= panel.x + panel.width).toBe(
+          true,
+        );
+      }
+      await capture(dm, `reused-actions-${viewport.width}`);
+    }
+    await dm.setViewportSize({ width: 1440, height: 1000 });
+    await capture(dm, "reused-page");
+    await dm.getByRole("button", { name: "Hide from players", exact: true }).click();
+    await expect(
+      players[0].getByRole("button", { name: "Amber mission copy", exact: true }),
+    ).toHaveCount(0);
+    expect((await players[0].request.get(imageURL)).status()).toBe(404);
     expect(external).toEqual([]);
     for (const p of [dm, ...players])
       expect(await p.evaluate(() => "hearthRich" in window)).toBe(false);

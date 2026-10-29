@@ -62,6 +62,8 @@ pub enum TokenCommand {
     Chat(SendMessage),
     #[serde(rename = "journal.create")]
     JournalCreate(CreateJournal),
+    #[serde(rename = "journal.copy")]
+    JournalCopy(CopyJournal),
     #[serde(rename = "journal.update")]
     JournalUpdate(UpdateJournal),
     #[serde(rename = "journal.delete")]
@@ -161,6 +163,7 @@ impl TokenCommand {
             Self::CombatClear(p) => &p.encounter_id,
             Self::CombatHp(p) => &p.combatant_id,
             Self::JournalCreate(p) => &p.journal_id,
+            Self::JournalCopy(p) => &p.journal_id,
             Self::JournalUpdate(p) => &p.journal_id,
             Self::JournalDelete(p) => &p.journal_id,
             Self::JournalFolderCreate(p) => &p.folder_id,
@@ -441,6 +444,14 @@ pub struct CreateJournal {
 }
 #[derive(Debug, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase", deny_unknown_fields)]
+pub struct CopyJournal {
+    pub source_journal_id: String,
+    pub expected_version: i64,
+    pub journal_id: String,
+    pub title: String,
+}
+#[derive(Debug, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase", deny_unknown_fields)]
 pub struct UpdateJournal {
     #[serde(
         default,
@@ -474,6 +485,7 @@ impl TokenCommand {
         matches!(
             self,
             Self::JournalCreate(_)
+                | Self::JournalCopy(_)
                 | Self::JournalUpdate(_)
                 | Self::JournalDelete(_)
                 | Self::JournalFolderCreate(_)

@@ -1027,6 +1027,9 @@
 .vtt-workspace .journal-page {
   padding-top: 12px;
 }
+.vtt-workspace .journal-page > .dialog-actions {
+  flex-wrap: wrap;
+}
 .vtt-workspace .journal-page h2 {
   font: 600 16px var(--font);
   margin: 10px 0;

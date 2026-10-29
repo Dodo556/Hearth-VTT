@@ -774,3 +774,132 @@ async fn journal_format_is_explicit_persisted_and_preserved_by_sharing_updates()
     assert_eq!(saved, (body.into(), "plain".into()));
     dm.close(None).await.unwrap();
 }
+
+fn journal_copy(source: &str, version: i64, target: &str) -> Value {
+    json!({"type":"journal.copy","payload":{"sourceJournalId":source,"expectedVersion":version,"journalId":target,"title":"Reused clue"}})
+}
+#[tokio::test]
+async fn journal_reuse_copies_exact_content_privately_without_grants_or_source_changes() {
+    let h = Host::new().await;
+    let owner = h.owner().await;
+    let camp = h.campaign_id(&owner).await;
+    let (alice, alice_id) = h.player(&owner, &camp, "reuse_alice").await;
+    let (bob, _) = h.player(&owner, &camp, "reuse_bob").await;
+    let (_, uploaded) = upload_image(&h, &owner, &camp, map_fixture(), "image/png").await;
+    let art = uploaded["asset"]["id"].as_str().unwrap();
+    let url = format!("/api/campaigns/{camp}/assets/{art}");
+    let server = LiveServer::start(&h).await;
+    let mut dm = server.connect(&camp, &owner).await;
+    frame(&mut dm).await;
+    let mut a = server.connect(&camp, &alice).await;
+    frame(&mut a).await;
+    let source = uuid::Uuid::new_v4().to_string();
+    let target = uuid::Uuid::new_v4().to_string();
+    let folder = uuid::Uuid::new_v4().to_string();
+    let body = "# 🧙 Template\n**Exact**\n<script>literal</script>";
+    let mut rev = 0;
+    accepted(&mut dm, &mut rev, json!({"type":"journal.folder.create","payload":{"folderId":folder,"name":"Templates","parentId":null}})).await;
+    accepted(&mut dm, &mut rev, json!({"type":"journal.create","payload":{"journalId":source,"title":"Template","body":body,"bodyFormat":"markdown","assetId":art,"folderId":folder}})).await;
+    accepted(&mut dm, &mut rev, json!({"type":"journal.update","payload":{"journalId":source,"expectedVersion":1,"title":"Template","body":body,"visibility":"selected","recipientIds":[alice_id]}})).await;
+    let request = uuid::Uuid::new_v4().to_string();
+    let copy = journal_copy(&source, 2, &target);
+    assert_eq!(command(&mut dm, &request, rev, copy.clone()).await["kind"], "ack");
+    assert_eq!(command(&mut dm, &request, rev, copy.clone()).await["duplicate"], true);
+    rev += 1;
+    let projection = through(&mut a, rev).await;
+    assert!(!projection.to_string().contains(&target));
+    let (_, pages, _) = h.request("GET", &format!("/api/campaigns/{camp}/journals"), json!({}), Some(&owner)).await;
+    let pages = pages["journals"].as_array().unwrap();
+    let copied = pages.iter().find(|j| j["id"] == target).unwrap();
+    assert_eq!(copied["body"], body);
+    assert_eq!(copied["bodyFormat"], "markdown");
+    assert_eq!(copied["assetId"], art);
+    assert_eq!(copied["visibility"], "dm");
+    assert_eq!(copied["version"], 1);
+    assert!(copied.get("recipientIds").is_none());
+    assert!(copied.get("folderId").is_none());
+    let original = pages.iter().find(|j| j["id"] == source).unwrap();
+    assert_eq!(original["version"], 2);
+    assert_eq!(original["folderId"], folder);
+    assert_eq!(original["recipientIds"], json!([alice_id]));
+    for player in [&alice, &bob] {
+        assert_eq!(h.request("GET", &format!("/api/campaigns/{camp}/journals/{target}"), json!({}), Some(player)).await.0, StatusCode::NOT_FOUND);
+    }
+    let denied = command(&mut a, &uuid::Uuid::new_v4().to_string(), rev, journal_copy(&source, 2, &uuid::Uuid::new_v4().to_string())).await;
+    assert_eq!(denied["error"]["code"], "FORBIDDEN");
+    // Copying does not revoke an existing image entitlement from another page.
+    assert_eq!(h.request("GET", &url, json!({}), Some(&alice)).await.0, StatusCode::OK);
+    assert_eq!(h.request("GET", &url, json!({}), Some(&bob)).await.0, StatusCode::NOT_FOUND);
+    accepted(&mut dm, &mut rev, journal_update(&target, 1, "shared", "Independent copy")).await;
+    accepted(&mut dm, &mut rev, journal_update(&source, 2, "dm", body)).await;
+    assert_eq!(h.request("GET", &url, json!({}), Some(&bob)).await.0, StatusCode::OK);
+    accepted(&mut dm, &mut rev, journal_update(&target, 2, "dm", "Independent copy")).await;
+    assert_eq!(h.request("GET", &url, json!({}), Some(&alice)).await.0, StatusCode::NOT_FOUND);
+    let (_, original, _) = h.request("GET", &format!("/api/campaigns/{camp}/journals/{source}"), json!({}), Some(&owner)).await;
+    assert_eq!(original["journal"]["body"], body);
+    dm.close(None).await.unwrap();
+    a.close(None).await.unwrap();
+}
+
+#[tokio::test]
+async fn journal_reuse_rejects_stale_foreign_occupied_full_and_archived_destinations() {
+    let h = Host::new().await;
+    let owner = h.owner().await;
+    let camp = h.campaign_id(&owner).await;
+    let (_, foreign, _) = h.request("POST", "/api/campaigns", json!({"name":"Foreign reuse","description":""}), Some(&owner)).await;
+    let foreign = foreign["campaign"]["id"].as_str().unwrap();
+    let source = uuid::Uuid::new_v4().to_string();
+    let elsewhere = uuid::Uuid::new_v4().to_string();
+    sqlx::query("INSERT INTO journals(id,campaign_id,title,body,visibility,created_at) VALUES(?,?,'Foreign','Secret','dm',1)").bind(&elsewhere).bind(foreign).execute(&h.state.store.pool).await.unwrap();
+    let server = LiveServer::start(&h).await;
+    let mut dm = server.connect(&camp, &owner).await;
+    frame(&mut dm).await;
+    let mut rev = 0;
+    accepted(&mut dm, &mut rev, journal_create(&source, "Plain source", "Literal **plain**")).await;
+    for (source_id, version, target, code) in [
+        (source.clone(), 2, uuid::Uuid::new_v4().to_string(), "STALE_JOURNAL"),
+        (source.clone(), 0, uuid::Uuid::new_v4().to_string(), "VALIDATION_FAILED"),
+        (source.clone(), 1, source.clone(), "VALIDATION_FAILED"),
+        (source.clone(), 1, elsewhere.clone(), "VALIDATION_FAILED"),
+        ("bad".into(), 1, uuid::Uuid::new_v4().to_string(), "VALIDATION_FAILED"),
+    ] {
+        let reply = command(&mut dm, &uuid::Uuid::new_v4().to_string(), rev, journal_copy(&source_id, version, &target)).await;
+        assert_eq!(reply["error"]["code"], code, "{reply}");
+    }
+    let foreign_reply = command(&mut dm, &uuid::Uuid::new_v4().to_string(), rev, journal_copy(&elsewhere, 1, &uuid::Uuid::new_v4().to_string())).await;
+    let unknown = command(&mut dm, &uuid::Uuid::new_v4().to_string(), rev, journal_copy(&uuid::Uuid::new_v4().to_string(), 1, &uuid::Uuid::new_v4().to_string())).await;
+    assert_eq!(foreign_reply["error"], unknown["error"]);
+    let plain_target = uuid::Uuid::new_v4().to_string();
+    accepted(&mut dm, &mut rev, journal_copy(&source, 1, &plain_target)).await;
+    let plain: (String, String) = sqlx::query_as("SELECT body,body_format FROM journals WHERE id=?").bind(&plain_target).fetch_one(&h.state.store.pool).await.unwrap();
+    assert_eq!(plain, ("Literal **plain**".into(), "plain".into()));
+    let count: i64 = sqlx::query_scalar("SELECT COUNT(*) FROM journals WHERE campaign_id=?").bind(&camp).fetch_one(&h.state.store.pool).await.unwrap();
+    for _ in count..16 {
+        sqlx::query("INSERT INTO journals(id,campaign_id,title,body,visibility,created_at) VALUES(?,?,'Quota','','dm',1)").bind(uuid::Uuid::new_v4().to_string()).bind(&camp).execute(&h.state.store.pool).await.unwrap();
+    }
+    let full = command(&mut dm, &uuid::Uuid::new_v4().to_string(), rev, journal_copy(&source, 1, &uuid::Uuid::new_v4().to_string())).await;
+    assert_eq!(full["error"]["code"], "VALIDATION_FAILED");
+    sqlx::query("UPDATE campaigns SET archived=1 WHERE id=?").bind(&camp).execute(&h.state.store.pool).await.unwrap();
+    let archived = command(&mut dm, &uuid::Uuid::new_v4().to_string(), rev, journal_copy(&source, 1, &uuid::Uuid::new_v4().to_string())).await;
+    assert_eq!(archived["error"]["code"], "FORBIDDEN");
+    sqlx::query("UPDATE campaigns SET archived=0 WHERE id=?").bind(&camp).execute(&h.state.store.pool).await.unwrap();
+    sqlx::query("DELETE FROM memberships WHERE campaign_id=?").bind(&camp).execute(&h.state.store.pool).await.unwrap();
+    // Revoked connections are closed by the live loop before a command reply.
+    let denied_target = uuid::Uuid::new_v4().to_string();
+    let denied_request = uuid::Uuid::new_v4().to_string();
+    let sent = dm.send(Message::Text(json!({"kind":"command","schemaVersion":1,"requestId":denied_request,"baseRevision":rev,"command":journal_copy(&source, 1, &denied_target)}).to_string().into())).await;
+    if sent.is_ok() {
+        loop {
+            match tokio::time::timeout(std::time::Duration::from_secs(4), dm.next()).await.unwrap() {
+                None | Some(Err(_)) | Some(Ok(Message::Close(_))) => break,
+                Some(Ok(Message::Text(text))) => {
+                    let frame: Value = serde_json::from_str(&text).unwrap();
+                    assert!(!(frame["kind"] == "ack" && frame["requestId"] == denied_request));
+                }
+                _ => {}
+            }
+        }
+    }
+    let copied: i64 = sqlx::query_scalar("SELECT COUNT(*) FROM journals WHERE id=?").bind(&denied_target).fetch_one(&h.state.store.pool).await.unwrap();
+    assert_eq!(copied, 0);
+}

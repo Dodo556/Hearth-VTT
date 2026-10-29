@@ -972,7 +972,9 @@ async fn formatted_journal_backup_preserves_exact_source_and_format() {
         .execute(&store.pool)
         .await
         .unwrap();
-    let backup = backup::create(&store, root.path(), "0.0.23", 100)
+    sqlx::query("INSERT INTO journals(id,campaign_id,title,body,visibility,created_at,asset_id,body_format) SELECT 'reused',campaign_id,'Private copy',body,'dm',2,asset_id,body_format FROM journals WHERE id='secret'")
+        .execute(&store.pool).await.unwrap();
+    let backup = backup::create(&store, root.path(), "0.0.24", 100)
         .await
         .unwrap();
     let restored = backup::restore(
@@ -990,6 +992,24 @@ async fn formatted_journal_backup_preserves_exact_source_and_format() {
             .await
             .unwrap();
     assert_eq!(actual, (body.into(), "markdown".into(), "art".into(), 9));
+    let reused: (String, String, String, String, i64, Option<String>) = sqlx::query_as("SELECT body,body_format,asset_id,visibility,version,folder_id FROM journals WHERE id='reused'").fetch_one(&copy.pool).await.unwrap();
+    assert_eq!(
+        reused,
+        (
+            body.into(),
+            "markdown".into(),
+            "art".into(),
+            "dm".into(),
+            1,
+            None
+        )
+    );
+    let grants: i64 =
+        sqlx::query_scalar("SELECT COUNT(*) FROM journal_recipients WHERE journal_id='reused'")
+            .fetch_one(&copy.pool)
+            .await
+            .unwrap();
+    assert_eq!(grants, 0);
 }
 #[tokio::test]
 async fn schema_nineteen_backup_preserves_selected_readers_and_defaults_to_plain() {

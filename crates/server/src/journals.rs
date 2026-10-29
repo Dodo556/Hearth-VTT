@@ -88,6 +88,36 @@ pub(crate) async fn apply(
                 return Err(ApiError::invalid("Use a fresh journal ID."));
             }
         }
+        TokenCommand::JournalCopy(p) => {
+            if uuid::Uuid::parse_str(&p.source_journal_id).is_err() {
+                return Err(ApiError::invalid("Use a valid source page ID."));
+            }
+            version(conn, campaign, &p.source_journal_id, p.expected_version).await?;
+            let (body, asset_id): (String, Option<String>) =
+                sqlx::query_as("SELECT body,asset_id FROM journals WHERE campaign_id=? AND id=?")
+                    .bind(campaign)
+                    .bind(&p.source_journal_id)
+                    .fetch_one(&mut *conn)
+                    .await?;
+            let title = fields(&p.title, &body)?;
+            image(conn, campaign, asset_id.as_deref()).await?;
+            let count: i64 =
+                sqlx::query_scalar("SELECT COUNT(*) FROM journals WHERE campaign_id=?")
+                    .bind(campaign)
+                    .fetch_one(&mut *conn)
+                    .await?;
+            if count >= 16 {
+                return Err(ApiError::invalid(
+                    "This build supports up to 16 journal pages per campaign.",
+                ));
+            }
+            // Derive content from the scoped persisted source. Never copy scope, readers or folders.
+            let inserted = sqlx::query("INSERT INTO journals(id,campaign_id,title,body,visibility,created_at,asset_id,body_format) SELECT ?,campaign_id,?,body,'dm',?,asset_id,body_format FROM journals WHERE campaign_id=? AND id=? ON CONFLICT(id) DO NOTHING")
+                .bind(&p.journal_id).bind(title).bind(security::now()).bind(campaign).bind(&p.source_journal_id).execute(&mut *conn).await?;
+            if inserted.rows_affected() != 1 {
+                return Err(ApiError::invalid("Use a fresh journal ID."));
+            }
+        }
         TokenCommand::JournalUpdate(p) => {
             version(conn, campaign, &p.journal_id, p.expected_version).await?;
             let title = fields(&p.title, &p.body)?;

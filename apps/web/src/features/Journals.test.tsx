@@ -3,9 +3,23 @@ import "@testing-library/jest-dom/vitest";
 import type { Journal, TokenCommand } from "@hearth/protocol";
 import { act, cleanup, fireEvent, render, screen } from "@testing-library/react";
 import { createElement } from "react";
-import { afterEach, expect, it, vi } from "vitest";
+import { afterEach, beforeEach, expect, it, vi } from "vitest";
 import { Journals } from "./Journals";
 
+beforeEach(() => {
+  Object.defineProperty(HTMLDialogElement.prototype, "showModal", {
+    configurable: true,
+    value() {
+      this.open = true;
+    },
+  });
+  Object.defineProperty(HTMLDialogElement.prototype, "close", {
+    configurable: true,
+    value() {
+      this.open = false;
+    },
+  });
+});
 afterEach(() => {
   cleanup();
   vi.unstubAllGlobals();
@@ -176,4 +190,107 @@ it("keeps uploaded image changes private and preserves the draft after a rejecte
   expect(screen.getByLabelText("Page title")).toHaveValue("Clue");
   fireEvent.click(screen.getByRole("button", { name: "Remove image" }));
   expect(screen.queryByRole("img", { name: "Handout preview" })).toBeNull();
+});
+
+it("reuses only a saved source reference and keeps a failed private-copy title", async () => {
+  const sent: TokenCommand[] = [];
+  render(
+    createElement(Journals, {
+      journals: [{ ...page, visibility: "selected", recipientIds: [page.id] }],
+      dm: true,
+      disabled: false,
+      send: async (c: TokenCommand) => {
+        sent.push(c);
+        throw new Error("Copy rejected");
+      },
+    }),
+  );
+  fireEvent.click(screen.getByRole("button", { name: "Use as template" }));
+  fireEvent.change(screen.getByLabelText("Copy title"), { target: { value: "Independent clue" } });
+  await act(async () => {
+    fireEvent.click(screen.getByRole("button", { name: "Create private copy" }));
+  });
+  expect(sent[0]).toEqual({
+    type: "journal.copy",
+    payload: {
+      sourceJournalId: page.id,
+      expectedVersion: 1,
+      journalId: expect.any(String),
+      title: "Independent clue",
+    },
+  });
+  expect(screen.getByRole("alert")).toHaveTextContent("Copy rejected");
+  expect(screen.getByLabelText("Copy title")).toHaveValue("Independent clue");
+  await act(async () => {
+    fireEvent.click(screen.getByRole("button", { name: "Create private copy" }));
+  });
+  expect(sent[1]).toEqual(sent[0]);
+});
+it("requires explicit template reload after source changes and preserves the copy title", async () => {
+  const sent: TokenCommand[] = [];
+  const props = {
+    journals: [page],
+    dm: true,
+    disabled: false,
+    send: async (c: TokenCommand) => {
+      sent.push(c);
+    },
+  };
+  const { rerender } = render(createElement(Journals, props));
+  fireEvent.click(screen.getByRole("button", { name: "Use as template" }));
+  fireEvent.change(screen.getByLabelText("Copy title"), { target: { value: "Kept name" } });
+  rerender(createElement(Journals, { ...props, journals: [{ ...page, version: 2 }] }));
+  expect(screen.getByRole("button", { name: "Create private copy" })).toBeDisabled();
+  fireEvent.click(screen.getByRole("button", { name: "Reload template" }));
+  expect(screen.getByLabelText("Copy title")).toHaveValue("Kept name");
+  await act(async () => {
+    fireEvent.click(screen.getByRole("button", { name: "Create private copy" }));
+  });
+  expect(sent[0]).toMatchObject({
+    type: "journal.copy",
+    payload: { expectedVersion: 2, title: "Kept name" },
+  });
+});
+it("never offers reuse to players and blocks it when offline or full", () => {
+  const props = {
+    journals: [page],
+    dm: false,
+    disabled: false,
+    send: async (_: TokenCommand) => {},
+  };
+  const { rerender } = render(createElement(Journals, props));
+  expect(screen.queryByRole("button", { name: "Use as template" })).toBeNull();
+  rerender(createElement(Journals, { ...props, dm: true, disabled: true }));
+  expect(screen.getByRole("button", { name: "Use as template" })).toBeDisabled();
+  rerender(
+    createElement(Journals, {
+      ...props,
+      dm: true,
+      journals: Array.from({ length: 16 }, (_, i) => ({ ...page, id: `${i}` })),
+    }),
+  );
+  expect(screen.getByRole("button", { name: "Use as template" })).toBeDisabled();
+});
+it("keeps a copy title when its template disappears or the campaign fills", () => {
+  const props = {
+    journals: [page],
+    dm: true,
+    disabled: false,
+    send: async (_: TokenCommand) => {},
+  };
+  const { rerender } = render(createElement(Journals, props));
+  fireEvent.click(screen.getByRole("button", { name: "Use as template" }));
+  fireEvent.change(screen.getByLabelText("Copy title"), { target: { value: "Kept copy" } });
+  rerender(createElement(Journals, { ...props, journals: [] }));
+  expect(screen.getByRole("status")).toHaveTextContent("removed");
+  expect(screen.queryByRole("button", { name: "Reload template" })).toBeNull();
+  expect(screen.getByRole("button", { name: "Create private copy" })).toBeDisabled();
+  rerender(
+    createElement(Journals, {
+      ...props,
+      journals: [page, ...Array.from({ length: 15 }, (_, i) => ({ ...page, id: `${i}` }))],
+    }),
+  );
+  expect(screen.getByLabelText("Copy title")).toHaveValue("Kept copy");
+  expect(screen.getByRole("button", { name: "Create private copy" })).toBeDisabled();
 });

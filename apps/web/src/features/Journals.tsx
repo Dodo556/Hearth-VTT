@@ -5,6 +5,7 @@ import { useEffect, useRef, useState } from "react";
 import { api } from "../api";
 import { t } from "../i18n/en";
 import { JournalBody } from "./JournalBody";
+import { JournalCopy } from "./JournalCopy";
 import { folderChoices, JournalDirectory } from "./JournalDirectory";
 import { JournalFolderManager } from "./JournalFolderManager";
 import { JournalImage } from "./JournalImage";
@@ -41,6 +42,7 @@ export function Journals({
   disabled: boolean;
   send: (command: TokenCommand) => Promise<void>;
 }) {
+  const [copying, setCopying] = useState<Journal | null>(null);
   const [sharing, setSharing] = useState<Journal | null>(null);
   const players = participants.filter((p) => p.role === "player");
   const [search, setSearch] = useState("");
@@ -210,6 +212,16 @@ export function Journals({
                   )}
                   <Button type="button" disabled={disabled || pending} onClick={() => edit(page)}>
                     {t.editJournal}
+                  </Button>
+                  <Button
+                    type="button"
+                    disabled={disabled || pending || journals.length >= 16}
+                    onClick={() => {
+                      setError(null);
+                      setCopying(page);
+                    }}
+                  >
+                    Use as template
                   </Button>
                   <Button
                     type="button"
@@ -445,6 +457,22 @@ export function Journals({
             </Button>
           </div>
         </form>
+      )}
+      {copying && dm && (
+        <JournalCopy
+          key={copying.id}
+          page={copying}
+          current={journals.find((p) => p.id === copying.id)}
+          disabled={disabled}
+          full={journals.length >= 16}
+          send={send}
+          onClose={() => setCopying(null)}
+          onCopied={(id) => {
+            setSelected(id);
+            setSearch("");
+            setCopying(null);
+          }}
+        />
       )}
       {sharing && dm && (
         <JournalSharing

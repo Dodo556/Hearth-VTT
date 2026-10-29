@@ -32,7 +32,7 @@ export function formatJournalSelection(
     selectEnd = selectStart + selected.length;
   } else {
     const from = start === 0 ? 0 : body.lastIndexOf("\n", start - 1) + 1;
-    const next = body.indexOf("\n", end),
+    const next = body.indexOf("\n", end > start ? end - 1 : end),
       to = next < 0 ? body.length : next;
     const lines = body
       .slice(from, to)
