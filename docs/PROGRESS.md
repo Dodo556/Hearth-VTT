@@ -1,3 +1,15 @@
+# Hearth VTT · Build0.0.21 · journal image handouts ·2026-10-29
+
+Continued the requested0.0.20/f5860b9 baseline with one optional canonical raster per journal page, private GM upload/create/replace, read-only player rendering and explicit Reveal to players/Hide from players. Reuse existing folders/search/sidebar, host commands/versions/receipts/projections and campaign media. Image changes require a private save before reveal; omitted text-only updates preserve images and explicit null removes them. Shared journals grant future image reads independently of scene/actor/other-page grants. Concealment cannot recall delivered/in-flight art. No new dependency; schema18/wire1, original migrations1–17 intact.
+
+Protocol/host/UI/backup missing-feature regressions observed RED→GREEN. Current18 backup retains image/scope/version/blob; original17 isolated recovery adds unset images and joins retained10–16 coverage. Cross-campaign artwork references are rejected in host writes and backup validation. Maximum snapshot includes16 images. One independent whole-change review found no defects; author chose to fix its noted old-client omission boundary, then reproduced/fixed receipt serialization ambiguity. No second review.
+
+Final complete `pnpm verify:release` exits0: workflow7/TS107/Rust103/browser17/17 in5.7m, plus types/lint/Rustfmt/Clippy/179 IDs and matched builds. Targeted real GM/Alice/Bob handout workflow also passed18.0s before the final receipt correction; the final gate includes the corrected host. Nine final view/editor captures inspected with reachable native actions at1440×1000/760×700/390×700/900×520. An earlier candidate gate was intentionally interrupted for the receipt fix, not counted as passing. The next run caught a browser backup-summary validator still excluding18; a failing three-response regression and the unchanged full recovery scenario verify the correction. RELEASE_VALIDATION contains actual conditions and limitations.
+
+Reusable install/start draft saved and install plus real `pnpm dev` functional startup exercised. User review/save/publication remains separate; no push or playable promotion. JRN-01/JRN-02/MED-01 retain partial states; COM-05 advances to IN_PROGRESS for whole-campaign reveal only. Next: selective journal grants/rich content, reusable content, remaining initiative/P0/hosting work. Existing K019/K020 and manual LAN/30-minute/platform/current-browser/distribution gates remain open.
+
+## Previous0.0.20 evidence
+
 # Hearth VTT · Build0.0.20 · journal organization ·2026-10-28
 
 Continued JRN-02 under the owner's autonomous roadmap/UI direction. Added versioned private GM folders, four-level hierarchy, page moves, non-destructive folder deletion and local authorized title/body search in the existing Journal sidebar. Players retain flat shared pages with no folder metadata. Schema17 preserves existing pages, notes/vitals and migrations1–16; canonical10–16 recovery remains. No dependency; wire1/179 partial IDs retained.

@@ -22,7 +22,7 @@ Maintain ONE authoritative codebase and primary release line. Temporary branches
 
 ## Cloud continuation ·2026-10-28
 
-Current source is0.0.20/schema17/wire1, with direct text/eraser tools, vertical UI standard, private GM notes/shared briefings token HP/manual markers/context actions and private journal folders/search. Preserve the newer commits; the0.0.13 baseline below is provenance. Consult BUILD_OVERVIEW, PROGRESS and RELEASE_VALIDATION for the tested candidate and remaining gates. Image handouts/selective sharing/reusable content and remaining initiative/P0 workflows follow next; use UI_STANDARDS for all new workspace controls.
+Current source is0.0.21/schema18/wire1, with direct text/eraser tools, vertical UI standard, private GM notes/shared briefings token HP/manual markers/context actions and private journal folders/search. Preserve the newer commits; the0.0.13 baseline below is provenance. Consult BUILD_OVERVIEW, PROGRESS and RELEASE_VALIDATION for the tested candidate and remaining gates. Image handouts now upload privately and reveal/hide through journal/media authority; selective sharing/reusable content and remaining initiative/P0 workflows follow next; use UI_STANDARDS for all new workspace controls.
 
 ## Exact handoff baseline
 
