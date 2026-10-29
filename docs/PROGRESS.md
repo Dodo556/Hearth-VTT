@@ -1,3 +1,13 @@
+# Hearth VTT · Build0.0.24 · private journal reuse ·2026-10-29
+
+Continue pushed0.0.23 with K021 corrected and GM Use as template/Create private copy. The authoritative journal.copy transaction derives exact saved body/format/image from a versioned same-campaign source; a fresh private Top level/version1 page inherits no reader/folder grants and leaves the source unchanged. Normal copy edits/sharing are independent. Existing quota16/title80/body1000 rules, receipts, current membership/archive checks and protected media remain. Schema20/wire1/all20 migrations unchanged; no dependency. EXT-01 advances to IN_PROGRESS as a reuse foundation, not a completed content library; all179 partial IDs retained.
+
+Boundary/protocol/host/UI missing-behavior RED→GREEN observed. Author visual inspection after an initial green gate caught clipped page actions; a real-browser containment regression failed at68% visibility, then passed after scoped action wrapping. Complete final `pnpm verify:release` exits0: workflow7/TS130/Rust112/browser17/17 in6.1m, plus lint/types/fmt/Clippy/inventory/matched builds. Real GM/Alice/Bob private formatted/image copy, unchanged source, independent edit, restart, player ID privacy and independent artwork grant flows pass. Current original/copy backup exact source/art/format/version/no-grants and canonical10–19 recovery remain. Final four-size dialog/read captures inspected. One independent review found no blocking issue; Minor K022 ambiguous-confirmation recovery is documented/deferred. Exact diagnostics/source/limits are in RELEASE_VALIDATION.
+
+Next: K022 explicit existing-copy recovery while continuing reusable actors/content-library work, then remaining initiative/P0/hosting. No cross-campaign content, actor/item/scene library or pack import/export yet. K019/K020 and manual LAN/30-minute/platform/current-browser/distribution gates remain open. Local commits only; no automatic push/publication or real campaign update.
+
+## Previous0.0.23 evidence
+
 # Hearth VTT · Build0.0.23 · safe journal formatting ·2026-10-29
 
 Continue the plan with opt-in bounded journal headings/bold/italic/code/flat lists/read-only checklists. Existing plain pages stay literal. Named source insertion controls, preview and a Unicode counter preserve drafts and typing selection; over-limit formatting is refused without truncation. Only React text/elements render; HTML, links and inline images never become active content. Existing selected-reader/image/version authority remains. Schema20 stores exact body_format/source; original1–19 migrations and old pages/grants stay intact. No dependency; wire1/all179 partial IDs retained, JRN-03 now IN_PROGRESS.

@@ -22,7 +22,7 @@ Maintain ONE authoritative codebase and primary release line. Temporary branches
 
 ## Cloud continuation ·2026-10-29
 
-Current source is0.0.23/schema20/wire1, with direct text/eraser tools, vertical UI standard, private GM notes/shared briefings token HP/manual markers/context actions and private journal folders/search. Preserve the newer commits; the0.0.13 baseline below is provenance. Consult BUILD_OVERVIEW, PROGRESS and RELEASE_VALIDATION for the tested candidate and remaining gates. Image handouts now upload privately and reveal/hide through journal/media authority; selected-player journal grants now protect page/image access; bounded opt-in journal formatting/source preview now exist; reusable content and remaining initiative/P0 workflows follow next; use UI_STANDARDS for all new workspace controls.
+Current source is0.0.24/schema20/wire1, with direct text/eraser tools, vertical UI standard, private GM notes/shared briefings token HP/manual markers/context actions and private journal folders/search. Preserve the newer commits; the0.0.13 baseline below is provenance. Consult BUILD_OVERVIEW, PROGRESS and RELEASE_VALIDATION for the tested candidate and remaining gates. Image handouts now upload privately and reveal/hide through journal/media authority; selected-player journal grants now protect page/image access; bounded opt-in journal formatting/source preview and private journal reuse now exist, with K021 corrected; reusable actors/content-library and remaining initiative/P0 workflows follow next; use UI_STANDARDS for all new workspace controls.
 
 ## Exact handoff baseline
 
