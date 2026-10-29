@@ -269,6 +269,7 @@ type JournalRow = (
     i64,
     Option<String>,
     Option<String>,
+    String,
 );
 pub(crate) async fn projected_journals(
     conn: &mut sqlx::SqliteConnection,
@@ -276,10 +277,10 @@ pub(crate) async fn projected_journals(
     dm: bool,
     user: &str,
 ) -> ApiResult<Vec<Journal>> {
-    let rows:Vec<JournalRow>=sqlx::query_as("SELECT id,title,body,visibility,version,folder_id,asset_id FROM journals j WHERE campaign_id=? AND (visibility='shared' OR ?=1 OR EXISTS(SELECT 1 FROM journal_recipients r WHERE r.journal_id=j.id AND r.campaign_id=j.campaign_id AND r.user_id=?)) ORDER BY created_at,id")
+    let rows:Vec<JournalRow>=sqlx::query_as("SELECT id,title,body,visibility,version,folder_id,asset_id,body_format FROM journals j WHERE campaign_id=? AND (visibility='shared' OR ?=1 OR EXISTS(SELECT 1 FROM journal_recipients r WHERE r.journal_id=j.id AND r.campaign_id=j.campaign_id AND r.user_id=?)) ORDER BY created_at,id")
         .bind(campaign).bind(dm).bind(user).fetch_all(&mut *conn).await?;
     let mut pages = Vec::new();
-    for (id, title, body, mut visibility, version, folder_id, asset_id) in rows {
+    for (id, title, body, mut visibility, version, folder_id, asset_id, body_format) in rows {
         let readers: Vec<String> = if dm {
             sqlx::query_scalar(
                 "SELECT user_id FROM journal_recipients WHERE journal_id=? ORDER BY user_id",
@@ -297,6 +298,11 @@ pub(crate) async fn projected_journals(
             visibility = "shared".to_owned();
         }
         pages.push(Journal {
+            body_format: if body_format == "markdown" {
+                Some(body_format)
+            } else {
+                None
+            },
             id,
             title,
             body,

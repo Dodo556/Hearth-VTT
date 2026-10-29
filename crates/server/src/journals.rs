@@ -82,8 +82,8 @@ pub(crate) async fn apply(
                     "This build supports up to 16 journal pages per campaign.",
                 ));
             }
-            let inserted = sqlx::query("INSERT INTO journals(id,campaign_id,title,body,visibility,created_at,folder_id,asset_id) VALUES(?,?,?,?,'dm',?,?,?) ON CONFLICT(id) DO NOTHING")
-                .bind(&p.journal_id).bind(campaign).bind(title).bind(&p.body).bind(security::now()).bind(&p.folder_id).bind(&p.asset_id).execute(&mut *conn).await?;
+            let inserted = sqlx::query("INSERT INTO journals(id,campaign_id,title,body,visibility,created_at,folder_id,asset_id,body_format) VALUES(?,?,?,?,'dm',?,?,?,?) ON CONFLICT(id) DO NOTHING")
+                .bind(&p.journal_id).bind(campaign).bind(title).bind(&p.body).bind(security::now()).bind(&p.folder_id).bind(&p.asset_id).bind(p.body_format.as_ref().map(|f| f.as_str()).unwrap_or("plain")).execute(&mut *conn).await?;
             if inserted.rows_affected() != 1 {
                 return Err(ApiError::invalid("Use a fresh journal ID."));
             }
@@ -119,8 +119,8 @@ pub(crate) async fn apply(
                 .execute(&mut *conn)
                 .await?;
             }
-            sqlx::query("UPDATE journals SET title=?,body=?,visibility=?,asset_id=?,version=version+1 WHERE campaign_id=? AND id=?")
-                .bind(title).bind(&p.body).bind(match p.visibility { JournalVisibility::Shared => "shared", JournalVisibility::Dm | JournalVisibility::Selected => "dm" }).bind(asset_id).bind(campaign).bind(&p.journal_id).execute(&mut *conn).await?;
+            sqlx::query("UPDATE journals SET title=?,body=?,visibility=?,asset_id=?,body_format=COALESCE(?,body_format),version=version+1 WHERE campaign_id=? AND id=?")
+                .bind(title).bind(&p.body).bind(match p.visibility { JournalVisibility::Shared => "shared", JournalVisibility::Dm | JournalVisibility::Selected => "dm" }).bind(asset_id).bind(p.body_format.as_ref().map(|f| f.as_str())).bind(campaign).bind(&p.journal_id).execute(&mut *conn).await?;
         }
         TokenCommand::JournalDelete(p) => {
             version(conn, campaign, &p.journal_id, p.expected_version).await?;

@@ -51,3 +51,21 @@ it("accepts selected journal readers only as a bounded nonempty distinct selecti
     }).success,
   ).toBe(false);
 });
+it("accepts explicit journal formatting while retaining old plain payloads", () => {
+  const payload = {
+    journalId: id,
+    title: "Clue",
+    body: "# Heading\n**Bold**",
+    bodyFormat: "markdown",
+  };
+  expect(TokenCommandSchema.safeParse({ type: "journal.create", payload }).success).toBe(true);
+  expect(
+    TokenCommandSchema.safeParse({
+      type: "journal.create",
+      payload: { ...payload, bodyFormat: "html" },
+    }).success,
+  ).toBe(false);
+  expect(JournalSchema.parse({ ...payload, id, visibility: "dm", version: 1 }).bodyFormat).toBe(
+    "markdown",
+  );
+});

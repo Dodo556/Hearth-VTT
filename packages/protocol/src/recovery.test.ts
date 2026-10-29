@@ -49,7 +49,7 @@ it("accepts bounded non-secret backup receipts and rejects malformed or unexpect
     { ...receipt, byteSize: 536870913 },
     { ...receipt, sha256: "not a hash" },
     { ...receipt, summary: { ...summary, passwords: [] } },
-    { ...receipt, summary: { ...summary, schemaVersion: 20 } },
+    { ...receipt, summary: { ...summary, schemaVersion: 21 } },
   ])
     expect(BackupResponse.safeParse({ schemaVersion: 1, backup: value }).success).toBe(false);
   expect(
@@ -79,8 +79,8 @@ it("never treats a browser supplied filesystem path as a valid recovery director
     }).success,
   ).toBe(true);
 });
-it("accepts current schema19 backups through prepare verify and restore responses", () => {
-  const current = { ...receipt, summary: { ...summary, schemaVersion: 19, appVersion: "0.0.22" } };
+it("accepts current schema20 backups through prepare verify and restore responses", () => {
+  const current = { ...receipt, summary: { ...summary, schemaVersion: 20, appVersion: "0.0.23" } };
   expect(BackupResponse.safeParse({ schemaVersion: 1, backup: current }).success).toBe(true);
   expect(
     VerificationResponse.safeParse({

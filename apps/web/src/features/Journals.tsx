@@ -4,16 +4,19 @@ import { FolderPlus } from "lucide-react";
 import { useEffect, useRef, useState } from "react";
 import { api } from "../api";
 import { t } from "../i18n/en";
+import { JournalBody } from "./JournalBody";
 import { folderChoices, JournalDirectory } from "./JournalDirectory";
 import { JournalFolderManager } from "./JournalFolderManager";
 import { JournalImage } from "./JournalImage";
 import { JournalAudienceFields, JournalSharing, readersUnavailable } from "./JournalSharing";
+import { JournalTextEditor } from "./JournalTextEditor";
 
 type Draft = {
   id: string;
   version: number | null;
   title: string;
   body: string;
+  bodyFormat?: "plain" | "markdown";
   visibility: Journal["visibility"];
   recipientIds?: string[];
   folderId?: string;
@@ -159,14 +162,18 @@ export function Journals({
                   title={page.title}
                 />
               )}
-              <p>{page.body}</p>
+              <JournalBody body={page.body} format={page.bodyFormat ?? "plain"} />
               {page.assetId && (
                 <p className="muted">
                   Hiding stops future access. Previously received images and other sharing grants
                   cannot be recalled.
                 </p>
               )}
-              <footer>{t.journalPlainText}</footer>
+              <footer>
+                {page.bodyFormat === "markdown"
+                  ? "Formatted text · HTML, links and embeds remain literal"
+                  : t.journalPlainText}
+              </footer>
               {dm && (
                 <div className="dialog-actions">
                   <Button
@@ -247,6 +254,7 @@ export function Journals({
               journalId: draft.id,
               title: draft.title,
               body: draft.body,
+              bodyFormat: draft.bodyFormat ?? "plain",
               assetId: draft.assetId ?? null,
             };
             void submit(
@@ -293,17 +301,12 @@ export function Journals({
               onChange={(e) => setDraft({ ...draft, title: e.target.value })}
             />
           </label>
-          <label>
-            {t.journalBody}
-            <textarea
-              aria-label={t.journalBody}
-              disabled={pending}
-              value={draft.body}
-              rows={10}
-              maxLength={1000}
-              onChange={(e) => setDraft({ ...draft, body: e.target.value })}
-            />
-          </label>
+          <JournalTextEditor
+            body={draft.body}
+            format={draft.bodyFormat ?? "plain"}
+            disabled={pending}
+            onChange={(body, bodyFormat) => setDraft({ ...draft, body, bodyFormat })}
+          />
           <label>
             Handout image
             <input

@@ -648,14 +648,14 @@ dependencies = [
 
 [[package]]
 name = "hearth-domain"
-version = "0.0.22"
+version = "0.0.23"
 dependencies = [
  "serde",
 ]
 
 [[package]]
 name = "hearth-server"
-version = "0.0.22"
+version = "0.0.23"
 dependencies = [
  "anyhow",
  "argon2",
@@ -685,7 +685,7 @@ dependencies = [
 
 [[package]]
 name = "hearth-storage"
-version = "0.0.22"
+version = "0.0.23"
 dependencies = [
  "anyhow",
  "fs2",

@@ -452,6 +452,7 @@ async fn maximum_unicode_actors_and_grants_survive_restart() {
             sqlx::query("INSERT INTO journal_recipients VALUES(?,?,?)").bind(&camp).bind(&page).bind(reader).execute(&h.state.store.pool).await.unwrap();
         }
     }
+    sqlx::query("UPDATE journals SET body_format='markdown' WHERE campaign_id=?").bind(&camp).execute(&h.state.store.pool).await.unwrap();
     for _ in 0..16 {
         sqlx::query("INSERT INTO journal_folders(id,campaign_id,name) VALUES(?,?,?)").bind(uuid::Uuid::new_v4().to_string()).bind(&camp).bind("😀".repeat(60)).execute(&h.state.store.pool).await.unwrap();
     }

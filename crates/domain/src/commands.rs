@@ -427,6 +427,12 @@ impl RollVisibility {
 #[derive(Debug, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase", deny_unknown_fields)]
 pub struct CreateJournal {
+    #[serde(
+        default,
+        deserialize_with = "journal_body_format",
+        skip_serializing_if = "Option::is_none"
+    )]
+    pub body_format: Option<JournalBodyFormat>,
     pub asset_id: Option<String>,
     pub journal_id: String,
     pub title: String,
@@ -436,6 +442,12 @@ pub struct CreateJournal {
 #[derive(Debug, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase", deny_unknown_fields)]
 pub struct UpdateJournal {
+    #[serde(
+        default,
+        deserialize_with = "journal_body_format",
+        skip_serializing_if = "Option::is_none"
+    )]
+    pub body_format: Option<JournalBodyFormat>,
     #[serde(default, skip_serializing_if = "Vec::is_empty")]
     pub recipient_ids: Vec<String>,
     // An omitted field preserves images for text-only clients; null explicitly removes.
@@ -660,4 +672,25 @@ pub enum JournalVisibility {
     Dm,
     Shared,
     Selected,
+}
+
+#[derive(Debug, Serialize, Deserialize)]
+#[serde(rename_all = "lowercase")]
+pub enum JournalBodyFormat {
+    Plain,
+    Markdown,
+}
+impl JournalBodyFormat {
+    pub fn as_str(&self) -> &'static str {
+        match self {
+            Self::Plain => "plain",
+            Self::Markdown => "markdown",
+        }
+    }
+}
+
+fn journal_body_format<'de, D: serde::Deserializer<'de>>(
+    deserializer: D,
+) -> Result<Option<JournalBodyFormat>, D::Error> {
+    JournalBodyFormat::deserialize(deserializer).map(Some)
 }

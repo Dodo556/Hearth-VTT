@@ -2094,3 +2094,42 @@ dialog .button {
 .vtt-workspace .journal-image figcaption {
   font-size: 11px;
 }
+
+.vtt-workspace .journal-literal,
+.vtt-workspace .journal-rich p {
+  white-space: pre-wrap;
+}
+.vtt-workspace .journal-rich,
+.vtt-workspace .journal-preview {
+  overflow-wrap: anywhere;
+  font: 12px / 1.7 var(--font);
+}
+.vtt-workspace .journal-rich h3,
+.vtt-workspace .journal-rich h4,
+.vtt-workspace .journal-rich h5 {
+  margin: 12px 0 6px;
+  line-height: 1.4;
+}
+.vtt-workspace .journal-rich ul,
+.vtt-workspace .journal-rich ol {
+  padding-left: 22px;
+}
+.vtt-workspace .journal-check {
+  display: flex;
+  align-items: baseline;
+  gap: 6px;
+}
+.vtt-workspace .journal-check input {
+  width: auto;
+}
+.vtt-workspace .journal-format-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+  margin: 6px 0;
+}
+.vtt-workspace .journal-preview {
+  padding: 10px;
+  border: 1px solid var(--border);
+  border-radius: 4px;
+}

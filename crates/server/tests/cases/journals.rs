@@ -732,3 +732,45 @@ async fn selected_image_replacement_stays_private_and_rejects_foreign_or_gm_read
     }
     dm.close(None).await.unwrap();
 }
+
+#[tokio::test]
+async fn journal_format_is_explicit_persisted_and_preserved_by_sharing_updates() {
+    let h = Host::new().await;
+    let owner = h.owner().await;
+    let camp = h.campaign_id(&owner).await;
+    let (alice, reader) = h.player(&owner, &camp, "format_alice").await;
+    let (bob, _) = h.player(&owner, &camp, "format_bob").await;
+    let server = LiveServer::start(&h).await;
+    let mut dm = server.connect(&camp, &owner).await;
+    frame(&mut dm).await;
+    let mut rev = 0;
+    let id = uuid::Uuid::new_v4().to_string();
+    let body = "# Clue\n**Bold** and *emphasis*\n<script>literal()</script>\n![external](https://example.invalid/pixel)";
+    accepted(&mut dm,&mut rev,json!({"type":"journal.create","payload":{"journalId":id,"title":"Formatted clue","body":body,"bodyFormat":"markdown"}})).await;
+    let page_url = format!("/api/campaigns/{camp}/journals/{id}");
+    assert_eq!(
+        h.request("GET", &page_url, json!({}), Some(&alice)).await.0,
+        StatusCode::NOT_FOUND
+    );
+    accepted(&mut dm,&mut rev,json!({"type":"journal.update","payload":{"journalId":id,"expectedVersion":1,"title":"Formatted clue","body":body,"visibility":"selected","recipientIds":[reader]}})).await;
+    let (_, page, _) = h.request("GET", &page_url, json!({}), Some(&alice)).await;
+    assert_eq!(page["journal"]["bodyFormat"], "markdown");
+    assert_eq!(page["journal"]["body"], body);
+    assert_eq!(
+        h.request("GET", &page_url, json!({}), Some(&bob)).await.0,
+        StatusCode::NOT_FOUND
+    );
+    for bad in [json!("html"), Value::Null, json!(37)] {
+        let invalid=command(&mut dm,&uuid::Uuid::new_v4().to_string(),rev,json!({"type":"journal.update","payload":{"journalId":id,"expectedVersion":2,"title":"Formatted clue","body":body,"visibility":"dm","bodyFormat":bad}})).await;
+        assert_eq!(invalid["kind"], "error");
+    }
+    accepted(&mut dm,&mut rev,json!({"type":"journal.update","payload":{"journalId":id,"expectedVersion":2,"title":"Formatted clue","body":body,"bodyFormat":"plain","visibility":"dm"}})).await;
+    let saved: (String, String) =
+        sqlx::query_as("SELECT body,body_format FROM journals WHERE id=?")
+            .bind(&id)
+            .fetch_one(&h.state.store.pool)
+            .await
+            .unwrap();
+    assert_eq!(saved, (body.into(), "plain".into()));
+    dm.close(None).await.unwrap();
+}

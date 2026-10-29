@@ -418,6 +418,9 @@ test("token HP and manual markers stay private, synchronize linked sheets and ex
     await expect
       .poll(async () => (await read(dm)).flatMap((s) => s.tokens).some((t) => t.id === disposable))
       .toBe(false);
+    // The HTTP commit can precede this browser's snapshot and Pixi reconciliation.
+    // Wait for the selected deleted token to leave the UI before targeting Rowan.
+    await expect(inspector(dm)).toHaveCount(0);
     await controls(dm);
     await inspector(dm).getByLabel("Current HP", { exact: true }).fill("6");
     await inspector(dm).getByLabel("Maximum HP", { exact: true }).fill("20");

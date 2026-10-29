@@ -1,5 +1,6 @@
 import { type ChildProcess, spawn } from "node:child_process";
 import { mkdirSync, mkdtempSync, rmSync } from "node:fs";
+import { type AddressInfo, createServer } from "node:net";
 import { tmpdir } from "node:os";
 import { join, resolve } from "node:path";
 import { setTimeout as delay } from "node:timers/promises";
@@ -7,11 +8,17 @@ import { type BrowserContext, expect, type Page, test } from "@playwright/test";
 import { testHostExecutable } from "../../scripts/test-runtime.mjs";
 import { trackDraws } from "./canvasChecks";
 
-const baseURL = "http://127.0.0.1:8804";
-
 test("journal image handouts stay private until reveal and revoke future image access on hide", async ({
   browser,
 }) => {
+  const reservation = createServer();
+  await new Promise<void>((done, reject) => {
+    reservation.once("error", reject);
+    reservation.listen(0, "127.0.0.1", done);
+  });
+  const bind = `127.0.0.1:${(reservation.address() as AddressInfo).port}`;
+  await new Promise<void>((done, reject) => reservation.close((e) => (e ? reject(e) : done())));
+  const baseURL = `http://${bind}`;
   const data = mkdtempSync(join(tmpdir(), "hearth-journal-folders-"));
   const contexts: BrowserContext[] = [];
   let host: ChildProcess | undefined;
@@ -20,7 +27,7 @@ test("journal image handouts stay private until reveal and revoke future image a
       stdio: ["ignore", "ignore", "pipe"],
       env: {
         ...process.env,
-        HEARTH_BIND: "127.0.0.1:8804",
+        HEARTH_BIND: bind,
         HEARTH_ORIGINS: baseURL,
         HEARTH_DATA_DIR: data,
         HEARTH_WEB_DIR: resolve("apps/web/dist"),
@@ -51,9 +58,13 @@ test("journal image handouts stay private until reveal and revoke future image a
     contexts.push(owner);
     const dm = await owner.newPage();
     const errors: string[] = [];
+    const external: string[] = [];
     const frames: string[] = [];
     const playerFrames: string[][] = [];
     dm.on("pageerror", (e) => errors.push(e.message));
+    dm.on("request", (r) => {
+      if (r.url().includes("outside.invalid")) external.push(r.url());
+    });
     await trackDraws(dm);
     await dm.goto("/");
     await dm.getByLabel("Username", { exact: false }).fill("handouts_dm");
@@ -89,6 +100,9 @@ test("journal image handouts stay private until reveal and revoke future image a
       expect(join.ok()).toBe(true);
       const page = await context.newPage();
       page.on("pageerror", (e) => errors.push(e.message));
+      page.on("request", (r) => {
+        if (r.url().includes("outside.invalid")) external.push(r.url());
+      });
       const received: string[] = [];
       playerFrames.push(received);
       page.on("websocket", (s) =>
@@ -222,10 +236,50 @@ test("journal image handouts stay private until reveal and revoke future image a
     await dm.getByRole("button", { name: "Edit page", exact: true }).click();
     await expect(dm.getByLabel("Page visibility")).toHaveValue("selected");
     await expect(dm.getByRole("checkbox", { name: "Alice", exact: true })).toBeChecked();
-    await dm.getByLabel("Page text", { exact: true }).fill("SELECTED PRIVATE LITERAL CLUE");
+    await dm.getByLabel("Text format", { exact: true }).selectOption("markdown");
+    const rich =
+      "# Encrypted dispatch\nSELECTED PRIVATE LITERAL CLUE\n\n- [x] Cleared\n- [ ] Follow the trail\n\n<img src=https://outside.invalid/x onerror=window.hearthRich=1>\n[trap](javascript:window.hearthRich=1) ![beacon](https://outside.invalid/x)";
+    await dm.getByLabel("Page text", { exact: true }).fill(rich);
+    await dm.getByLabel("Page text", { exact: true }).evaluate((e: HTMLTextAreaElement) => {
+      const at = e.value.indexOf("SELECTED PRIVATE LITERAL CLUE");
+      e.setSelectionRange(at, at + "SELECTED PRIVATE LITERAL CLUE".length);
+    });
+    await dm.getByRole("button", { name: "Bold", exact: true }).click();
+    await expect(dm.getByLabel("Page text", { exact: true })).toHaveValue(
+      rich.replace("SELECTED PRIVATE LITERAL CLUE", "**SELECTED PRIVATE LITERAL CLUE**"),
+    );
+    await capture(dm, "formatted-source");
+    await dm.getByRole("button", { name: "Preview formatting", exact: true }).click();
+    const preview = dm.getByRole("region", { name: "Journal preview" });
+    await expect(preview.getByRole("heading", { name: "Encrypted dispatch" })).toBeVisible();
+    await expect(preview.locator("strong")).toHaveText("SELECTED PRIVATE LITERAL CLUE");
+    await expect(preview.locator("script,img,a,iframe")).toHaveCount(0);
+    await capture(dm, "formatted-preview");
+    for (const viewport of [
+      { width: 760, height: 700 },
+      { width: 390, height: 700 },
+      { width: 900, height: 520 },
+    ]) {
+      await dm.setViewportSize(viewport);
+      const save = dm.getByRole("button", { name: "Save selected page", exact: true });
+      await save.scrollIntoViewIfNeeded();
+      await expect(save).toBeInViewport({ ratio: 1 });
+      await save.click({ trial: true });
+      const box = await dm.locator(".journal-text-editor").boundingBox();
+      expect(box && box.x >= 0 && box.x + box.width <= viewport.width).toBe(true);
+      await capture(dm, `formatted-editor-${viewport.width}`);
+    }
+    await dm.setViewportSize({ width: 1440, height: 1000 });
     await dm.getByRole("button", { name: "Save selected page", exact: true }).click();
     await expect(dm.getByLabel("Page title", { exact: true })).toHaveCount(0);
     expect(playerFrames[1].every((f) => !f.includes("SELECTED PRIVATE LITERAL CLUE"))).toBe(true);
+    await expect(players[0].getByRole("heading", { name: "Encrypted dispatch" })).toBeVisible();
+    await expect(players[0].locator(".journal-rich strong")).toHaveText(
+      "SELECTED PRIVATE LITERAL CLUE",
+    );
+    await expect(
+      players[0].locator(".journal-rich script,.journal-rich img,.journal-rich a"),
+    ).toHaveCount(0);
     const other = await owner.newPage();
     await other.goto(path);
     await expect(other.getByTestId("connection-status")).toHaveText("Live");
@@ -260,6 +314,10 @@ test("journal image handouts stay private until reveal and revoke future image a
     await expect(
       players[1].getByRole("img", { name: "The amber seal", exact: true }),
     ).toBeVisible();
+    expect(
+      (await read(dm)).journals.find((p: { id: string }) => p.id === saved.id).bodyFormat,
+    ).toBe("markdown");
+    await expect(players[1].getByRole("heading", { name: "Encrypted dispatch" })).toBeVisible();
     const people = (await (await dm.request.get(`/api/campaigns/${campaign}/participants`)).json())
       .participants;
     const bob = people.find((p: { displayName: string }) => p.displayName === "Bob");
@@ -286,6 +344,9 @@ test("journal image handouts stay private until reveal and revoke future image a
     expect(
       (await read(dm)).journals.find((j: { id: string }) => j.id === saved.id).assetId,
     ).toBeUndefined();
+    expect(external).toEqual([]);
+    for (const p of [dm, ...players])
+      expect(await p.evaluate(() => "hearthRich" in window)).toBe(false);
     expect(errors).toEqual([]);
   } finally {
     for (const context of contexts) await context.close();

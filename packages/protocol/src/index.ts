@@ -152,6 +152,7 @@ export const JournalFolderSchema = z
   .strict();
 export type JournalFolder = z.infer<typeof JournalFolderSchema>;
 export const JournalSchema = z.object({
+  bodyFormat: z.enum(["plain", "markdown"]).optional(),
   recipientIds: z.array(z.uuid()).max(8).optional(),
   assetId: z.uuid().optional(),
   folderId: z.uuid().optional(),
@@ -272,6 +273,7 @@ export type Roll = z.infer<typeof RollSchema>;
 export const RollsResponse = z.object({ ...version, rolls: z.array(RollSchema).max(20) });
 export const RollResponse = z.object({ ...version, roll: RollSchema });
 const journalFields = {
+  bodyFormat: z.enum(["plain", "markdown"]).optional(),
   assetId: z.uuid().nullable().optional(),
   title: z
     .string()

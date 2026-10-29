@@ -307,7 +307,7 @@ export function BackupRecovery({ onClose }: { onClose: () => void }) {
         )}
         {query.isPending && <p role="status">Reading host recovery status…</p>}
         <footer>
-          <span>Up to 512 MiB · uncompressed · schemas 10–19</span>
+          <span>Up to 512 MiB · uncompressed · schemas 10–20</span>
           <Button disabled={!!working} onClick={onClose}>
             Done
           </Button>

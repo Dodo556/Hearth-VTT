@@ -16,6 +16,7 @@ export const BackupSummarySchema = z
       z.literal(17),
       z.literal(18),
       z.literal(19),
+      z.literal(20),
     ]),
     appVersion: z.string().min(1).max(32),
     createdAt: time,

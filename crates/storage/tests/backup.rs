@@ -59,7 +59,7 @@ async fn whole_host_backup_restores_committed_data_and_blobs_without_overwriting
     let archive = std::fs::read(&prepared.path).unwrap();
     let (manifest, _) = parts(&archive);
     assert_eq!(manifest["formatVersion"], 1);
-    assert_eq!(manifest["schemaVersion"], 19);
+    assert_eq!(manifest["schemaVersion"], 20);
     assert_eq!(manifest["files"].as_array().unwrap().len(), 2);
     assert_eq!(manifest["files"][0]["path"], "hearth.db");
     assert!(!manifest.to_string().contains("orphan"));
@@ -157,8 +157,8 @@ async fn corrupt_truncated_and_path_forged_archives_leave_no_recovery_copy() {
         changed["files"][0]["byteSize"] = json!(size);
         variants.push(encoded(&changed, &payload));
     }
-    for schema in [10, 11, 12, 13, 14, 15, 16, 17, 18, 20] {
-        // A schema-19 database must not be accepted under a different manifest version.
+    for schema in [10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 21] {
+        // A schema-20 database must not be accepted under a different manifest version.
         let mut changed = manifest.clone();
         changed["schemaVersion"] = json!(schema);
         variants.push(encoded(&changed, &payload));
@@ -463,18 +463,18 @@ async fn schema_ten_backup_restores_and_migrates_without_losing_data() {
             .fetch_one(&reopened.pool)
             .await
             .unwrap(),
-        19
+        20
     );
 }
 
 #[tokio::test]
-async fn newly_created_backups_report_schema_nineteen() {
+async fn newly_created_backups_report_schema_twenty() {
     let root = tempfile::tempdir().unwrap();
     let store = fixture(root.path()).await;
     let prepared = backup::create(&store, root.path(), "0.0.12", 100)
         .await
         .unwrap();
-    assert_eq!(prepared.summary.schema_version, 19);
+    assert_eq!(prepared.summary.schema_version, 20);
 }
 
 #[tokio::test]
@@ -670,10 +670,24 @@ async fn restore_previous_drawing_schema(schema: i64) {
         .unwrap();
         sqlx::query("INSERT INTO tokens(id,scene_id,name,x,y,size,color,asset_id,visibility) VALUES('old-token','old-scene','Old token',40,40,40,'#ffcc00','amber-map','shared')").execute(&pool).await.unwrap();
     }
+    if schema >= 19 {
+        sqlx::query("INSERT INTO users VALUES('reader','reader','Old reader','hash',0,1)")
+            .execute(&pool)
+            .await
+            .unwrap();
+        sqlx::query("INSERT INTO memberships VALUES('campaign','reader','player',1)")
+            .execute(&pool)
+            .await
+            .unwrap();
+        sqlx::query("INSERT INTO journal_recipients VALUES('campaign','secret','reader')")
+            .execute(&pool)
+            .await
+            .unwrap();
+    }
     pool.close().await;
     let db = std::fs::read(&old_db).unwrap();
     let manifest = json!({"formatVersion":1,"schemaVersion":schema,"appVersion":"0.0.14","createdAt":100,
-        "counts":{"users":1,"campaigns":1,"scenes":1,"tokens":if schema>=15 {1} else {0},"actors":0,"journals":1,"messages":0,"rolls":0,"encounters":0,"assets":0},
+        "counts":{"users":if schema>=19 {2} else {1},"campaigns":1,"scenes":1,"tokens":if schema>=15 {1} else {0},"actors":0,"journals":1,"messages":0,"rolls":0,"encounters":0,"assets":0},
         "files":[{"path":"hearth.db","byteSize":db.len(),"sha256":hex::encode(Sha256::digest(&db))}]});
     let archive = root.path().join("legacy.hearthbackup");
     std::fs::write(&archive, encoded(&manifest, &db)).unwrap();
@@ -686,6 +700,24 @@ async fn restore_previous_drawing_schema(schema: i64) {
     .await
     .unwrap();
     let reopened = Store::open(&restored).await.unwrap();
+    assert_eq!(
+        sqlx::query_scalar::<_, String>("SELECT body_format FROM journals WHERE id='secret'")
+            .fetch_one(&reopened.pool)
+            .await
+            .unwrap(),
+        "plain"
+    );
+    if schema >= 19 {
+        assert_eq!(
+            sqlx::query_scalar::<_, String>(
+                "SELECT user_id FROM journal_recipients WHERE journal_id='secret'"
+            )
+            .fetch_one(&reopened.pool)
+            .await
+            .unwrap(),
+            "reader"
+        );
+    }
     let image: Option<String> =
         sqlx::query_scalar("SELECT asset_id FROM journals WHERE id='secret'")
             .fetch_one(&reopened.pool)
@@ -771,7 +803,7 @@ async fn restore_previous_drawing_schema(schema: i64) {
             .fetch_one(&reopened.pool)
             .await
             .unwrap(),
-        19
+        20
     );
     assert_eq!(
         sqlx::query_as::<_, (String, f64, f64, String)>(
@@ -928,4 +960,38 @@ async fn selected_journal_grants_survive_recovery_and_invalid_scopes_are_rejecte
 #[tokio::test]
 async fn schema_eighteen_backup_preserves_pages_and_adds_no_selected_readers() {
     restore_previous_drawing_schema(18).await;
+}
+
+#[tokio::test]
+async fn formatted_journal_backup_preserves_exact_source_and_format() {
+    let root = tempfile::tempdir().unwrap();
+    let store = fixture(root.path()).await;
+    let body = "# 🧙 Clue\n**Bold** and *italic*\n- [x] Saved\n<script>literal</script>";
+    sqlx::query("UPDATE journals SET body=?,body_format='markdown',asset_id='art',version=9")
+        .bind(body)
+        .execute(&store.pool)
+        .await
+        .unwrap();
+    let backup = backup::create(&store, root.path(), "0.0.23", 100)
+        .await
+        .unwrap();
+    let restored = backup::restore(
+        backup::verify(&backup.path, &root.path().join("restores"))
+            .await
+            .unwrap(),
+        200,
+    )
+    .await
+    .unwrap();
+    let copy = Store::open(&restored).await.unwrap();
+    let actual: (String, String, String, i64) =
+        sqlx::query_as("SELECT body,body_format,asset_id,version FROM journals WHERE id='secret'")
+            .fetch_one(&copy.pool)
+            .await
+            .unwrap();
+    assert_eq!(actual, (body.into(), "markdown".into(), "art".into(), 9));
+}
+#[tokio::test]
+async fn schema_nineteen_backup_preserves_selected_readers_and_defaults_to_plain() {
+    restore_previous_drawing_schema(19).await;
 }
