@@ -509,3 +509,226 @@ async fn text_only_journal_updates_preserve_images_until_explicit_removal() {
     assert!(image.is_none());
     dm.close(None).await.unwrap();
 }
+
+#[tokio::test]
+async fn selected_journal_readers_control_pages_images_and_live_projections() {
+    let h = Host::new().await;
+    let owner = h.owner().await;
+    let camp = h.campaign_id(&owner).await;
+    let (alice, alice_id) = h.player(&owner, &camp, "select_alice").await;
+    let (bob, bob_id) = h.player(&owner, &camp, "select_bob").await;
+    let (_, uploaded) = upload_image(&h, &owner, &camp, map_fixture(), "image/png").await;
+    let art = uploaded["asset"]["id"].as_str().unwrap();
+    let id = uuid::Uuid::new_v4().to_string();
+    let server = LiveServer::start(&h).await;
+    let mut dm = server.connect(&camp, &owner).await;
+    frame(&mut dm).await;
+    let mut a = server.connect(&camp, &alice).await;
+    frame(&mut a).await;
+    let mut b = server.connect(&camp, &bob).await;
+    frame(&mut b).await;
+    let mut rev = 0;
+    accepted(&mut dm,&mut rev,json!({"type":"journal.create","payload":{"journalId":id,"title":"Only Alice","body":"PRIVATE SELECTED CLUE","assetId":art}})).await;
+    let update = |version, scope, readers: Vec<String>| json!({"type":"journal.update","payload":{"journalId":id,"expectedVersion":version,"title":"Only Alice","body":"PRIVATE SELECTED CLUE","assetId":art,"visibility":scope,"recipientIds":readers}});
+    accepted(
+        &mut dm,
+        &mut rev,
+        update(1, "selected", vec![alice_id.clone()]),
+    )
+    .await;
+    let ap = through(&mut a, rev).await;
+    let bp = through(&mut b, rev).await;
+    let page = ap["journals"]
+        .as_array()
+        .unwrap()
+        .iter()
+        .find(|p| p["id"] == id)
+        .unwrap();
+    assert_eq!(page["assetId"], art);
+    assert_eq!(page["visibility"], "shared");
+    assert!(page.get("recipientIds").is_none());
+    assert!(!bp.to_string().contains(&id));
+    assert!(!bp.to_string().contains(art));
+    assert!(!bp.to_string().contains("PRIVATE SELECTED CLUE"));
+    let page_url = format!("/api/campaigns/{camp}/journals/{id}");
+    let image_url = format!("/api/campaigns/{camp}/assets/{art}");
+    for url in [&page_url, &image_url] {
+        assert_eq!(
+            h.request("GET", url, json!({}), Some(&alice)).await.0,
+            StatusCode::OK
+        );
+        assert_eq!(
+            h.request("GET", url, json!({}), Some(&bob)).await.0,
+            StatusCode::NOT_FOUND
+        );
+    }
+    let (_, projected, _) = h.request("GET", &page_url, json!({}), Some(&owner)).await;
+    assert_eq!(projected["journal"]["visibility"], "selected");
+    assert_eq!(projected["journal"]["recipientIds"], json!([alice_id]));
+    let forged = command(
+        &mut b,
+        &uuid::Uuid::new_v4().to_string(),
+        rev,
+        update(2, "selected", vec![bob_id.clone()]),
+    )
+    .await;
+    assert_eq!(forged["error"]["code"], "FORBIDDEN");
+    for (scope, ids) in [
+        ("selected", vec![]),
+        ("selected", vec![alice_id.clone(), alice_id.clone()]),
+        ("selected", vec![uuid::Uuid::new_v4().to_string()]),
+        ("shared", vec![alice_id.clone()]),
+        ("dm", vec![bob_id.clone()]),
+        ("selected", vec![alice_id.clone(); 9]),
+    ] {
+        let denied = command(
+            &mut dm,
+            &uuid::Uuid::new_v4().to_string(),
+            rev,
+            update(2, scope, ids),
+        )
+        .await;
+        assert_eq!(denied["error"]["code"], "VALIDATION_FAILED");
+    }
+    accepted(&mut dm, &mut rev, update(2, "shared", vec![])).await;
+    assert!(through(&mut b, rev).await.to_string().contains(&id));
+    accepted(
+        &mut dm,
+        &mut rev,
+        update(3, "selected", vec![alice_id.clone()]),
+    )
+    .await;
+    assert!(!through(&mut b, rev).await.to_string().contains(&id));
+    assert_eq!(
+        h.request("GET", &image_url, json!({}), Some(&bob)).await.0,
+        StatusCode::NOT_FOUND
+    );
+    let stale = command(
+        &mut dm,
+        &uuid::Uuid::new_v4().to_string(),
+        rev,
+        update(3, "shared", vec![]),
+    )
+    .await;
+    assert_eq!(stale["error"]["code"], "STALE_JOURNAL");
+    accepted(&mut dm, &mut rev, update(4, "dm", vec![])).await;
+    assert_eq!(
+        h.request("GET", &page_url, json!({}), Some(&alice)).await.0,
+        StatusCode::NOT_FOUND
+    );
+    accepted(
+        &mut dm,
+        &mut rev,
+        update(5, "selected", vec![alice_id.clone()]),
+    )
+    .await;
+    h.request(
+        "POST",
+        &format!("/api/campaigns/{camp}/members/{alice_id}/revoke"),
+        json!({}),
+        Some(&owner),
+    )
+    .await;
+    let count: i64 =
+        sqlx::query_scalar("SELECT COUNT(*) FROM journal_recipients WHERE journal_id=?")
+            .bind(&id)
+            .fetch_one(&h.state.store.pool)
+            .await
+            .unwrap();
+    assert_eq!(count, 0);
+    let rejected = command(
+        &mut dm,
+        &uuid::Uuid::new_v4().to_string(),
+        rev,
+        update(6, "selected", vec![alice_id]),
+    )
+    .await;
+    assert_eq!(rejected["error"]["code"], "VALIDATION_FAILED");
+    for socket in [&mut dm, &mut b] {
+        socket.close(None).await.unwrap();
+    }
+}
+
+#[tokio::test]
+async fn selected_image_replacement_stays_private_and_rejects_foreign_or_gm_readers() {
+    let h = Host::new().await;
+    let owner = h.owner().await;
+    let camp = h.campaign_id(&owner).await;
+    let (alice, reader) = h.player(&owner, &camp, "selected_reader").await;
+    let owner_id: String = sqlx::query_scalar("SELECT id FROM users WHERE is_owner=1")
+        .fetch_one(&h.state.store.pool)
+        .await
+        .unwrap();
+    let (_, foreign, _) = h
+        .request(
+            "POST",
+            "/api/campaigns",
+            json!({"name":"Elsewhere","description":""}),
+            Some(&owner),
+        )
+        .await;
+    let (_, outsider) = h
+        .player(
+            &owner,
+            foreign["campaign"]["id"].as_str().unwrap(),
+            "outsider_reader",
+        )
+        .await;
+    let (_, uploaded) = upload_image(&h, &owner, &camp, map_fixture(), "image/png").await;
+    let first = uploaded["asset"]["id"].as_str().unwrap();
+    let (_, uploaded) = upload_image(
+        &h,
+        &owner,
+        &camp,
+        include_bytes!("../../../../content/examples/amber-keep/warden.png").to_vec(),
+        "image/png",
+    )
+    .await;
+    let second = uploaded["asset"]["id"].as_str().unwrap();
+    let id = uuid::Uuid::new_v4().to_string();
+    let server = LiveServer::start(&h).await;
+    let mut dm = server.connect(&camp, &owner).await;
+    frame(&mut dm).await;
+    let mut rev = 0;
+    accepted(&mut dm,&mut rev,json!({"type":"journal.create","payload":{"journalId":id,"title":"Secret","body":"","assetId":first}})).await;
+    let update = |version, scope, image, ids| json!({"type":"journal.update","payload":{"journalId":id,"expectedVersion":version,"title":"Secret","body":"","assetId":image,"visibility":scope,"recipientIds":ids}});
+    for bad in [owner_id, outsider] {
+        let denied = command(
+            &mut dm,
+            &uuid::Uuid::new_v4().to_string(),
+            rev,
+            update(1, "selected", first, vec![bad]),
+        )
+        .await;
+        assert_eq!(denied["error"]["code"], "VALIDATION_FAILED");
+    }
+    accepted(
+        &mut dm,
+        &mut rev,
+        update(1, "selected", first, vec![reader.clone()]),
+    )
+    .await;
+    let denied = command(
+        &mut dm,
+        &uuid::Uuid::new_v4().to_string(),
+        rev,
+        update(2, "selected", second, vec![reader]),
+    )
+    .await;
+    assert_eq!(denied["error"]["code"], "VALIDATION_FAILED");
+    accepted(&mut dm, &mut rev, update(2, "dm", second, vec![])).await;
+    for image in [first, second] {
+        assert_eq!(
+            h.request(
+                "GET",
+                &format!("/api/campaigns/{camp}/assets/{image}"),
+                json!({}),
+                Some(&alice)
+            )
+            .await
+            .0,
+            StatusCode::NOT_FOUND
+        );
+    }
+    dm.close(None).await.unwrap();
+}

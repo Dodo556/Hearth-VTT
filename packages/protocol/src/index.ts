@@ -152,13 +152,14 @@ export const JournalFolderSchema = z
   .strict();
 export type JournalFolder = z.infer<typeof JournalFolderSchema>;
 export const JournalSchema = z.object({
+  recipientIds: z.array(z.uuid()).max(8).optional(),
   assetId: z.uuid().optional(),
   folderId: z.uuid().optional(),
   version: z.number().int().positive(),
   id: z.string(),
   title: z.string(),
   body: z.string(),
-  visibility: z.enum(["shared", "dm"]),
+  visibility: z.enum(["shared", "dm", "selected"]),
 });
 export const MemberSchema = z.object({
   id: z.string(),
@@ -591,9 +592,11 @@ export const TokenCommandSchema = z.discriminatedUnion("type", [
           journalId: z.uuid(),
           expectedVersion: z.number().int().positive(),
           ...journalFields,
-          visibility: z.enum(["dm", "shared"]),
+          visibility: z.enum(["dm", "shared", "selected"]),
+          recipientIds: z.array(z.uuid()).max(8).optional(),
         })
-        .strict(),
+        .strict()
+        .refine((p) => recipientSelection({ ...p, recipientIds: p.recipientIds ?? [] })),
     })
     .strict(),
   z

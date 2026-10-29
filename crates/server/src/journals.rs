@@ -3,7 +3,7 @@ use crate::{
     error::{ApiError, ApiResult},
     security,
 };
-use hearth_domain::commands::{TokenCommand, Visibility};
+use hearth_domain::commands::{JournalVisibility, TokenCommand};
 use serde_json::{Value, json};
 use sqlx::SqliteConnection;
 
@@ -99,13 +99,28 @@ pub(crate) async fn apply(
                     .await?;
             let asset_id = p.asset_id.as_ref().unwrap_or(&old);
             image(conn, campaign, asset_id.as_deref()).await?;
-            if old != *asset_id && matches!(p.visibility, Visibility::Shared) {
+            if old != *asset_id && !matches!(p.visibility, JournalVisibility::Dm) {
                 return Err(ApiError::invalid(
                     "Save image changes privately before revealing the page.",
                 ));
             }
+            validate_readers(conn, campaign, &p.visibility, &p.recipient_ids).await?;
+            sqlx::query("DELETE FROM journal_recipients WHERE journal_id=?")
+                .bind(&p.journal_id)
+                .execute(&mut *conn)
+                .await?;
+            for user in &p.recipient_ids {
+                sqlx::query(
+                    "INSERT INTO journal_recipients(campaign_id,journal_id,user_id) VALUES(?,?,?)",
+                )
+                .bind(campaign)
+                .bind(&p.journal_id)
+                .bind(user)
+                .execute(&mut *conn)
+                .await?;
+            }
             sqlx::query("UPDATE journals SET title=?,body=?,visibility=?,asset_id=?,version=version+1 WHERE campaign_id=? AND id=?")
-                .bind(title).bind(&p.body).bind(match p.visibility { Visibility::Shared => "shared", Visibility::Dm => "dm" }).bind(asset_id).bind(campaign).bind(&p.journal_id).execute(&mut *conn).await?;
+                .bind(title).bind(&p.body).bind(match p.visibility { JournalVisibility::Shared => "shared", JournalVisibility::Dm | JournalVisibility::Selected => "dm" }).bind(asset_id).bind(campaign).bind(&p.journal_id).execute(&mut *conn).await?;
         }
         TokenCommand::JournalDelete(p) => {
             version(conn, campaign, &p.journal_id, p.expected_version).await?;
@@ -119,4 +134,38 @@ pub(crate) async fn apply(
     }
     // Never put private text, title, IDs or historical versions into live events.
     Ok(json!({"projection":"snapshot"}))
+}
+
+async fn validate_readers(
+    conn: &mut SqliteConnection,
+    campaign: &str,
+    visibility: &JournalVisibility,
+    ids: &[String],
+) -> ApiResult<()> {
+    let invalid = || {
+        ApiError::invalid(
+            "Choose 1–8 distinct current players for selected sharing; GM-only/everyone need no selected readers.",
+        )
+    };
+    if !matches!(visibility, JournalVisibility::Selected) {
+        return if ids.is_empty() {
+            Ok(())
+        } else {
+            Err(invalid())
+        };
+    }
+    if ids.is_empty() || ids.len() > 8 {
+        return Err(invalid());
+    }
+    let mut seen = std::collections::HashSet::new();
+    for id in ids {
+        if uuid::Uuid::parse_str(id).is_err() || !seen.insert(id) {
+            return Err(invalid());
+        }
+        let exists:bool=sqlx::query_scalar("SELECT EXISTS(SELECT 1 FROM memberships WHERE campaign_id=? AND user_id=? AND role='player')").bind(campaign).bind(id).fetch_one(&mut *conn).await?;
+        if !exists {
+            return Err(invalid());
+        }
+    }
+    Ok(())
 }

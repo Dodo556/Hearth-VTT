@@ -445,6 +445,13 @@ async fn maximum_unicode_actors_and_grants_survive_restart() {
         sqlx::query("INSERT INTO journals(id,campaign_id,title,body,visibility,created_at,asset_id) VALUES(?,?,?,?,'shared',1,?)")
             .bind(uuid::Uuid::new_v4().to_string()).bind(&camp).bind("😀".repeat(80)).bind("😀".repeat(1000)).bind(image).execute(&h.state.store.pool).await.unwrap();
     }
+    let page_ids:Vec<String>=sqlx::query_scalar("SELECT id FROM journals WHERE campaign_id=?").bind(&camp).fetch_all(&h.state.store.pool).await.unwrap();
+    for page in page_ids {
+        sqlx::query("UPDATE journals SET visibility='dm' WHERE id=?").bind(&page).execute(&h.state.store.pool).await.unwrap();
+        for reader in &members[..8] {
+            sqlx::query("INSERT INTO journal_recipients VALUES(?,?,?)").bind(&camp).bind(&page).bind(reader).execute(&h.state.store.pool).await.unwrap();
+        }
+    }
     for _ in 0..16 {
         sqlx::query("INSERT INTO journal_folders(id,campaign_id,name) VALUES(?,?,?)").bind(uuid::Uuid::new_v4().to_string()).bind(&camp).bind("😀".repeat(60)).execute(&h.state.store.pool).await.unwrap();
     }

@@ -59,7 +59,7 @@ async fn whole_host_backup_restores_committed_data_and_blobs_without_overwriting
     let archive = std::fs::read(&prepared.path).unwrap();
     let (manifest, _) = parts(&archive);
     assert_eq!(manifest["formatVersion"], 1);
-    assert_eq!(manifest["schemaVersion"], 18);
+    assert_eq!(manifest["schemaVersion"], 19);
     assert_eq!(manifest["files"].as_array().unwrap().len(), 2);
     assert_eq!(manifest["files"][0]["path"], "hearth.db");
     assert!(!manifest.to_string().contains("orphan"));
@@ -157,8 +157,8 @@ async fn corrupt_truncated_and_path_forged_archives_leave_no_recovery_copy() {
         changed["files"][0]["byteSize"] = json!(size);
         variants.push(encoded(&changed, &payload));
     }
-    for schema in [10, 11, 12, 13, 14, 15, 16, 17, 19] {
-        // A schema-18 database must not be accepted under a different manifest version.
+    for schema in [10, 11, 12, 13, 14, 15, 16, 17, 18, 20] {
+        // A schema-19 database must not be accepted under a different manifest version.
         let mut changed = manifest.clone();
         changed["schemaVersion"] = json!(schema);
         variants.push(encoded(&changed, &payload));
@@ -463,18 +463,18 @@ async fn schema_ten_backup_restores_and_migrates_without_losing_data() {
             .fetch_one(&reopened.pool)
             .await
             .unwrap(),
-        18
+        19
     );
 }
 
 #[tokio::test]
-async fn newly_created_backups_report_schema_eighteen() {
+async fn newly_created_backups_report_schema_nineteen() {
     let root = tempfile::tempdir().unwrap();
     let store = fixture(root.path()).await;
     let prepared = backup::create(&store, root.path(), "0.0.12", 100)
         .await
         .unwrap();
-    assert_eq!(prepared.summary.schema_version, 18);
+    assert_eq!(prepared.summary.schema_version, 19);
 }
 
 #[tokio::test]
@@ -771,7 +771,7 @@ async fn restore_previous_drawing_schema(schema: i64) {
             .fetch_one(&reopened.pool)
             .await
             .unwrap(),
-        18
+        19
     );
     assert_eq!(
         sqlx::query_as::<_, (String, f64, f64, String)>(
@@ -856,4 +856,76 @@ async fn journal_images_survive_backup_and_reject_foreign_campaign_references() 
 #[tokio::test]
 async fn schema_seventeen_archive_preserves_pages_and_upgrades_images_to_unset() {
     restore_previous_drawing_schema(17).await;
+}
+
+#[tokio::test]
+async fn selected_journal_grants_survive_recovery_and_invalid_scopes_are_rejected() {
+    let root = tempfile::tempdir().unwrap();
+    let store = fixture(root.path()).await;
+    sqlx::query("INSERT INTO users VALUES('reader','reader','Selected reader','hash',0,1)")
+        .execute(&store.pool)
+        .await
+        .unwrap();
+    sqlx::query("INSERT INTO memberships VALUES('campaign','reader','player',1)")
+        .execute(&store.pool)
+        .await
+        .unwrap();
+    sqlx::query("INSERT INTO journal_recipients VALUES('campaign','secret','reader')")
+        .execute(&store.pool)
+        .await
+        .unwrap();
+    sqlx::query("UPDATE journals SET asset_id='art',version=4 WHERE id='secret'")
+        .execute(&store.pool)
+        .await
+        .unwrap();
+    let archive = backup::create(&store, root.path(), "0.0.22", 100)
+        .await
+        .unwrap();
+    let restored = backup::restore(
+        backup::verify(&archive.path, &root.path().join("restores"))
+            .await
+            .unwrap(),
+        200,
+    )
+    .await
+    .unwrap();
+    let copy = Store::open(&restored).await.unwrap();
+    let grant: (String, String, String) =
+        sqlx::query_as("SELECT campaign_id,journal_id,user_id FROM journal_recipients")
+            .fetch_one(&copy.pool)
+            .await
+            .unwrap();
+    assert_eq!(grant, ("campaign".into(), "secret".into(), "reader".into()));
+    let page: (String, i64) =
+        sqlx::query_as("SELECT asset_id,version FROM journals WHERE id='secret'")
+            .fetch_one(&copy.pool)
+            .await
+            .unwrap();
+    assert_eq!(page, ("art".into(), 4));
+    sqlx::query("UPDATE journals SET visibility='shared'")
+        .execute(&store.pool)
+        .await
+        .unwrap();
+    assert!(
+        backup::create(&store, root.path(), "0.0.22", 300)
+            .await
+            .is_err()
+    );
+    sqlx::query("UPDATE journals SET visibility='dm'")
+        .execute(&store.pool)
+        .await
+        .unwrap();
+    sqlx::query("UPDATE memberships SET role='dm' WHERE user_id='reader'")
+        .execute(&store.pool)
+        .await
+        .unwrap();
+    assert!(
+        backup::create(&store, root.path(), "0.0.22", 300)
+            .await
+            .is_err()
+    );
+}
+#[tokio::test]
+async fn schema_eighteen_backup_preserves_pages_and_adds_no_selected_readers() {
+    restore_previous_drawing_schema(18).await;
 }

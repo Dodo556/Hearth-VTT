@@ -52,6 +52,7 @@ test("journal image handouts stay private until reveal and revoke future image a
     const dm = await owner.newPage();
     const errors: string[] = [];
     const frames: string[] = [];
+    const playerFrames: string[][] = [];
     dm.on("pageerror", (e) => errors.push(e.message));
     await trackDraws(dm);
     await dm.goto("/");
@@ -88,7 +89,14 @@ test("journal image handouts stay private until reveal and revoke future image a
       expect(join.ok()).toBe(true);
       const page = await context.newPage();
       page.on("pageerror", (e) => errors.push(e.message));
-      page.on("websocket", (s) => s.on("framereceived", (f) => frames.push(String(f.payload))));
+      const received: string[] = [];
+      playerFrames.push(received);
+      page.on("websocket", (s) =>
+        s.on("framereceived", (f) => {
+          frames.push(String(f.payload));
+          received.push(String(f.payload));
+        }),
+      );
       await trackDraws(page);
       await page.goto(path);
       await expect(page.getByTestId("connection-status")).toHaveText("Live");
@@ -178,6 +186,93 @@ test("journal image handouts stay private until reveal and revoke future image a
       await expect(p.getByTestId("connection-status")).toHaveText("Live");
       expect(JSON.stringify(await read(p))).not.toContain(art);
     }
+    playerFrames[1].length = 0;
+    const share = () => dm.getByRole("dialog", { name: "Share page", exact: true });
+    await dm.getByRole("button", { name: "Share page", exact: true }).click();
+    await share().getByLabel("Share with").selectOption("selected");
+    await expect(share().getByRole("button", { name: "Save sharing", exact: true })).toBeDisabled();
+    await share().getByRole("checkbox", { name: "Alice", exact: true }).check();
+    await capture(dm, "sharing-desktop");
+    for (const viewport of [
+      { width: 760, height: 700 },
+      { width: 390, height: 700 },
+      { width: 900, height: 520 },
+    ]) {
+      await dm.setViewportSize(viewport);
+      const save = share().getByRole("button", { name: "Save sharing", exact: true });
+      await save.scrollIntoViewIfNeeded();
+      await expect(save).toBeInViewport({ ratio: 1 });
+      await save.click({ trial: true });
+      const box = await share().boundingBox();
+      expect(box && box.x >= 0 && box.x + box.width <= viewport.width).toBe(true);
+      await capture(dm, `sharing-${viewport.width}`);
+    }
+    await dm.setViewportSize({ width: 1440, height: 1000 });
+    await share().getByRole("button", { name: "Save sharing", exact: true }).click();
+    await expect(share()).toHaveCount(0);
+    await players[0].getByRole("button", { name: "The amber seal", exact: true }).click();
+    await expect(
+      players[0].getByRole("img", { name: "The amber seal", exact: true }),
+    ).toBeVisible();
+    expect((await players[1].request.get(imageURL)).status()).toBe(404);
+    expect(playerFrames[1].every((f) => !f.includes(saved.id) && !f.includes(art))).toBe(true);
+    expect(
+      (await read(players[0])).journals.find((j: { id: string }) => j.id === saved.id).recipientIds,
+    ).toBeUndefined();
+    await dm.getByRole("button", { name: "Edit page", exact: true }).click();
+    await expect(dm.getByLabel("Page visibility")).toHaveValue("selected");
+    await expect(dm.getByRole("checkbox", { name: "Alice", exact: true })).toBeChecked();
+    await dm.getByLabel("Page text", { exact: true }).fill("SELECTED PRIVATE LITERAL CLUE");
+    await dm.getByRole("button", { name: "Save selected page", exact: true }).click();
+    await expect(dm.getByLabel("Page title", { exact: true })).toHaveCount(0);
+    expect(playerFrames[1].every((f) => !f.includes("SELECTED PRIVATE LITERAL CLUE"))).toBe(true);
+    const other = await owner.newPage();
+    await other.goto(path);
+    await expect(other.getByTestId("connection-status")).toHaveText("Live");
+    await other.getByRole("button", { name: "The amber seal", exact: true }).click();
+    await other.getByRole("button", { name: "Share page", exact: true }).click();
+    await dm.getByRole("button", { name: "Share page", exact: true }).click();
+    await share().getByRole("checkbox", { name: "Alice", exact: true }).uncheck();
+    await share().getByRole("checkbox", { name: "Bob", exact: true }).check();
+    await share().getByRole("button", { name: "Save sharing", exact: true }).click();
+    await expect(share()).toHaveCount(0);
+    await expect(other.getByRole("button", { name: "Save sharing", exact: true })).toBeDisabled();
+    await other.getByRole("button", { name: "Reload sharing", exact: true }).click();
+    await expect(other.getByRole("checkbox", { name: "Bob", exact: true })).toBeChecked();
+    await other.close();
+    await expect(players[0].getByRole("img", { name: "The amber seal", exact: true })).toHaveCount(
+      0,
+    );
+    expect((await players[0].request.get(imageURL)).status()).toBe(404);
+    await players[1].getByRole("button", { name: "The amber seal", exact: true }).click();
+    await expect(
+      players[1].getByRole("img", { name: "The amber seal", exact: true }),
+    ).toBeVisible();
+    await capture(players[1], "selected-player");
+    await stop();
+    await start();
+    for (const p of [dm, ...players]) {
+      await p.reload();
+      await expect(p.getByTestId("connection-status")).toHaveText("Live");
+    }
+    expect((await players[0].request.get(imageURL)).status()).toBe(404);
+    await players[1].getByRole("button", { name: "The amber seal", exact: true }).click();
+    await expect(
+      players[1].getByRole("img", { name: "The amber seal", exact: true }),
+    ).toBeVisible();
+    const people = (await (await dm.request.get(`/api/campaigns/${campaign}/participants`)).json())
+      .participants;
+    const bob = people.find((p: { displayName: string }) => p.displayName === "Bob");
+    expect(
+      (
+        await dm.request.post(`/api/campaigns/${campaign}/members/${bob.id}/revoke`, {
+          headers,
+          data: {},
+        })
+      ).ok(),
+    ).toBe(true);
+    expect((await players[1].request.get(imageURL)).ok()).toBe(false);
+    await dm.getByRole("button", { name: "The amber seal", exact: true }).click();
     await dm.getByRole("button", { name: "Edit page", exact: true }).click();
     await dm.getByLabel("Handout image", { exact: true }).setInputFiles({
       name: "invalid.svg",

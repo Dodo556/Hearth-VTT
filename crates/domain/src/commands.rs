@@ -436,6 +436,8 @@ pub struct CreateJournal {
 #[derive(Debug, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase", deny_unknown_fields)]
 pub struct UpdateJournal {
+    #[serde(default, skip_serializing_if = "Vec::is_empty")]
+    pub recipient_ids: Vec<String>,
     // An omitted field preserves images for text-only clients; null explicitly removes.
     #[serde(
         default,
@@ -447,7 +449,7 @@ pub struct UpdateJournal {
     pub expected_version: i64,
     pub title: String,
     pub body: String,
-    pub visibility: Visibility,
+    pub visibility: JournalVisibility,
 }
 #[derive(Debug, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase", deny_unknown_fields)]
@@ -650,4 +652,12 @@ fn journal_image_change<'de, D: serde::Deserializer<'de>>(
     deserializer: D,
 ) -> Result<Option<Option<String>>, D::Error> {
     Option::<String>::deserialize(deserializer).map(Some)
+}
+
+#[derive(Debug, Serialize, Deserialize)]
+#[serde(rename_all = "lowercase")]
+pub enum JournalVisibility {
+    Dm,
+    Shared,
+    Selected,
 }

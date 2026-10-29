@@ -110,7 +110,7 @@ async fn schema_eleven_upgrade_preserves_drawing_order_nonces_and_adds_point_sto
             .fetch_one(&store.pool)
             .await
             .unwrap(),
-        18
+        19
     );
     sqlx::query("DELETE FROM drawings WHERE rowid=(SELECT MAX(rowid) FROM drawings)")
         .execute(&store.pool)

@@ -1,4 +1,4 @@
-import type { Journal, JournalFolder, TokenCommand } from "@hearth/protocol";
+import type { Journal, JournalFolder, Participant, TokenCommand } from "@hearth/protocol";
 import { Button, Dialog, ErrorMessage } from "@hearth/ui";
 import { FolderPlus } from "lucide-react";
 import { useEffect, useRef, useState } from "react";
@@ -7,18 +7,22 @@ import { t } from "../i18n/en";
 import { folderChoices, JournalDirectory } from "./JournalDirectory";
 import { JournalFolderManager } from "./JournalFolderManager";
 import { JournalImage } from "./JournalImage";
+import { JournalAudienceFields, JournalSharing, readersUnavailable } from "./JournalSharing";
 
 type Draft = {
   id: string;
   version: number | null;
   title: string;
   body: string;
-  visibility: "dm" | "shared";
+  visibility: Journal["visibility"];
+  recipientIds?: string[];
   folderId?: string;
   assetId?: string;
 };
 export function Journals({
   campaignId = "",
+  participants = [],
+  participantsAvailable = true,
   journals,
   folders = [],
   dm,
@@ -26,12 +30,16 @@ export function Journals({
   send,
 }: {
   campaignId?: string;
+  participants?: Participant[];
+  participantsAvailable?: boolean;
   journals: Journal[];
   folders?: JournalFolder[];
   dm: boolean;
   disabled: boolean;
   send: (command: TokenCommand) => Promise<void>;
 }) {
+  const [sharing, setSharing] = useState<Journal | null>(null);
+  const players = participants.filter((p) => p.role === "player");
   const [search, setSearch] = useState("");
   const [manager, setManager] = useState<{ folder?: JournalFolder; page?: Journal } | null>(null);
   const [selected, setSelected] = useState<string | null>(null);
@@ -54,6 +62,9 @@ export function Journals({
   const destinationGone = !!draft?.folderId && !visibleFolders.some((f) => f.id === draft.folderId);
   const current = draft && journals.find((p) => p.id === draft.id);
   const stale = draft?.version !== null && !!draft && current?.version !== draft.version;
+  const readersBlocked =
+    !!draft &&
+    readersUnavailable(draft.visibility, draft.recipientIds ?? [], players, participantsAvailable);
   const deleteStale =
     !!deleting && !journals.some((p) => p.id === deleting.id && p.version === deleting.version);
   function edit(p: Journal) {
@@ -131,7 +142,13 @@ export function Journals({
           {page ? (
             <article className="journal-page">
               <span className={`visibility-label ${page.visibility}`}>
-                {page.visibility === "dm" ? t.dmOnly : t.shared}
+                {!dm
+                  ? "Shared with you"
+                  : page.visibility === "selected"
+                    ? "Selected players"
+                    : page.visibility === "dm"
+                      ? t.dmOnly
+                      : t.shared}
               </span>
               <h2>{page.title}</h2>
               {page.assetId && (
@@ -152,6 +169,13 @@ export function Journals({
               <footer>{t.journalPlainText}</footer>
               {dm && (
                 <div className="dialog-actions">
+                  <Button
+                    type="button"
+                    disabled={disabled || pending}
+                    onClick={() => setSharing(page)}
+                  >
+                    Share page
+                  </Button>
                   {page.assetId && (
                     <Button
                       type="button"
@@ -167,6 +191,7 @@ export function Journals({
                               body: page.body,
                               assetId: page.assetId,
                               visibility: page.visibility === "dm" ? "shared" : "dm",
+                              recipientIds: [],
                             },
                           },
                           () => {},
@@ -210,7 +235,14 @@ export function Journals({
           className="journal-editor"
           onSubmit={(event) => {
             event.preventDefault();
-            if (disabled || pending || stale || (draft.version === null && destinationGone)) return;
+            if (
+              disabled ||
+              pending ||
+              stale ||
+              readersBlocked ||
+              (draft.version === null && destinationGone)
+            )
+              return;
             const fields = {
               journalId: draft.id,
               title: draft.title,
@@ -229,6 +261,8 @@ export function Journals({
                       ...fields,
                       expectedVersion: draft.version,
                       visibility: draft.visibility,
+                      recipientIds:
+                        draft.visibility === "selected" ? (draft.recipientIds ?? []) : [],
                     },
                   },
               () => {
@@ -289,7 +323,12 @@ export function Journals({
                     if (mounted.current)
                       setDraft((value) =>
                         value && value.id === draft.id && value.version === draft.version
-                          ? { ...value, assetId: result.asset.id, visibility: "dm" }
+                          ? {
+                              ...value,
+                              assetId: result.asset.id,
+                              visibility: "dm",
+                              recipientIds: [],
+                            }
                           : value,
                       );
                   })
@@ -321,7 +360,9 @@ export function Journals({
               <Button
                 type="button"
                 disabled={disabled || pending}
-                onClick={() => setDraft({ ...draft, assetId: undefined, visibility: "dm" })}
+                onClick={() =>
+                  setDraft({ ...draft, assetId: undefined, visibility: "dm", recipientIds: [] })
+                }
               >
                 Remove image
               </Button>
@@ -356,22 +397,17 @@ export function Journals({
             </p>
           )}
           {draft.version !== null ? (
-            <label>
-              {t.journalVisibility}
-              <select
-                aria-label={t.journalVisibility}
-                disabled={pending}
-                value={draft.visibility}
-                onChange={(e) =>
-                  setDraft({ ...draft, visibility: e.target.value as Draft["visibility"] })
-                }
-              >
-                <option value="dm">{t.dmOnly}</option>
-                <option value="shared" disabled={current?.assetId !== draft.assetId}>
-                  {t.shared}
-                </option>
-              </select>
-            </label>
+            <JournalAudienceFields
+              scope={draft.visibility}
+              ids={draft.recipientIds ?? []}
+              players={players}
+              available={participantsAvailable}
+              disabled={pending}
+              imageChanged={current?.assetId !== draft.assetId}
+              onChange={(scope, ids) =>
+                setDraft({ ...draft, visibility: scope, recipientIds: ids })
+              }
+            />
           ) : (
             <p className="muted">{t.journalPrivateFirst}</p>
           )}
@@ -388,16 +424,36 @@ export function Journals({
             </Button>
             <Button
               type="submit"
-              disabled={disabled || pending || stale || (draft.version === null && destinationGone)}
+              disabled={
+                disabled ||
+                pending ||
+                stale ||
+                readersBlocked ||
+                (draft.version === null && destinationGone)
+              }
             >
               {draft.version === null
                 ? t.createPrivateJournal
-                : draft.visibility === "shared"
-                  ? t.saveSharedJournal
-                  : t.savePrivateJournal}
+                : draft.visibility === "selected"
+                  ? "Save selected page"
+                  : draft.visibility === "shared"
+                    ? t.saveSharedJournal
+                    : t.savePrivateJournal}
             </Button>
           </div>
         </form>
+      )}
+      {sharing && dm && (
+        <JournalSharing
+          key={sharing.id}
+          page={sharing}
+          current={journals.find((p) => p.id === sharing.id)}
+          participants={participants}
+          available={participantsAvailable}
+          disabled={disabled}
+          send={send}
+          onClose={() => setSharing(null)}
+        />
       )}
       {manager && dm && (
         <JournalFolderManager

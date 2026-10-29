@@ -27,3 +27,27 @@ it("retains authorized journal images and accepts bounded image references", () 
     }).success,
   ).toBe(false);
 });
+it("accepts selected journal readers only as a bounded nonempty distinct selection", () => {
+  const payload = {
+    journalId: id,
+    expectedVersion: 1,
+    title: "Clue",
+    body: "",
+    visibility: "selected",
+    recipientIds: [id],
+  };
+  expect(TokenCommandSchema.safeParse({ type: "journal.update", payload }).success).toBe(true);
+  for (const recipientIds of [[], [id, id], Array(9).fill(id)])
+    expect(
+      TokenCommandSchema.safeParse({
+        type: "journal.update",
+        payload: { ...payload, recipientIds },
+      }).success,
+    ).toBe(false);
+  expect(
+    TokenCommandSchema.safeParse({
+      type: "journal.update",
+      payload: { ...payload, visibility: "shared" },
+    }).success,
+  ).toBe(false);
+});

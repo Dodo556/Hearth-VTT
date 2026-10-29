@@ -272,34 +272,55 @@ type JournalRow = (
 );
 pub(crate) async fn projected_journals(
     conn: &mut sqlx::SqliteConnection,
-    id: &str,
+    campaign: &str,
     dm: bool,
+    user: &str,
 ) -> ApiResult<Vec<Journal>> {
-    let rows:Vec<JournalRow>=sqlx::query_as("SELECT id,title,body,visibility,version,folder_id,asset_id FROM journals WHERE campaign_id=? AND (visibility='shared' OR ?=1) ORDER BY created_at,id")
-        .bind(id).bind(dm).fetch_all(&mut *conn).await?;
-    Ok(rows
-        .into_iter()
-        .map(
-            |(id, title, body, visibility, version, folder_id, asset_id)| Journal {
-                asset_id,
-                folder_id: if dm { folder_id } else { None },
-                version,
-                id,
-                title,
-                body,
-                visibility,
+    let rows:Vec<JournalRow>=sqlx::query_as("SELECT id,title,body,visibility,version,folder_id,asset_id FROM journals j WHERE campaign_id=? AND (visibility='shared' OR ?=1 OR EXISTS(SELECT 1 FROM journal_recipients r WHERE r.journal_id=j.id AND r.campaign_id=j.campaign_id AND r.user_id=?)) ORDER BY created_at,id")
+        .bind(campaign).bind(dm).bind(user).fetch_all(&mut *conn).await?;
+    let mut pages = Vec::new();
+    for (id, title, body, mut visibility, version, folder_id, asset_id) in rows {
+        let readers: Vec<String> = if dm {
+            sqlx::query_scalar(
+                "SELECT user_id FROM journal_recipients WHERE journal_id=? ORDER BY user_id",
+            )
+            .bind(&id)
+            .fetch_all(&mut *conn)
+            .await?
+        } else {
+            Vec::new()
+        };
+        if dm && !readers.is_empty() {
+            visibility = "selected".to_owned();
+        }
+        if !dm {
+            visibility = "shared".to_owned();
+        }
+        pages.push(Journal {
+            id,
+            title,
+            body,
+            visibility,
+            version,
+            asset_id,
+            folder_id: if dm { folder_id } else { None },
+            recipient_ids: if dm && !readers.is_empty() {
+                Some(readers)
+            } else {
+                None
             },
-        )
-        .collect())
+        });
+    }
+    Ok(pages)
 }
 pub async fn journals(
     State(state): State<AppState>,
     headers: HeaderMap,
     Path(id): Path<String>,
 ) -> ApiResult<Json<serde_json::Value>> {
-    let (mut conn, _user, dm) = authorized_read(&state, &headers, &id).await?;
+    let (mut conn, user, dm) = authorized_read(&state, &headers, &id).await?;
     let mut payload =
-        json!({"schemaVersion":1,"journals":projected_journals(&mut conn,&id,dm).await?});
+        json!({"schemaVersion":1,"journals":projected_journals(&mut conn,&id,dm,&user).await?});
     let folders = crate::journal_folders::projected(&mut conn, &id, dm).await?;
     if !folders.is_empty() {
         payload["folders"] = json!(folders);
@@ -311,8 +332,8 @@ pub async fn journal(
     headers: HeaderMap,
     Path((id, journal_id)): Path<(String, String)>,
 ) -> ApiResult<Json<serde_json::Value>> {
-    let (mut conn, _user, dm) = authorized_read(&state, &headers, &id).await?;
-    let journal = projected_journals(&mut conn, &id, dm)
+    let (mut conn, user, dm) = authorized_read(&state, &headers, &id).await?;
+    let journal = projected_journals(&mut conn, &id, dm, &user)
         .await?
         .into_iter()
         .find(|j| j.id == journal_id)

@@ -211,7 +211,7 @@ async fn snapshot(
         .await?;
     let scenes = scenes::projected_scenes(&mut tx, campaign, role == "dm", &user).await?;
     let folders = crate::journal_folders::projected(&mut tx, campaign, role == "dm").await?;
-    let journals = scenes::projected_journals(&mut tx, campaign, role == "dm").await?;
+    let journals = scenes::projected_journals(&mut tx, campaign, role == "dm", &user).await?;
     let actors = crate::actors::projected(&mut tx, campaign, role == "dm", &user).await?;
     let encounter =
         crate::combat::projected(&mut tx, campaign, role == "dm", &scenes, &actors).await?;

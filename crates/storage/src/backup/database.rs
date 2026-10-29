@@ -66,6 +66,10 @@ pub(super) async fn validate(path: &Path, version: i64) -> Result<(Counts, Vec<A
         let check:Vec<String>=sqlx::query_scalar("PRAGMA integrity_check").fetch_all(&mut db).await?;
         ensure!(check==["ok"],"Database integrity failure");
         ensure!(sqlx::query("PRAGMA foreign_key_check").fetch_all(&mut db).await?.is_empty(),"Broken database references");
+        if version>=19 {
+            let invalid:bool=sqlx::query_scalar("SELECT EXISTS(SELECT 1 FROM journal_recipients r JOIN journals j ON j.id=r.journal_id JOIN memberships m ON m.campaign_id=r.campaign_id AND m.user_id=r.user_id WHERE r.campaign_id<>j.campaign_id OR j.visibility<>'dm' OR m.role<>'player') OR EXISTS(SELECT 1 FROM journal_recipients GROUP BY journal_id HAVING COUNT(*)>8)").fetch_one(&mut db).await?;
+            ensure!(!invalid,"Invalid journal readers");
+        }
         if version>=18 {
             let invalid:bool=sqlx::query_scalar("SELECT EXISTS(SELECT 1 FROM journals j JOIN assets a ON a.id=j.asset_id WHERE j.campaign_id<>a.campaign_id)").fetch_one(&mut db).await?;
             ensure!(!invalid,"Invalid journal artwork reference");

@@ -128,6 +128,8 @@ pub struct DrawingPoint {
 
 #[derive(Clone, Debug, Serialize, Deserialize)]
 pub struct Journal {
+    #[serde(rename = "recipientIds", skip_serializing_if = "Option::is_none")]
+    pub recipient_ids: Option<Vec<String>>,
     #[serde(rename = "assetId", skip_serializing_if = "Option::is_none")]
     pub asset_id: Option<String>,
     pub version: i64,
