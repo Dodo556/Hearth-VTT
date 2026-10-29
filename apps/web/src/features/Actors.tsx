@@ -4,6 +4,7 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useEffect, useRef, useState } from "react";
 import { api } from "../api";
 import { t } from "../i18n/en";
+import { PrivateCopyDialog } from "./PrivateCopyDialog";
 
 type Send = (c: TokenCommand) => Promise<void>;
 type Member = { id: string; displayName: string; role: string };
@@ -26,6 +27,7 @@ export function Actors({
   selectedId: string | null;
   onSelect: (id: string) => void;
 }) {
+  const [copying, setCopying] = useState<Actor | null>(null);
   const [creating, setCreating] = useState(false);
   const [editId, setEditId] = useState<string | null>(null);
   const [confirm, setConfirm] = useState<string | null>(null);
@@ -99,6 +101,14 @@ export function Actors({
             {selected.canEdit && (
               <Button disabled={disabled} onClick={() => setEditId(selected.id)}>
                 {t.editSheet}
+              </Button>
+            )}
+            {dm && (
+              <Button
+                disabled={disabled || actors.length >= 16}
+                onClick={() => setCopying(selected)}
+              >
+                Use as template
               </Button>
             )}
             {dm && (
@@ -180,6 +190,29 @@ export function Actors({
         </article>
       ) : (
         <p className="muted">{t.noActors}</p>
+      )}
+      {copying && dm && (
+        <PrivateCopyDialog
+          key={copying.id}
+          source={{ id: copying.id, version: copying.version, label: copying.name }}
+          records={actors.map((a) => ({ id: a.id, version: a.version, label: a.name }))}
+          title="Use actor as template"
+          nameLabel="Copy name"
+          description="Create a GM-only actor with the saved type, portrait, biography, GM notes, current HP and custom properties. Ownership, token links and combat entries are not copied. The original actor stays intact."
+          limitMessage="Copies count toward the 16-actor campaign limit."
+          disabled={disabled}
+          full={actors.length >= 16}
+          send={send}
+          onClose={() => setCopying(null)}
+          onCopied={(id) => {
+            onSelect(id);
+            setCopying(null);
+          }}
+          commandFor={(base, id, name) => ({
+            type: "actor.copy",
+            payload: { sourceActorId: base.id, expectedVersion: base.version, actorId: id, name },
+          })}
+        />
       )}
       <ErrorMessage error={error} />
       {(creating || (edited?.canEdit && editId)) && (

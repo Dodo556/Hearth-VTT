@@ -1015,3 +1015,55 @@ async fn formatted_journal_backup_preserves_exact_source_and_format() {
 async fn schema_nineteen_backup_preserves_selected_readers_and_defaults_to_plain() {
     restore_previous_drawing_schema(19).await;
 }
+
+#[tokio::test]
+async fn copied_actors_keep_private_fields_without_ownership_or_links_after_recovery() {
+    let root = tempfile::tempdir().unwrap();
+    let store = fixture(root.path()).await;
+    sqlx::query("INSERT INTO actors(id,campaign_id,name,kind,asset_id,biography,dm_notes,hp,max_hp,attributes,visibility,version,created_at) VALUES('source','campaign','Source','npc','art','Biography 🧙','PRIVATE NOTES',6,20,'{\"Armor\":\"12\"}','shared',4,1)").execute(&store.pool).await.unwrap();
+    sqlx::query("INSERT INTO actors(id,campaign_id,name,kind,asset_id,biography,dm_notes,hp,max_hp,attributes,created_at) SELECT 'copy',campaign_id,'Private copy',kind,asset_id,biography,dm_notes,hp,max_hp,attributes,2 FROM actors WHERE id='source'").execute(&store.pool).await.unwrap();
+    let prepared = backup::create(&store, root.path(), "0.0.25", 100)
+        .await
+        .unwrap();
+    let restored = backup::restore(
+        backup::verify(&prepared.path, &root.path().join("restores"))
+            .await
+            .unwrap(),
+        200,
+    )
+    .await
+    .unwrap();
+    let copy = Store::open(&restored).await.unwrap();
+    let row:(String,String,i64,i64,String,String,i64)=sqlx::query_as("SELECT biography,dm_notes,hp,max_hp,asset_id,visibility,version FROM actors WHERE id='copy'").fetch_one(&copy.pool).await.unwrap();
+    assert_eq!(
+        row,
+        (
+            "Biography 🧙".into(),
+            "PRIVATE NOTES".into(),
+            6,
+            20,
+            "art".into(),
+            "dm".into(),
+            1
+        )
+    );
+    let attrs: String = sqlx::query_scalar("SELECT attributes FROM actors WHERE id='copy'")
+        .fetch_one(&copy.pool)
+        .await
+        .unwrap();
+    assert_eq!(
+        serde_json::from_str::<Value>(&attrs).unwrap(),
+        json!({"Armor":"12"})
+    );
+    let owners: i64 =
+        sqlx::query_scalar("SELECT COUNT(*) FROM actor_ownership WHERE actor_id='copy'")
+            .fetch_one(&copy.pool)
+            .await
+            .unwrap();
+    assert_eq!(owners, 0);
+    let links: i64 = sqlx::query_scalar("SELECT COUNT(*) FROM tokens WHERE actor_id='copy'")
+        .fetch_one(&copy.pool)
+        .await
+        .unwrap();
+    assert_eq!(links, 0);
+}

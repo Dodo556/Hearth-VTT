@@ -161,6 +161,56 @@ pub(crate) async fn apply(
             }
             sqlx::query("INSERT INTO actors(id,campaign_id,name,kind,asset_id,biography,dm_notes,hp,max_hp,attributes,created_at) VALUES(?,?,?,?,?,?,?,?,?,?,?)").bind(&p.actor_id).bind(camp).bind(p.name.trim()).bind(&p.kind).bind(&p.asset_id).bind(&p.biography).bind(&p.dm_notes).bind(p.hp).bind(p.max_hp).bind(json!(p.attributes).to_string()).bind(security::now()).execute(&mut *conn).await?;
         }
+        TokenCommand::ActorCopy(p) => {
+            if uuid::Uuid::parse_str(&p.source_actor_id).is_err()
+                || !(1..9_007_199_254_740_991).contains(&p.expected_version)
+            {
+                return Err(ApiError::invalid(
+                    "Use a valid source actor ID and current version.",
+                ));
+            }
+            let source: Row = sqlx::query_as(
+                "SELECT a.*,NULL AS my_permission FROM actors a WHERE campaign_id=? AND id=?",
+            )
+            .bind(camp)
+            .bind(&p.source_actor_id)
+            .fetch_optional(&mut *conn)
+            .await?
+            .ok_or_else(ApiError::hidden)?;
+            if source.version != p.expected_version {
+                return Err(ApiError(
+                    StatusCode::CONFLICT,
+                    "STALE_ACTOR",
+                    "This sheet changed. Reload the template before copying.",
+                ));
+            }
+            let attributes: BTreeMap<String, String> =
+                serde_json::from_str(&source.attributes).map_err(|_| ApiError::internal())?;
+            fields(
+                &p.name,
+                &source.biography,
+                source.hp,
+                source.max_hp,
+                &attributes,
+            )?;
+            text(&source.dm_notes, 1000, true)?;
+            authoring::asset(conn, camp, &source.asset_id).await?;
+            let count: i64 = sqlx::query_scalar("SELECT COUNT(*) FROM actors WHERE campaign_id=?")
+                .bind(camp)
+                .fetch_one(&mut *conn)
+                .await?;
+            if count >= 16 {
+                return Err(ApiError::invalid(
+                    "This campaign has reached its 16-actor limit.",
+                ));
+            }
+            // Copy stored sheet fields only. Ownership, placed tokens and combat remain independent.
+            let inserted=sqlx::query("INSERT INTO actors(id,campaign_id,name,kind,asset_id,biography,dm_notes,hp,max_hp,attributes,created_at) SELECT ?,campaign_id,?,kind,asset_id,biography,dm_notes,hp,max_hp,attributes,? FROM actors WHERE campaign_id=? AND id=? ON CONFLICT(id) DO NOTHING")
+                .bind(&p.actor_id).bind(p.name.trim()).bind(security::now()).bind(camp).bind(&p.source_actor_id).execute(&mut *conn).await?;
+            if inserted.rows_affected() != 1 {
+                return Err(ApiError::conflict("Use a new actor ID."));
+            }
+        }
         TokenCommand::ActorUpdate(p) => {
             let actor = projected(conn, camp, dm, user)
                 .await?

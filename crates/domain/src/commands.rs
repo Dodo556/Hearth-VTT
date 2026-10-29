@@ -86,6 +86,8 @@ pub enum TokenCommand {
     FogReset(ResetFog),
     #[serde(rename = "actor.create")]
     ActorCreate(CreateActor),
+    #[serde(rename = "actor.copy")]
+    ActorCopy(CopyActor),
     #[serde(rename = "actor.update")]
     ActorUpdate(UpdateActor),
     #[serde(rename = "actor.delete")]
@@ -176,6 +178,7 @@ impl TokenCommand {
             Self::FogPaint(p) => &p.scene_id,
             Self::FogReset(p) => &p.scene_id,
             Self::ActorCreate(p) => &p.actor_id,
+            Self::ActorCopy(p) => &p.actor_id,
             Self::ActorUpdate(p) => &p.actor_id,
             Self::ActorDelete(p) => &p.actor_id,
             Self::ActorPermission(p) => &p.actor_id,
@@ -333,6 +336,15 @@ pub struct CreateActor {
 
 #[derive(Debug, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase", deny_unknown_fields)]
+pub struct CopyActor {
+    pub source_actor_id: String,
+    pub expected_version: i64,
+    pub actor_id: String,
+    pub name: String,
+}
+
+#[derive(Debug, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase", deny_unknown_fields)]
 pub struct UpdateActor {
     pub actor_id: String,
     pub expected_version: i64,
@@ -387,6 +399,7 @@ impl TokenCommand {
         matches!(
             self,
             Self::ActorCreate(_)
+                | Self::ActorCopy(_)
                 | Self::ActorUpdate(_)
                 | Self::ActorDelete(_)
                 | Self::ActorPermission(_)

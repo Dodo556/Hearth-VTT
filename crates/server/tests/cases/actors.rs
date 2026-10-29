@@ -581,3 +581,72 @@ async fn maximum_unicode_actors_and_grants_survive_restart() {
     store.pool.close().await;
     drop(_dir);
 }
+
+fn actor_copy(source: &str, version: i64, target: &str) -> Value {
+ json!({"type":"actor.copy","payload":{"sourceActorId":source,"expectedVersion":version,"actorId":target,"name":"Copied guardian"}})
+}
+#[tokio::test]
+async fn actor_reuse_is_private_exact_unlinked_and_preserves_source_authority() {
+ let h=Host::new().await; let owner=h.owner().await; let camp=h.campaign_id(&owner).await;
+ let (alice, aid)=h.player(&owner,&camp,"actor_copy_alice").await;
+ let (bob,_)=h.player(&owner,&camp,"actor_copy_bob").await;
+ let (_, art)=upload_image(&h,&owner,&camp,map_fixture(),"image/png").await;
+ let art=art["asset"]["id"].as_str().unwrap();
+ let server=LiveServer::start(&h).await;
+ let mut dm=server.connect(&camp,&owner).await;
+ let snapshot=frame(&mut dm).await;
+ let token=snapshot["scenes"][0]["tokens"][0]["id"].as_str().unwrap();
+ let mut a=server.connect(&camp,&alice).await; frame(&mut a).await;
+ let source=uuid::Uuid::new_v4().to_string(); let target=uuid::Uuid::new_v4().to_string(); let mut rev=0;
+ accepted(&mut dm,&mut rev,actor_input(&source,art)).await;
+ accepted(&mut dm,&mut rev,json!({"type":"actor.permission","payload":{"actorId":source,"userId":aid,"permission":"owner"}})).await;
+ accepted(&mut dm,&mut rev,json!({"type":"token.link","payload":{"tokenId":token,"actorId":source}})).await;
+ let url=format!("/api/campaigns/{camp}/actors/{source}");
+ let (_,original,_)=h.request("GET",&url,json!({}),Some(&owner)).await;
+ let request=uuid::Uuid::new_v4().to_string(); let copy=actor_copy(&source,1,&target);
+ assert_eq!(command(&mut dm,&request,rev,copy.clone()).await["kind"],"ack");
+ assert_eq!(command(&mut dm,&request,rev,copy.clone()).await["duplicate"],true);
+ let mut changed=copy;changed["payload"]["name"]=json!("Different");
+ assert_eq!(command(&mut dm,&request,rev,changed).await["error"]["code"],"REQUEST_ID_REUSED");
+ rev+=1;
+ let projected=through(&mut a,rev).await;
+ assert!(!projected.to_string().contains(&target));
+ assert!(!projected.to_string().contains("SECRET SHEET NOTES"));
+ let target_url=format!("/api/campaigns/{camp}/actors/{target}");
+ let (_,result,_)=h.request("GET",&target_url,json!({}),Some(&owner)).await;
+ let actual=&result["actor"];
+ for key in ["kind","assetId","biography","dmNotes","hp","maxHp","attributes"] {assert_eq!(actual[key],original["actor"][key],"{key}");}
+ assert_eq!(actual["name"],"Copied guardian");assert_eq!(actual["visibility"],"dm");assert_eq!(actual["version"],1);assert_eq!(actual["permissions"],json!([]));
+ for player in [&alice,&bob] {assert_eq!(h.request("GET",&target_url,json!({}),Some(player)).await.0,StatusCode::NOT_FOUND);}
+ let links:i64=sqlx::query_scalar("SELECT COUNT(*) FROM tokens WHERE actor_id=?").bind(&target).fetch_one(&h.state.store.pool).await.unwrap(); assert_eq!(links,0);
+ let linked:String=sqlx::query_scalar("SELECT actor_id FROM tokens WHERE id=?").bind(token).fetch_one(&h.state.store.pool).await.unwrap();assert_eq!(linked,source);
+ assert_eq!(h.request("GET",&url,json!({}),Some(&owner)).await.1,original);
+ let denied=command(&mut a,&uuid::Uuid::new_v4().to_string(),rev,actor_copy(&source,1,&uuid::Uuid::new_v4().to_string())).await;assert_eq!(denied["error"]["code"],"FORBIDDEN");
+ accepted(&mut dm,&mut rev,json!({"type":"actor.visibility","payload":{"actorId":target,"visibility":"shared"}})).await;
+ let (_,public,_)=h.request("GET",&target_url,json!({}),Some(&bob)).await;assert!(public["actor"].get("dmNotes").is_none());assert!(public["actor"].get("permissions").is_none());
+ accepted(&mut dm,&mut rev,json!({"type":"actor.permission","payload":{"actorId":source,"userId":aid,"permission":"none"}})).await;
+ let art_url=format!("/api/campaigns/{camp}/assets/{art}");assert_eq!(h.request("GET",&art_url,json!({}),Some(&bob)).await.0,StatusCode::OK);
+ accepted(&mut dm,&mut rev,json!({"type":"actor.visibility","payload":{"actorId":target,"visibility":"dm"}})).await;
+ assert_eq!(h.request("GET",&art_url,json!({}),Some(&bob)).await.0,StatusCode::NOT_FOUND);
+ dm.close(None).await.unwrap();a.close(None).await.unwrap();
+}
+#[tokio::test]
+async fn actor_reuse_rejects_stale_foreign_occupied_full_and_archived_copies() {
+ let h=Host::new().await;let owner=h.owner().await;let camp=h.campaign_id(&owner).await;
+ let (_,foreign,_)=h.request("POST","/api/campaigns",json!({"name":"Other reuse","description":""}),Some(&owner)).await;let foreign=foreign["campaign"]["id"].as_str().unwrap();
+ let server=LiveServer::start(&h).await;let mut dm=server.connect(&camp,&owner).await;frame(&mut dm).await;
+ let source=uuid::Uuid::new_v4().to_string();let elsewhere=uuid::Uuid::new_v4().to_string();let mut rev=0;
+ accepted(&mut dm,&mut rev,actor_input(&source,"token-warden")).await;
+ sqlx::query("INSERT INTO actors(id,campaign_id,name,kind,asset_id,hp,max_hp,created_at) VALUES(?,?,'Elsewhere','npc','token-warden',1,1,1)").bind(&elsewhere).bind(foreign).execute(&h.state.store.pool).await.unwrap();
+ for (src,v,dst,code) in [(source.clone(),2,uuid::Uuid::new_v4().to_string(),"STALE_ACTOR"),(source.clone(),0,uuid::Uuid::new_v4().to_string(),"VALIDATION_FAILED"),(source.clone(),9_007_199_254_740_991,uuid::Uuid::new_v4().to_string(),"VALIDATION_FAILED"),(source.clone(),1,source.clone(),"CONFLICT"),(source.clone(),1,elsewhere.clone(),"CONFLICT"),("bad".into(),1,uuid::Uuid::new_v4().to_string(),"VALIDATION_FAILED")] {
+ let r=command(&mut dm,&uuid::Uuid::new_v4().to_string(),rev,actor_copy(&src,v,&dst)).await;assert_eq!(r["error"]["code"],code,"{r}"); }
+ let a=command(&mut dm,&uuid::Uuid::new_v4().to_string(),rev,actor_copy(&elsewhere,1,&uuid::Uuid::new_v4().to_string())).await;
+ let b=command(&mut dm,&uuid::Uuid::new_v4().to_string(),rev,actor_copy(&uuid::Uuid::new_v4().to_string(),1,&uuid::Uuid::new_v4().to_string())).await;assert_eq!(a["error"],b["error"]);
+ let target=uuid::Uuid::new_v4().to_string();accepted(&mut dm,&mut rev,actor_copy(&source,1,&target)).await;
+ let art:String=sqlx::query_scalar("SELECT asset_id FROM actors WHERE id=?").bind(&target).fetch_one(&h.state.store.pool).await.unwrap();assert_eq!(art,"token-warden");
+ for _ in 2..16 {sqlx::query("INSERT INTO actors(id,campaign_id,name,kind,asset_id,hp,max_hp,created_at) VALUES(?,?,'Quota','npc','token-warden',1,1,1)").bind(uuid::Uuid::new_v4().to_string()).bind(&camp).execute(&h.state.store.pool).await.unwrap();}
+ assert_eq!(command(&mut dm,&uuid::Uuid::new_v4().to_string(),rev,actor_copy(&source,1,&uuid::Uuid::new_v4().to_string())).await["error"]["code"],"VALIDATION_FAILED");
+ sqlx::query("UPDATE campaigns SET archived=1 WHERE id=?").bind(&camp).execute(&h.state.store.pool).await.unwrap();
+ assert_eq!(command(&mut dm,&uuid::Uuid::new_v4().to_string(),rev,actor_copy(&source,1,&uuid::Uuid::new_v4().to_string())).await["error"]["code"],"FORBIDDEN");
+ dm.close(None).await.unwrap();
+}

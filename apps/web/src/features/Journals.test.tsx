@@ -294,3 +294,39 @@ it("keeps a copy title when its template disappears or the campaign fills", () =
   expect(screen.getByLabelText("Copy title")).toHaveValue("Kept copy");
   expect(screen.getByRole("button", { name: "Create private copy" })).toBeDisabled();
 });
+it("opens a committed copy after uncertain confirmation even when its source disappears", async () => {
+  const sent: TokenCommand[] = [];
+  const props = {
+    journals: [page],
+    dm: true,
+    disabled: false,
+    send: async (c: TokenCommand) => {
+      sent.push(c);
+      throw new Error("Confirmation timed out");
+    },
+  };
+  const { rerender } = render(createElement(Journals, props));
+  fireEvent.click(screen.getByRole("button", { name: "Use as template" }));
+  fireEvent.change(screen.getByLabelText("Copy title"), {
+    target: { value: "Saved despite timeout" },
+  });
+  await act(async () => {
+    fireEvent.click(screen.getByRole("button", { name: "Create private copy" }));
+  });
+  const command = sent[0];
+  if (command?.type !== "journal.copy") throw new Error("Expected journal copy");
+  const copied = { ...page, id: command.payload.journalId, title: "Saved despite timeout" };
+  rerender(
+    createElement(Journals, {
+      ...props,
+      disabled: true,
+      journals: [copied, ...Array.from({ length: 15 }, (_, i) => ({ ...page, id: `other-${i}` }))],
+    }),
+  );
+  expect(screen.getByLabelText("Copy title")).toHaveValue("Saved despite timeout");
+  expect(screen.getByRole("button", { name: "Create private copy" })).toBeDisabled();
+  fireEvent.click(screen.getByRole("button", { name: "Open saved copy" }));
+  expect(sent).toHaveLength(1);
+  expect(screen.queryByRole("dialog")).toBeNull();
+  expect(screen.getByRole("heading", { name: "Saved despite timeout" })).toBeVisible();
+});

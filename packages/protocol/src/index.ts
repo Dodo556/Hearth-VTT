@@ -684,6 +684,23 @@ export const TokenCommandSchema = z.discriminatedUnion("type", [
     .strict(),
   z
     .object({
+      type: z.literal("actor.copy"),
+      payload: z
+        .object({
+          sourceActorId: z.uuid(),
+          expectedVersion: z
+            .number()
+            .int()
+            .positive()
+            .max(Number.MAX_SAFE_INTEGER - 1),
+          actorId: z.uuid(),
+          name: actorFields.name,
+        })
+        .strict(),
+    })
+    .strict(),
+  z
+    .object({
       type: z.literal("actor.update"),
       payload: z
         .object({

@@ -462,7 +462,7 @@ export function Journals({
         <JournalCopy
           key={copying.id}
           page={copying}
-          current={journals.find((p) => p.id === copying.id)}
+          pages={journals}
           disabled={disabled}
           full={journals.length >= 16}
           send={send}

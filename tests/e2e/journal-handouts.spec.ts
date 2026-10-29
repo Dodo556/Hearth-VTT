@@ -65,6 +65,21 @@ test("journal image handouts stay private until reveal and revoke future image a
     dm.on("request", (r) => {
       if (r.url().includes("outside.invalid")) external.push(r.url());
     });
+    // Lose only the first journal-copy acknowledgement; preserve real snapshots and the 15s client timer.
+    let unconfirmedRequest: string | undefined;
+    await dm.routeWebSocket("**/api/campaigns/*/ws", (socket) => {
+      const server = socket.connectToServer();
+      socket.onMessage((message) => {
+        const frame = JSON.parse(String(message));
+        if (!unconfirmedRequest && frame.command?.type === "journal.copy")
+          unconfirmedRequest = frame.requestId;
+        server.send(message);
+      });
+      server.onMessage((message) => {
+        const frame = JSON.parse(String(message));
+        if (frame.kind !== "ack" || frame.requestId !== unconfirmedRequest) socket.send(message);
+      });
+    });
     await trackDraws(dm);
     await dm.goto("/");
     await dm.getByLabel("Username", { exact: false }).fill("handouts_dm");
@@ -305,7 +320,15 @@ test("journal image handouts stay private until reveal and revoke future image a
     }
     await dm.setViewportSize({ width: 1440, height: 1000 });
     await reuse.getByRole("button", { name: "Create private copy", exact: true }).click();
+    const recover = reuse.getByRole("button", { name: "Open saved copy", exact: true });
+    await expect(recover).toBeVisible();
+    await expect(recover).toBeDisabled();
+    // This new fault-injection assertion allows the actual 15s confirmation timeout to expire.
+    await expect(recover).toBeEnabled({ timeout: 20000 });
+    await capture(dm, "reuse-recovery");
+    await recover.click();
     await expect(reuse).toHaveCount(0);
+
     await expect(
       dm.getByRole("heading", { name: "Amber mission copy", exact: true }),
     ).toBeVisible();
@@ -363,6 +386,86 @@ test("journal image handouts stay private until reveal and revoke future image a
       players[1].getByRole("img", { name: "The amber seal", exact: true }),
     ).toBeVisible();
     await capture(players[1], "selected-player");
+    const actors = async (p: Page) =>
+      (await (await p.request.get(`/api/campaigns/${campaign}/actors`)).json()).actors;
+    await dm.getByRole("tab", { name: "Characters", exact: true }).click();
+    await dm.getByRole("button", { name: "New actor", exact: true }).click();
+    const actorEditor = dm.getByRole("dialog", { name: "New actor", exact: true });
+    await actorEditor.getByLabel("Actor name", { exact: true }).fill("Prepared sentry");
+    await actorEditor.getByLabel("Actor type", { exact: true }).selectOption("npc");
+    await actorEditor.getByLabel("Portrait artwork", { exact: true }).selectOption(art);
+    await actorEditor
+      .getByLabel("Biography", { exact: true })
+      .fill("A fictional reusable guardian");
+    await actorEditor.getByLabel("Current HP", { exact: true }).fill("6");
+    await actorEditor.getByLabel("DM notes", { exact: true }).fill("PRIVATE ACTOR TEMPLATE NOTES");
+    await actorEditor.getByRole("button", { name: "Add property", exact: true }).click();
+    await actorEditor.getByLabel("Property name 1", { exact: true }).fill("Armor");
+    await actorEditor.getByLabel("Property value 1", { exact: true }).fill("12");
+    await actorEditor.getByRole("button", { name: "Create actor", exact: true }).click();
+    await expect(actorEditor).toHaveCount(0);
+    const sourceActor = (await actors(dm)).find(
+      (a: { name: string }) => a.name === "Prepared sentry",
+    );
+    await dm.getByRole("button", { name: "Use as template", exact: true }).click();
+    const actorCopy = dm.getByRole("dialog", { name: "Use actor as template", exact: true });
+    await actorCopy.getByLabel("Copy name", { exact: true }).fill("Copied sentry");
+    for (const viewport of [
+      { width: 1440, height: 1000 },
+      { width: 760, height: 700 },
+      { width: 390, height: 700 },
+      { width: 900, height: 520 },
+    ]) {
+      await dm.setViewportSize(viewport);
+      const action = actorCopy.getByRole("button", { name: "Create private copy", exact: true });
+      await action.scrollIntoViewIfNeeded();
+      await expect(action).toBeInViewport({ ratio: 1 });
+      await action.click({ trial: true });
+      const box = await actorCopy.boundingBox();
+      expect(box && box.x >= 0 && box.x + box.width <= viewport.width).toBe(true);
+      await capture(dm, `actor-reuse-${viewport.width}`);
+    }
+    await dm.setViewportSize({ width: 1440, height: 1000 });
+    await actorCopy.getByRole("button", { name: "Create private copy", exact: true }).click();
+    await expect(actorCopy).toHaveCount(0);
+    await expect(dm.getByRole("heading", { name: "Copied sentry", exact: true })).toBeVisible();
+    const copiedActor = (await actors(dm)).find(
+      (a: { name: string }) => a.name === "Copied sentry",
+    );
+    expect(copiedActor).toMatchObject({
+      kind: "npc",
+      assetId: art,
+      biography: sourceActor.biography,
+      dmNotes: "PRIVATE ACTOR TEMPLATE NOTES",
+      hp: 6,
+      maxHp: 20,
+      attributes: { Armor: "12" },
+      visibility: "dm",
+      version: 1,
+      permissions: [],
+    });
+    expect((await actors(dm)).find((a: { id: string }) => a.id === sourceActor.id)).toEqual(
+      sourceActor,
+    );
+    for (const p of players) {
+      expect(JSON.stringify(await actors(p))).not.toContain(copiedActor.id);
+      expect(
+        (await p.request.get(`/api/campaigns/${campaign}/actors/${copiedActor.id}`)).status(),
+      ).toBe(404);
+    }
+    expect(
+      playerFrames.every((messages) =>
+        messages.every(
+          (f) => !f.includes(copiedActor.id) && !f.includes("PRIVATE ACTOR TEMPLATE NOTES"),
+        ),
+      ),
+    ).toBe(true);
+    await dm.getByRole("button", { name: "Edit sheet", exact: true }).click();
+    await dm.getByLabel("Current HP", { exact: true }).fill("5");
+    await dm.getByRole("button", { name: "Save sheet", exact: true }).click();
+    await expect(dm.getByRole("dialog")).toHaveCount(0);
+    await dm.getByRole("tab", { name: "Journal", exact: true }).click();
+    await dm.getByRole("button", { name: "The amber seal", exact: true }).click();
     await stop();
     await start();
     for (const p of [dm, ...players]) {
@@ -388,6 +491,16 @@ test("journal image handouts stay private until reveal and revoke future image a
       },
     );
     for (const p of players) expect(JSON.stringify(await read(p))).not.toContain(copied.id);
+    expect((await actors(dm)).find((a: { id: string }) => a.id === copiedActor.id)).toMatchObject({
+      hp: 5,
+      version: 2,
+      dmNotes: "PRIVATE ACTOR TEMPLATE NOTES",
+      permissions: [],
+      visibility: "dm",
+    });
+    expect((await actors(dm)).find((a: { id: string }) => a.id === sourceActor.id)).toEqual(
+      sourceActor,
+    );
     const people = (await (await dm.request.get(`/api/campaigns/${campaign}/participants`)).json())
       .participants;
     const bob = people.find((p: { displayName: string }) => p.displayName === "Bob");
@@ -449,6 +562,50 @@ test("journal image handouts stay private until reveal and revoke future image a
     await dm.getByRole("button", { name: "Hide from players", exact: true }).click();
     await expect(
       players[0].getByRole("button", { name: "Amber mission copy", exact: true }),
+    ).toHaveCount(0);
+    expect((await players[0].request.get(imageURL)).status()).toBe(404);
+    await dm.getByRole("tab", { name: "Characters", exact: true }).click();
+    await dm.getByRole("button", { name: "Copied sentry", exact: true }).click();
+    await dm.getByLabel("Sheet visibility", { exact: true }).selectOption("shared");
+    await players[0].getByRole("tab", { name: "Characters", exact: true }).click();
+    await players[0].getByRole("button", { name: "Copied sentry", exact: true }).click();
+    await expect(players[0].getByRole("img", { name: "Copied sentry", exact: true })).toBeVisible();
+    await expect(
+      players[0].getByRole("button", { name: "Use as template", exact: true }),
+    ).toHaveCount(0);
+    const sharedCopy = (await actors(players[0])).find(
+      (a: { id: string }) => a.id === copiedActor.id,
+    );
+    expect(sharedCopy.dmNotes).toBeUndefined();
+    expect(sharedCopy.permissions).toBeUndefined();
+    expect(sharedCopy.hp).toBe(5);
+    expect((await players[0].request.get(imageURL)).status()).toBe(200);
+    for (const viewport of [
+      { width: 1440, height: 1000 },
+      { width: 760, height: 700 },
+      { width: 390, height: 700 },
+      { width: 900, height: 520 },
+    ]) {
+      await dm.setViewportSize(viewport);
+      const actions = dm.locator(".actor-sheet > .actor-actions > button");
+      await expect(actions).toHaveCount(3);
+      await actions.last().scrollIntoViewIfNeeded();
+      const panel = await dm
+        .getByRole("complementary", { name: "Workspace sidebar" })
+        .boundingBox();
+      for (const action of await actions.all()) {
+        await expect(action).toBeInViewport({ ratio: 1 });
+        const box = await action.boundingBox();
+        expect(panel && box && box.x >= panel.x && box.x + box.width <= panel.x + panel.width).toBe(
+          true,
+        );
+      }
+      await capture(dm, `actor-actions-${viewport.width}`);
+    }
+    await dm.setViewportSize({ width: 1440, height: 1000 });
+    await dm.getByLabel("Sheet visibility", { exact: true }).selectOption("dm");
+    await expect(
+      players[0].getByRole("button", { name: "Copied sentry", exact: true }),
     ).toHaveCount(0);
     expect((await players[0].request.get(imageURL)).status()).toBe(404);
     expect(external).toEqual([]);
