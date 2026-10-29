@@ -1,3 +1,13 @@
+# Hearth VTT · Build0.0.25 · actor reuse and saved-copy recovery ·2026-10-29
+
+Continue0.0.24 with GM actor.copy/private actor reuse and K022 correction through shared PrivateCopyDialog. Copy exact saved type/portrait/biography/GM notes/current/max HP/custom properties into private/version1 actors, without owner/token/controller/status/combat grants or associations; original records stay intact. Same-campaign/source-version/fresh-ID/portrait/quota16/membership/archive checks remain host-authoritative. Existing authorized destination IDs now block another create and offer explicit Open saved copy after pending ends, including source loss/full/offline; failed/stale names remain until explicit reload. Schema20/wire1/all20 migrations unchanged, no dependency; all179 IDs/partial states retained.
+
+K022/protocol/host/actor UI regressions observed RED→GREEN. Final full `pnpm verify:release` exits0: workflow7/TS135/Rust115/browser17/17 in6.6m, plus lint/types/fmt/Clippy/inventory/matched builds. Real15s acknowledgement-loss recovery and GM/Alice/Bob private NPC copy, GM-note/ID privacy, copied HP edits/source independence, restart and independent portrait sharing pass. New20s recovery assertion observes the unchanged15s timer; no existing timeouts/assertions weakened. Current actor/journal backup rows and canonical10–19 recovery pass. Four-size dialog/actions and recovery captures inspected. One independent review found no blocking issue; Minor K013 actor-copy emoji/name-validation mismatch is documented/deferred. Exact source/evidence/limits in RELEASE_VALIDATION.
+
+Next: K013 name hardening with dedicated content-library/metadata work, then item/scene/cross-campaign reuse as foundations permit and remaining initiative/P0/hosting. No complete library/provenance/import/export yet. K019/K020 and manual LAN/30-minute/platform/current-browser/distribution gates remain open. Local commits only, no automatic push/publication or real campaign update.
+
+## Previous0.0.24 evidence
+
 # Hearth VTT · Build0.0.24 · private journal reuse ·2026-10-29
 
 Continue pushed0.0.23 with K021 corrected and GM Use as template/Create private copy. The authoritative journal.copy transaction derives exact saved body/format/image from a versioned same-campaign source; a fresh private Top level/version1 page inherits no reader/folder grants and leaves the source unchanged. Normal copy edits/sharing are independent. Existing quota16/title80/body1000 rules, receipts, current membership/archive checks and protected media remain. Schema20/wire1/all20 migrations unchanged; no dependency. EXT-01 advances to IN_PROGRESS as a reuse foundation, not a completed content library; all179 partial IDs retained.
