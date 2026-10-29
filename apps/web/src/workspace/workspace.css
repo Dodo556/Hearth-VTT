@@ -2076,3 +2076,21 @@ dialog .button {
 .journal-folder-editor .dialog-actions > button {
   min-height: 36px;
 }
+
+.vtt-workspace .journal-image {
+  margin: 12px 0;
+  max-width: 100%;
+}
+.vtt-workspace .journal-image img {
+  display: block;
+  width: 100%;
+  max-height: 360px;
+  object-fit: contain;
+  border-radius: var(--radius);
+}
+.vtt-workspace .journal-image img[hidden] {
+  display: none;
+}
+.vtt-workspace .journal-image figcaption {
+  font-size: 11px;
+}

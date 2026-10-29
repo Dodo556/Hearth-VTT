@@ -132,7 +132,7 @@ mod tests {
             .fetch_one(&store.pool)
             .await
             .unwrap();
-        assert_eq!(version, 17, "The journal-folder migration must be embedded");
+        assert_eq!(version, 18, "The journal-image migration must be embedded");
         let fk: i64 = sqlx::query_scalar("PRAGMA foreign_keys")
             .fetch_one(&store.pool)
             .await

@@ -59,7 +59,7 @@ async fn whole_host_backup_restores_committed_data_and_blobs_without_overwriting
     let archive = std::fs::read(&prepared.path).unwrap();
     let (manifest, _) = parts(&archive);
     assert_eq!(manifest["formatVersion"], 1);
-    assert_eq!(manifest["schemaVersion"], 17);
+    assert_eq!(manifest["schemaVersion"], 18);
     assert_eq!(manifest["files"].as_array().unwrap().len(), 2);
     assert_eq!(manifest["files"][0]["path"], "hearth.db");
     assert!(!manifest.to_string().contains("orphan"));
@@ -157,8 +157,8 @@ async fn corrupt_truncated_and_path_forged_archives_leave_no_recovery_copy() {
         changed["files"][0]["byteSize"] = json!(size);
         variants.push(encoded(&changed, &payload));
     }
-    for schema in [10, 11, 12, 13, 14, 15, 16, 18] {
-        // A schema-17 database must not be accepted under a different manifest version.
+    for schema in [10, 11, 12, 13, 14, 15, 16, 17, 19] {
+        // A schema-18 database must not be accepted under a different manifest version.
         let mut changed = manifest.clone();
         changed["schemaVersion"] = json!(schema);
         variants.push(encoded(&changed, &payload));
@@ -463,18 +463,18 @@ async fn schema_ten_backup_restores_and_migrates_without_losing_data() {
             .fetch_one(&reopened.pool)
             .await
             .unwrap(),
-        17
+        18
     );
 }
 
 #[tokio::test]
-async fn newly_created_backups_report_schema_seventeen() {
+async fn newly_created_backups_report_schema_eighteen() {
     let root = tempfile::tempdir().unwrap();
     let store = fixture(root.path()).await;
     let prepared = backup::create(&store, root.path(), "0.0.12", 100)
         .await
         .unwrap();
-    assert_eq!(prepared.summary.schema_version, 17);
+    assert_eq!(prepared.summary.schema_version, 18);
 }
 
 #[tokio::test]
@@ -686,6 +686,15 @@ async fn restore_previous_drawing_schema(schema: i64) {
     .await
     .unwrap();
     let reopened = Store::open(&restored).await.unwrap();
+    let image: Option<String> =
+        sqlx::query_scalar("SELECT asset_id FROM journals WHERE id='secret'")
+            .fetch_one(&reopened.pool)
+            .await
+            .unwrap();
+    assert!(
+        image.is_none(),
+        "Old text pages must not gain an image or sharing grant"
+    );
     if schema >= 15 {
         assert_eq!(
             sqlx::query_as::<_, (String, i64)>(
@@ -762,7 +771,7 @@ async fn restore_previous_drawing_schema(schema: i64) {
             .fetch_one(&reopened.pool)
             .await
             .unwrap(),
-        17
+        18
     );
     assert_eq!(
         sqlx::query_as::<_, (String, f64, f64, String)>(
@@ -795,4 +804,56 @@ async fn schema_fifteen_backup_preserves_notes_and_adds_unconfigured_token_vital
 #[tokio::test]
 async fn schema_sixteen_backup_preserves_notes_and_vitals_and_adds_root_organization() {
     restore_previous_drawing_schema(16).await;
+}
+
+#[tokio::test]
+async fn journal_images_survive_backup_and_reject_foreign_campaign_references() {
+    let root = tempfile::tempdir().unwrap();
+    let store = fixture(root.path()).await;
+    sqlx::query("UPDATE journals SET asset_id='art',version=8 WHERE id='secret'")
+        .execute(&store.pool)
+        .await
+        .unwrap();
+    let prepared = backup::create(&store, root.path(), "0.0.21", 100)
+        .await
+        .unwrap();
+    let restored = backup::restore(
+        backup::verify(&prepared.path, &root.path().join("restores"))
+            .await
+            .unwrap(),
+        200,
+    )
+    .await
+    .unwrap();
+    let copy = Store::open(&restored).await.unwrap();
+    let page: (String, String, i64) =
+        sqlx::query_as("SELECT asset_id,visibility,version FROM journals WHERE id='secret'")
+            .fetch_one(&copy.pool)
+            .await
+            .unwrap();
+    assert_eq!(page, ("art".to_owned(), "dm".to_owned(), 8));
+    assert_eq!(
+        std::fs::read(
+            restored
+                .join("assets")
+                .join(format!("{}.png", hex::encode(Sha256::digest(ART))))
+        )
+        .unwrap(),
+        ART
+    );
+    sqlx::query("INSERT INTO campaigns(id,name,created_by,created_at,updated_at) VALUES('foreign','Other','owner',1,1)").execute(&store.pool).await.unwrap();
+    sqlx::query("UPDATE assets SET campaign_id='foreign' WHERE id='art'")
+        .execute(&store.pool)
+        .await
+        .unwrap();
+    assert!(
+        backup::create(&store, root.path(), "0.0.21", 300)
+            .await
+            .is_err()
+    );
+}
+
+#[tokio::test]
+async fn schema_seventeen_archive_preserves_pages_and_upgrades_images_to_unset() {
+    restore_previous_drawing_schema(17).await;
 }

@@ -427,6 +427,7 @@ impl RollVisibility {
 #[derive(Debug, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase", deny_unknown_fields)]
 pub struct CreateJournal {
+    pub asset_id: Option<String>,
     pub journal_id: String,
     pub title: String,
     pub body: String,
@@ -435,6 +436,13 @@ pub struct CreateJournal {
 #[derive(Debug, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase", deny_unknown_fields)]
 pub struct UpdateJournal {
+    // An omitted field preserves images for text-only clients; null explicitly removes.
+    #[serde(
+        default,
+        deserialize_with = "journal_image_change",
+        skip_serializing_if = "Option::is_none"
+    )]
+    pub asset_id: Option<Option<String>>,
     pub journal_id: String,
     pub expected_version: i64,
     pub title: String,
@@ -636,4 +644,10 @@ pub struct MoveJournal {
     pub expected_version: i64,
     #[serde(deserialize_with = "required_nullable")]
     pub folder_id: Option<String>,
+}
+
+fn journal_image_change<'de, D: serde::Deserializer<'de>>(
+    deserializer: D,
+) -> Result<Option<Option<String>>, D::Error> {
+    Option::<String>::deserialize(deserializer).map(Some)
 }

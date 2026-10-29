@@ -628,6 +628,7 @@ function TableSession({ user, id }: { user: User; id: string }) {
       </div>
       <div className="feature-panel" hidden={effectivePanel !== "journal"}>
         <Journals
+          campaignId={id}
           key={id}
           journals={journals.data?.journals ?? []}
           folders={journals.data?.folders ?? []}

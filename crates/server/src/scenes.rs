@@ -261,17 +261,27 @@ pub async fn detail(
         .ok_or_else(ApiError::hidden)?;
     Ok(Json(json!({"schemaVersion":1,"scene":scene})))
 }
+type JournalRow = (
+    String,
+    String,
+    String,
+    String,
+    i64,
+    Option<String>,
+    Option<String>,
+);
 pub(crate) async fn projected_journals(
     conn: &mut sqlx::SqliteConnection,
     id: &str,
     dm: bool,
 ) -> ApiResult<Vec<Journal>> {
-    let rows:Vec<(String,String,String,String,i64,Option<String>)>=sqlx::query_as("SELECT id,title,body,visibility,version,folder_id FROM journals WHERE campaign_id=? AND (visibility='shared' OR ?=1) ORDER BY created_at,id")
+    let rows:Vec<JournalRow>=sqlx::query_as("SELECT id,title,body,visibility,version,folder_id,asset_id FROM journals WHERE campaign_id=? AND (visibility='shared' OR ?=1) ORDER BY created_at,id")
         .bind(id).bind(dm).fetch_all(&mut *conn).await?;
     Ok(rows
         .into_iter()
         .map(
-            |(id, title, body, visibility, version, folder_id)| Journal {
+            |(id, title, body, visibility, version, folder_id, asset_id)| Journal {
+                asset_id,
                 folder_id: if dm { folder_id } else { None },
                 version,
                 id,

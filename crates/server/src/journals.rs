@@ -48,6 +48,20 @@ pub(crate) async fn version(
     }
     Ok(())
 }
+async fn image(conn: &mut SqliteConnection, campaign: &str, asset: Option<&str>) -> ApiResult<()> {
+    if let Some(id) = asset {
+        let exists: bool =
+            sqlx::query_scalar("SELECT EXISTS(SELECT 1 FROM assets WHERE campaign_id=? AND id=?)")
+                .bind(campaign)
+                .bind(id)
+                .fetch_one(conn)
+                .await?;
+        if !exists {
+            return Err(ApiError::hidden());
+        }
+    }
+    Ok(())
+}
 pub(crate) async fn apply(
     conn: &mut SqliteConnection,
     campaign: &str,
@@ -57,6 +71,7 @@ pub(crate) async fn apply(
         TokenCommand::JournalCreate(p) => {
             crate::journal_folders::destination(conn, campaign, p.folder_id.as_deref()).await?;
             let title = fields(&p.title, &p.body)?;
+            image(conn, campaign, p.asset_id.as_deref()).await?;
             let count: i64 =
                 sqlx::query_scalar("SELECT COUNT(*) FROM journals WHERE campaign_id=?")
                     .bind(campaign)
@@ -67,8 +82,8 @@ pub(crate) async fn apply(
                     "This build supports up to 16 journal pages per campaign.",
                 ));
             }
-            let inserted = sqlx::query("INSERT INTO journals(id,campaign_id,title,body,visibility,created_at,folder_id) VALUES(?,?,?,?,'dm',?,?) ON CONFLICT(id) DO NOTHING")
-                .bind(&p.journal_id).bind(campaign).bind(title).bind(&p.body).bind(security::now()).bind(&p.folder_id).execute(&mut *conn).await?;
+            let inserted = sqlx::query("INSERT INTO journals(id,campaign_id,title,body,visibility,created_at,folder_id,asset_id) VALUES(?,?,?,?,'dm',?,?,?) ON CONFLICT(id) DO NOTHING")
+                .bind(&p.journal_id).bind(campaign).bind(title).bind(&p.body).bind(security::now()).bind(&p.folder_id).bind(&p.asset_id).execute(&mut *conn).await?;
             if inserted.rows_affected() != 1 {
                 return Err(ApiError::invalid("Use a fresh journal ID."));
             }
@@ -76,8 +91,21 @@ pub(crate) async fn apply(
         TokenCommand::JournalUpdate(p) => {
             version(conn, campaign, &p.journal_id, p.expected_version).await?;
             let title = fields(&p.title, &p.body)?;
-            sqlx::query("UPDATE journals SET title=?,body=?,visibility=?,version=version+1 WHERE campaign_id=? AND id=?")
-                .bind(title).bind(&p.body).bind(match p.visibility { Visibility::Shared => "shared", Visibility::Dm => "dm" }).bind(campaign).bind(&p.journal_id).execute(&mut *conn).await?;
+            let old: Option<String> =
+                sqlx::query_scalar("SELECT asset_id FROM journals WHERE campaign_id=? AND id=?")
+                    .bind(campaign)
+                    .bind(&p.journal_id)
+                    .fetch_one(&mut *conn)
+                    .await?;
+            let asset_id = p.asset_id.as_ref().unwrap_or(&old);
+            image(conn, campaign, asset_id.as_deref()).await?;
+            if old != *asset_id && matches!(p.visibility, Visibility::Shared) {
+                return Err(ApiError::invalid(
+                    "Save image changes privately before revealing the page.",
+                ));
+            }
+            sqlx::query("UPDATE journals SET title=?,body=?,visibility=?,asset_id=?,version=version+1 WHERE campaign_id=? AND id=?")
+                .bind(title).bind(&p.body).bind(match p.visibility { Visibility::Shared => "shared", Visibility::Dm => "dm" }).bind(asset_id).bind(campaign).bind(&p.journal_id).execute(&mut *conn).await?;
         }
         TokenCommand::JournalDelete(p) => {
             version(conn, campaign, &p.journal_id, p.expected_version).await?;

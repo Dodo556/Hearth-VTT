@@ -152,6 +152,7 @@ export const JournalFolderSchema = z
   .strict();
 export type JournalFolder = z.infer<typeof JournalFolderSchema>;
 export const JournalSchema = z.object({
+  assetId: z.uuid().optional(),
   folderId: z.uuid().optional(),
   version: z.number().int().positive(),
   id: z.string(),
@@ -270,6 +271,7 @@ export type Roll = z.infer<typeof RollSchema>;
 export const RollsResponse = z.object({ ...version, rolls: z.array(RollSchema).max(20) });
 export const RollResponse = z.object({ ...version, roll: RollSchema });
 const journalFields = {
+  assetId: z.uuid().nullable().optional(),
   title: z
     .string()
     .trim()

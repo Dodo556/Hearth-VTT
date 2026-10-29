@@ -2,9 +2,11 @@ import type { Journal, JournalFolder, TokenCommand } from "@hearth/protocol";
 import { Button, Dialog, ErrorMessage } from "@hearth/ui";
 import { FolderPlus } from "lucide-react";
 import { useEffect, useRef, useState } from "react";
+import { api } from "../api";
 import { t } from "../i18n/en";
 import { folderChoices, JournalDirectory } from "./JournalDirectory";
 import { JournalFolderManager } from "./JournalFolderManager";
+import { JournalImage } from "./JournalImage";
 
 type Draft = {
   id: string;
@@ -13,14 +15,17 @@ type Draft = {
   body: string;
   visibility: "dm" | "shared";
   folderId?: string;
+  assetId?: string;
 };
 export function Journals({
+  campaignId = "",
   journals,
   folders = [],
   dm,
   disabled,
   send,
 }: {
+  campaignId?: string;
   journals: Journal[];
   folders?: JournalFolder[];
   dm: boolean;
@@ -129,10 +134,48 @@ export function Journals({
                 {page.visibility === "dm" ? t.dmOnly : t.shared}
               </span>
               <h2>{page.title}</h2>
+              {page.assetId && (
+                <JournalImage
+                  key={page.assetId}
+                  campaignId={campaignId}
+                  assetId={page.assetId}
+                  title={page.title}
+                />
+              )}
               <p>{page.body}</p>
+              {page.assetId && (
+                <p className="muted">
+                  Hiding stops future access. Previously received images and other sharing grants
+                  cannot be recalled.
+                </p>
+              )}
               <footer>{t.journalPlainText}</footer>
               {dm && (
                 <div className="dialog-actions">
+                  {page.assetId && (
+                    <Button
+                      type="button"
+                      disabled={disabled || pending}
+                      onClick={() => {
+                        void submit(
+                          {
+                            type: "journal.update",
+                            payload: {
+                              journalId: page.id,
+                              expectedVersion: page.version,
+                              title: page.title,
+                              body: page.body,
+                              assetId: page.assetId,
+                              visibility: page.visibility === "dm" ? "shared" : "dm",
+                            },
+                          },
+                          () => {},
+                        );
+                      }}
+                    >
+                      {page.visibility === "dm" ? "Reveal to players" : "Hide from players"}
+                    </Button>
+                  )}
                   <Button type="button" disabled={disabled || pending} onClick={() => edit(page)}>
                     {t.editJournal}
                   </Button>
@@ -168,7 +211,12 @@ export function Journals({
           onSubmit={(event) => {
             event.preventDefault();
             if (disabled || pending || stale || (draft.version === null && destinationGone)) return;
-            const fields = { journalId: draft.id, title: draft.title, body: draft.body };
+            const fields = {
+              journalId: draft.id,
+              title: draft.title,
+              body: draft.body,
+              assetId: draft.assetId ?? null,
+            };
             void submit(
               draft.version === null
                 ? {
@@ -222,6 +270,63 @@ export function Journals({
               onChange={(e) => setDraft({ ...draft, body: e.target.value })}
             />
           </label>
+          <label>
+            Handout image
+            <input
+              aria-label="Handout image"
+              type="file"
+              accept="image/png,image/jpeg,image/webp"
+              disabled={disabled || pending || stale}
+              onChange={(e) => {
+                const file = e.target.files?.[0];
+                e.target.value = "";
+                if (!file) return;
+                setPending(true);
+                setError(null);
+                void api
+                  .uploadAsset(campaignId, file)
+                  .then((result) => {
+                    if (mounted.current)
+                      setDraft((value) =>
+                        value && value.id === draft.id && value.version === draft.version
+                          ? { ...value, assetId: result.asset.id, visibility: "dm" }
+                          : value,
+                      );
+                  })
+                  .catch((reason) => {
+                    if (mounted.current)
+                      setError(
+                        reason instanceof Error ? reason : new Error("Image upload failed."),
+                      );
+                  })
+                  .finally(() => {
+                    if (mounted.current) setPending(false);
+                  });
+              }}
+            />
+          </label>
+          <p className="muted">
+            {pending
+              ? "Saving or uploading…"
+              : "PNG, JPEG or WebP, up to 8 MiB / 4096px. Uploads stay GM-only until a page reveals them. Image changes must be saved privately first."}
+          </p>
+          {draft.assetId && (
+            <>
+              <JournalImage
+                key={draft.assetId}
+                campaignId={campaignId}
+                assetId={draft.assetId}
+                title="Handout preview"
+              />
+              <Button
+                type="button"
+                disabled={disabled || pending}
+                onClick={() => setDraft({ ...draft, assetId: undefined, visibility: "dm" })}
+              >
+                Remove image
+              </Button>
+            </>
+          )}
           {draft.version === null && (
             <label>
               Folder
@@ -262,7 +367,9 @@ export function Journals({
                 }
               >
                 <option value="dm">{t.dmOnly}</option>
-                <option value="shared">{t.shared}</option>
+                <option value="shared" disabled={current?.assetId !== draft.assetId}>
+                  {t.shared}
+                </option>
               </select>
             </label>
           ) : (

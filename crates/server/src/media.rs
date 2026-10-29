@@ -223,7 +223,9 @@ pub(crate) async fn read(
             s.background_asset_id == asset_id || s.tokens.iter().any(|t| t.asset_id == asset_id)
         });
     let actor_reference:bool=sqlx::query_scalar("SELECT EXISTS(SELECT 1 FROM actors a WHERE a.campaign_id=? AND a.asset_id=? AND (?=1 OR a.visibility='shared' OR EXISTS(SELECT 1 FROM actor_ownership o WHERE o.actor_id=a.id AND o.user_id=?)))").bind(&id).bind(&asset_id).bind(dm).bind(&user).fetch_one(&mut *tx).await?;
-    if !(permitted || actor_reference || dm && metadata.is_some()) {
+    let journal_reference: bool = sqlx::query_scalar("SELECT EXISTS(SELECT 1 FROM journals WHERE campaign_id=? AND asset_id=? AND visibility='shared')")
+        .bind(&id).bind(&asset_id).fetch_one(&mut *tx).await?;
+    if !(permitted || actor_reference || journal_reference || dm && metadata.is_some()) {
         return Err(ApiError::hidden());
     }
     tx.commit().await?;

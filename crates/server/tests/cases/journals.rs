@@ -247,3 +247,265 @@ async fn journals_validate_limits_foreign_ids_archive_and_persist() {
     assert_eq!(version, 1);
     store.pool.close().await;
 }
+
+#[tokio::test]
+async fn journal_images_require_campaign_assets_and_current_shared_page_authority() {
+    let h = Host::new().await;
+    let owner = h.owner().await;
+    let camp = h.campaign_id(&owner).await;
+    let (alice, _) = h.player(&owner, &camp, "image_alice").await;
+    let (bob, _) = h.player(&owner, &camp, "image_bob").await;
+    let (status, uploaded) = upload_image(&h, &owner, &camp, map_fixture(), "image/png").await;
+    assert_eq!(status, StatusCode::OK);
+    let art = uploaded["asset"]["id"].as_str().unwrap();
+    let url = format!("/api/campaigns/{camp}/assets/{art}");
+    assert_eq!(
+        h.request("GET", &url, json!({}), Some(&alice)).await.0,
+        StatusCode::NOT_FOUND
+    );
+    let server = LiveServer::start(&h).await;
+    let mut dm = server.connect(&camp, &owner).await;
+    frame(&mut dm).await;
+    let mut a = server.connect(&camp, &alice).await;
+    frame(&mut a).await;
+    let mut b = server.connect(&camp, &bob).await;
+    frame(&mut b).await;
+    let id = uuid::Uuid::new_v4().to_string();
+    let create = json!({"type":"journal.create","payload":{"journalId":id,"title":"Secret image","body":"Literal clue","assetId":art}});
+    let mut rev = 0;
+    accepted(&mut dm, &mut rev, create).await;
+    for socket in [&mut a, &mut b] {
+        let projection = through(socket, rev).await.to_string();
+        assert!(!projection.contains(art));
+        assert!(!projection.contains(&id));
+    }
+    let update = |version, visibility, image: Option<&str>| json!({"type":"journal.update","payload":{"journalId":id,"expectedVersion":version,"title":"Secret image","body":"Literal clue","visibility":visibility,"assetId":image}});
+    let denied = command(
+        &mut a,
+        &uuid::Uuid::new_v4().to_string(),
+        rev,
+        update(1, "shared", Some(art)),
+    )
+    .await;
+    assert_eq!(denied["error"]["code"], "FORBIDDEN");
+    accepted(&mut dm, &mut rev, update(1, "shared", Some(art))).await;
+    for socket in [&mut a, &mut b] {
+        let projection = through(socket, rev).await;
+        assert!(
+            projection["journals"]
+                .as_array()
+                .unwrap()
+                .iter()
+                .any(|j| j["id"] == id && j["assetId"] == art)
+        );
+    }
+    for cookie in [&alice, &bob] {
+        let request = Request::builder()
+            .uri(&url)
+            .header("host", "localhost:8787")
+            .header("cookie", cookie)
+            .body(Body::empty())
+            .unwrap();
+        let response = h.app.clone().oneshot(request).await.unwrap();
+        assert_eq!(response.status(), StatusCode::OK);
+        assert!(
+            response.headers()["cache-control"]
+                .to_str()
+                .unwrap()
+                .contains("no-store")
+        );
+    }
+    let stale = command(
+        &mut dm,
+        &uuid::Uuid::new_v4().to_string(),
+        rev,
+        update(1, "dm", None),
+    )
+    .await;
+    assert_eq!(stale["error"]["code"], "STALE_JOURNAL");
+    accepted(&mut dm, &mut rev, update(2, "dm", Some(art))).await;
+    for socket in [&mut a, &mut b] {
+        assert!(!through(socket, rev).await.to_string().contains(art));
+    }
+    assert_eq!(
+        h.request("GET", &url, json!({}), Some(&bob)).await.0,
+        StatusCode::NOT_FOUND
+    );
+    let (_, other, _) = h
+        .request(
+            "POST",
+            "/api/campaigns",
+            json!({"name":"Foreign","description":""}),
+            Some(&owner),
+        )
+        .await;
+    let foreign = other["campaign"]["id"].as_str().unwrap();
+    let (_, foreign_art) = upload_image(&h, &owner, foreign, map_fixture(), "image/png").await;
+    for invalid in [
+        foreign_art["asset"]["id"].as_str().unwrap().to_owned(),
+        uuid::Uuid::new_v4().to_string(),
+        "amber-map".to_owned(),
+    ] {
+        let rejected = command(
+            &mut dm,
+            &uuid::Uuid::new_v4().to_string(),
+            rev,
+            update(3, "dm", Some(&invalid)),
+        )
+        .await;
+        assert_eq!(rejected["error"]["code"], "NOT_FOUND_OR_HIDDEN");
+    }
+    let saved: Option<String> = sqlx::query_scalar("SELECT asset_id FROM journals WHERE id=?")
+        .bind(&id)
+        .fetch_one(&h.state.store.pool)
+        .await
+        .unwrap();
+    assert_eq!(saved.as_deref(), Some(art));
+    accepted(&mut dm, &mut rev, update(3, "dm", None)).await;
+    let (_, pages, _) = h
+        .request(
+            "GET",
+            &format!("/api/campaigns/{camp}/journals"),
+            json!({}),
+            Some(&owner),
+        )
+        .await;
+    assert!(!pages.to_string().contains(art));
+    for socket in [&mut dm, &mut a, &mut b] {
+        socket.close(None).await.unwrap();
+    }
+}
+
+#[tokio::test]
+async fn replacing_shared_handouts_requires_private_save_and_independent_grants_remain() {
+    let h = Host::new().await;
+    let owner = h.owner().await;
+    let camp = h.campaign_id(&owner).await;
+    let (alice, alice_id) = h.player(&owner, &camp, "handout_reader").await;
+    let (_, first) = upload_image(&h, &owner, &camp, map_fixture(), "image/png").await;
+    let (_, second) = upload_image(
+        &h,
+        &owner,
+        &camp,
+        include_bytes!("../../../../content/examples/amber-keep/warden.png").to_vec(),
+        "image/png",
+    )
+    .await;
+    let art = first["asset"]["id"].as_str().unwrap();
+    let replacement = second["asset"]["id"].as_str().unwrap();
+    let server = LiveServer::start(&h).await;
+    let mut dm = server.connect(&camp, &owner).await;
+    frame(&mut dm).await;
+    let mut rev = 0;
+    let id = uuid::Uuid::new_v4().to_string();
+    let other = uuid::Uuid::new_v4().to_string();
+    let update = |page: &str, version, visibility, image| json!({"type":"journal.update","payload":{"journalId":page,"expectedVersion":version,"title":"Handout","body":"","visibility":visibility,"assetId":image}});
+    for page in [&id, &other] {
+        accepted(&mut dm,&mut rev,json!({"type":"journal.create","payload":{"journalId":page,"title":"Handout","body":"","assetId":art}})).await;
+        accepted(&mut dm, &mut rev, update(page, 1, "shared", art)).await;
+    }
+    let denied = command(
+        &mut dm,
+        &uuid::Uuid::new_v4().to_string(),
+        rev,
+        update(&id, 2, "shared", replacement),
+    )
+    .await;
+    assert_eq!(denied["error"]["code"], "VALIDATION_FAILED");
+    accepted(&mut dm, &mut rev, update(&id, 2, "dm", replacement)).await;
+    let url = format!("/api/campaigns/{camp}/assets/{art}");
+    let replacement_url = format!("/api/campaigns/{camp}/assets/{replacement}");
+    assert_eq!(
+        h.request("GET", &url, json!({}), Some(&alice)).await.0,
+        StatusCode::OK
+    );
+    assert_eq!(
+        h.request("GET", &replacement_url, json!({}), Some(&alice))
+            .await
+            .0,
+        StatusCode::NOT_FOUND
+    );
+    accepted(
+        &mut dm,
+        &mut rev,
+        json!({"type":"journal.delete","payload":{"journalId":other,"expectedVersion":2}}),
+    )
+    .await;
+    assert_eq!(
+        h.request("GET", &url, json!({}), Some(&alice)).await.0,
+        StatusCode::NOT_FOUND
+    );
+    accepted(&mut dm, &mut rev, update(&id, 3, "shared", replacement)).await;
+    assert_eq!(
+        h.request("GET", &replacement_url, json!({}), Some(&alice))
+            .await
+            .0,
+        StatusCode::OK
+    );
+    let request_id = uuid::Uuid::new_v4().to_string();
+    let hide = update(&id, 4, "dm", replacement);
+    assert_eq!(
+        command(&mut dm, &request_id, rev, hide.clone()).await["kind"],
+        "ack"
+    );
+    assert_eq!(
+        command(&mut dm, &request_id, rev, hide).await["duplicate"],
+        true
+    );
+    rev += 1;
+    accepted(&mut dm, &mut rev, update(&id, 5, "shared", replacement)).await;
+    h.request(
+        "POST",
+        &format!("/api/campaigns/{camp}/members/{alice_id}/revoke"),
+        json!({}),
+        Some(&owner),
+    )
+    .await;
+    assert_ne!(
+        h.request("GET", &replacement_url, json!({}), Some(&alice))
+            .await
+            .0,
+        StatusCode::OK
+    );
+    dm.close(None).await.unwrap();
+}
+
+#[tokio::test]
+async fn text_only_journal_updates_preserve_images_until_explicit_removal() {
+    let h = Host::new().await;
+    let owner = h.owner().await;
+    let camp = h.campaign_id(&owner).await;
+    let (_, uploaded) = upload_image(&h, &owner, &camp, map_fixture(), "image/png").await;
+    let art = uploaded["asset"]["id"].as_str().unwrap();
+    let server = LiveServer::start(&h).await;
+    let mut dm = server.connect(&camp, &owner).await;
+    frame(&mut dm).await;
+    let id = uuid::Uuid::new_v4().to_string();
+    let mut rev = 0;
+    accepted(&mut dm,&mut rev,json!({"type":"journal.create","payload":{"journalId":id,"title":"Clue","body":"","assetId":art}})).await;
+    let request = uuid::Uuid::new_v4().to_string();
+    let original = journal_update(&id, 1, "dm", "Text-only edit");
+    assert_eq!(
+        command(&mut dm, &request, rev, original.clone()).await["kind"],
+        "ack"
+    );
+    let mut different = original;
+    different["payload"]["assetId"] = Value::Null;
+    let reply = command(&mut dm, &request, rev, different).await;
+    assert_eq!(reply["error"]["code"], "REQUEST_ID_REUSED");
+    rev += 1;
+    let image: Option<String> = sqlx::query_scalar("SELECT asset_id FROM journals WHERE id=?")
+        .bind(&id)
+        .fetch_one(&h.state.store.pool)
+        .await
+        .unwrap();
+    assert_eq!(image.as_deref(), Some(art));
+    accepted(&mut dm,&mut rev,json!({"type":"journal.update","payload":{"journalId":id,"expectedVersion":2,"title":"Clue","body":"Text-only edit","visibility":"dm","assetId":null}})).await;
+    let image: Option<String> = sqlx::query_scalar("SELECT asset_id FROM journals WHERE id=?")
+        .bind(&id)
+        .fetch_one(&h.state.store.pool)
+        .await
+        .unwrap();
+    assert!(image.is_none());
+    dm.close(None).await.unwrap();
+}

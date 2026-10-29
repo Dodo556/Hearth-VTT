@@ -439,9 +439,11 @@ async fn maximum_unicode_actors_and_grants_survive_restart() {
         .execute(&h.state.store.pool)
         .await
         .unwrap();
+    let (_, artwork) = upload_image(&h, &owner, &camp, map_fixture(), "image/png").await;
+    let image = artwork["asset"]["id"].as_str().unwrap();
     for _ in 0..16 {
-        sqlx::query("INSERT INTO journals(id,campaign_id,title,body,visibility,created_at) VALUES(?,?,?,?,'shared',1)")
-            .bind(uuid::Uuid::new_v4().to_string()).bind(&camp).bind("😀".repeat(80)).bind("😀".repeat(1000)).execute(&h.state.store.pool).await.unwrap();
+        sqlx::query("INSERT INTO journals(id,campaign_id,title,body,visibility,created_at,asset_id) VALUES(?,?,?,?,'shared',1,?)")
+            .bind(uuid::Uuid::new_v4().to_string()).bind(&camp).bind("😀".repeat(80)).bind("😀".repeat(1000)).bind(image).execute(&h.state.store.pool).await.unwrap();
     }
     for _ in 0..16 {
         sqlx::query("INSERT INTO journal_folders(id,campaign_id,name) VALUES(?,?,?)").bind(uuid::Uuid::new_v4().to_string()).bind(&camp).bind("😀".repeat(60)).execute(&h.state.store.pool).await.unwrap();

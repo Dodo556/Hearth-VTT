@@ -3,10 +3,13 @@ import "@testing-library/jest-dom/vitest";
 import type { Journal, TokenCommand } from "@hearth/protocol";
 import { act, cleanup, fireEvent, render, screen } from "@testing-library/react";
 import { createElement } from "react";
-import { afterEach, expect, it } from "vitest";
+import { afterEach, expect, it, vi } from "vitest";
 import { Journals } from "./Journals";
 
-afterEach(cleanup);
+afterEach(() => {
+  cleanup();
+  vi.unstubAllGlobals();
+});
 const page: Journal = {
   id: "12345678-1234-4234-8234-123456789abc",
   title: "Clue",
@@ -103,4 +106,74 @@ it("retains a new page draft when its selected folder is deleted", () => {
   fireEvent.change(screen.getByLabelText("Page folder"), { target: { value: "" } });
   expect(screen.getByLabelText("Page title")).toHaveValue("Kept title");
   expect(screen.getByRole("button", { name: "Create private page" })).toBeEnabled();
+});
+it("reveals a saved image only through a versioned journal save and retains failed scope", async () => {
+  const sent: TokenCommand[] = [];
+  render(
+    createElement(Journals, {
+      journals: [{ ...page, assetId: page.id }],
+      dm: true,
+      disabled: false,
+      send: async (c: TokenCommand) => {
+        sent.push(c);
+        throw new Error("Share failed");
+      },
+    }),
+  );
+  await act(async () => {
+    fireEvent.click(screen.getByRole("button", { name: "Reveal to players" }));
+  });
+  expect(sent[0]).toMatchObject({
+    type: "journal.update",
+    payload: { journalId: page.id, expectedVersion: 1, visibility: "shared", assetId: page.id },
+  });
+  expect(screen.getByRole("alert")).toHaveTextContent("Share failed");
+  expect(screen.getByRole("button", { name: "Reveal to players" })).toBeEnabled();
+});
+
+it("keeps uploaded image changes private and preserves the draft after a rejected save", async () => {
+  vi.stubGlobal(
+    "fetch",
+    vi.fn(
+      async () =>
+        new Response(
+          JSON.stringify({
+            schemaVersion: 1,
+            asset: { id: page.id, width: 160, height: 160, byteSize: 1024 },
+          }),
+          { status: 200 },
+        ),
+    ),
+  );
+  const sent: TokenCommand[] = [];
+  render(
+    createElement(Journals, {
+      campaignId: page.id,
+      journals: [{ ...page, visibility: "shared" }],
+      dm: true,
+      disabled: false,
+      send: async (c: TokenCommand) => {
+        sent.push(c);
+        throw new Error("Save rejected");
+      },
+    }),
+  );
+  fireEvent.click(screen.getByRole("button", { name: "Edit page" }));
+  await act(async () => {
+    fireEvent.change(screen.getByLabelText("Handout image"), {
+      target: { files: [new File(["fixture"], "clue.png", { type: "image/png" })] },
+    });
+  });
+  expect(screen.getByLabelText("Page visibility")).toHaveValue("dm");
+  expect(screen.getByRole("option", { name: "Shared with players" })).toBeDisabled();
+  await act(async () => {
+    fireEvent.click(screen.getByRole("button", { name: "Save private page" }));
+  });
+  expect(sent[0]).toMatchObject({
+    payload: { assetId: page.id, visibility: "dm", expectedVersion: 1 },
+  });
+  expect(screen.getByRole("alert")).toHaveTextContent("Save rejected");
+  expect(screen.getByLabelText("Page title")).toHaveValue("Clue");
+  fireEvent.click(screen.getByRole("button", { name: "Remove image" }));
+  expect(screen.queryByRole("img", { name: "Handout preview" })).toBeNull();
 });
