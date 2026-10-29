@@ -20,9 +20,9 @@ Codex cloud is the development workspace, not a change to Hearth's product hosti
 
 Maintain ONE authoritative codebase and primary release line. Temporary branches, worktrees, debug/release builds and disposable test hosts are engineering tools. Integrate or discard temporary work; do not maintain separate development/playable products. Playability is an early milestone, not the end of the full roadmap.
 
-## Cloud continuation ·2026-10-28
+## Cloud continuation ·2026-10-29
 
-Current source is0.0.22/schema19/wire1, with direct text/eraser tools, vertical UI standard, private GM notes/shared briefings token HP/manual markers/context actions and private journal folders/search. Preserve the newer commits; the0.0.13 baseline below is provenance. Consult BUILD_OVERVIEW, PROGRESS and RELEASE_VALIDATION for the tested candidate and remaining gates. Image handouts now upload privately and reveal/hide through journal/media authority; selected-player journal grants now protect page/image access; rich journals/reusable content and remaining initiative/P0 workflows follow next; use UI_STANDARDS for all new workspace controls.
+Current source is0.0.23/schema20/wire1, with direct text/eraser tools, vertical UI standard, private GM notes/shared briefings token HP/manual markers/context actions and private journal folders/search. Preserve the newer commits; the0.0.13 baseline below is provenance. Consult BUILD_OVERVIEW, PROGRESS and RELEASE_VALIDATION for the tested candidate and remaining gates. Image handouts now upload privately and reveal/hide through journal/media authority; selected-player journal grants now protect page/image access; bounded opt-in journal formatting/source preview now exist; reusable content and remaining initiative/P0 workflows follow next; use UI_STANDARDS for all new workspace controls.
 
 ## Exact handoff baseline
 

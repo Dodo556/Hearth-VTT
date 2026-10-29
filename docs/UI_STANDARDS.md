@@ -63,3 +63,7 @@ Extend the Journal sidebar with one optional raster image, a labeled native uplo
 ## Selective journal sharing
 
 Use Share page in the existing record actions. Its bounded native dialog offers GM-only, everyone or Selected players, reusing recipient checkboxes with explicit unavailable-reader recovery and no implicit widening. Empty/invalid selected audiences block Save sharing. Keep stale/failed choices until explicit Reload sharing or Cancel. Content editing preserves selected scope/readers; replacement images reset the draft to private and clear selection. Players see Shared with you without recipient metadata. Keep Save fully reachable/clickable through dialog scrolling at desktop/narrow/constrained/short sizes.
+
+## Journal text formatting
+
+Keep the native source editor inside the Journal sidebar, with explicit Plain text/Formatted text selection and named insertion actions. Use Edit source/Preview formatting buttons, a Unicode source counter including markers, retained failed/stale drafts and the existing save/audience controls. Toolbar actions must return typing focus/selection and refuse over-limit insertions without truncation. Render only locally constructed safe elements; raw HTML, links and image syntax remain literal. Keep checklists read-only in preview/read mode. Formatting controls wrap in the panel, and long source/preview scroll with the existing sidebar; no horizontal map editor or remote assets. Old plain pages stay literal unless explicitly switched.

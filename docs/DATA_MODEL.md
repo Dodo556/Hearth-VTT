@@ -74,3 +74,7 @@ Shared page/image IDs enter only authorized current REST/live projections. A sha
 ## Selected journal readers ·schema19
 
 Migration0019 adds journal_recipients(campaign_id,journal_id,user_id), primary key(journal_id,user_id), cascading journal FK and composite membership FK, plus a campaign/user/journal reader index. Existing journals remain dm/shared in storage. A dm page with nonempty grants derives selected in the GM DTO; removing the last grant leaves it private. No old page/art/folder/version is rewritten. Current-host validation and canonical backup validation enforce journal/campaign coherence, player membership, private stored scope and at most8 grants/page. Membership revocation and page deletion remove grants; current live projections reauthorize through the existing access epoch. Grants never enter player DTOs or content-free event markers.
+
+## Journal formatting ·schema20
+
+Migration0020 adds journals.body_format TEXT NOT NULL DEFAULT plain with a plain/markdown CHECK. Existing source/visibility/images/folders/selected grants are untouched and never auto-interpreted. New command fields use a strict enum; omission is separately preserved for update/receipt compatibility. Current authorized projections expose markdown format only with an entitled page. No generated HTML or renderer state is stored. Current20 backups retain exact source/format and all previous data; canonical10–19 archives upgrade in isolated copies. Original19 fixture retains selected readers while defaulting format to plain.

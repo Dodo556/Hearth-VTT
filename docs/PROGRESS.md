@@ -1,3 +1,13 @@
+# Hearth VTT · Build0.0.23 · safe journal formatting ·2026-10-29
+
+Continue the plan with opt-in bounded journal headings/bold/italic/code/flat lists/read-only checklists. Existing plain pages stay literal. Named source insertion controls, preview and a Unicode counter preserve drafts and typing selection; over-limit formatting is refused without truncation. Only React text/elements render; HTML, links and inline images never become active content. Existing selected-reader/image/version authority remains. Schema20 stores exact body_format/source; original1–19 migrations and old pages/grants stay intact. No dependency; wire1/all179 partial IDs retained, JRN-03 now IN_PROGRESS.
+
+Missing protocol/host/schema and explicit-null failures observed before correction. TS121/Rust110 and a real GM/Alice/Bob formatted/selected workflow pass. Final complete `pnpm verify:release` exits0: workflow7/TS121/Rust110/browser17/17 in6.0m, plus lint/types/fmt/Clippy/inventory/matched builds. Current20 exact format/source/art recovery and original19 selected-reader/plain-default upgrade join10–18 fixtures. Final source/preview/read/layout captures inspected. One independent review found no blocking defect; minor block-selection boundary K021 is deferred and documented. Initial typing/fixture diagnostics and exact final evidence are in RELEASE_VALIDATION.
+
+Next: fix K021 during editor hardening and begin reusable journal/actor content, then remaining initiative/P0/hosting work. Full rich editor tables/links/history/multi-page content remain partial. Manual LAN/30-minute/platform/current-browser/distribution and K019/K020 remain open. Local commits only; no push/publication or real campaign update.
+
+## Previous0.0.22 evidence
+
 # Hearth VTT · Build0.0.22 · selected journal readers ·2026-10-29
 
 Continue the plan from pushed0.0.21. Added GM-selected1–8 player readers for text/image pages alongside private/everyone scope, a Share page dialog, selected-aware content editing and atomic versioned audience saves. Current REST/live/media filtering denies unselected/revoked readers before serialization/download; players receive no recipient/folder metadata. Private replacement clears grants; hide/delete/member revocation remove grants while preserving independent image grants. Schema19 adds only a grant table/index; original migrations1–18 and old page/image scopes stay intact. No dependency; wire1/all179 partial IDs retained.
