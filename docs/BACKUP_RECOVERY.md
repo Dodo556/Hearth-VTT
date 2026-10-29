@@ -1,4 +1,4 @@
-# Backup and recovery ·0.0.21
+# Backup and recovery ·0.0.22
 
 The host owner can open **Backup & recovery** from the campaign library or table header. Other campaign DMs and players cannot access host backups. The current format recovers the entire host into a separate directory; the live data directory is never replaced automatically.
 1. Choose **Prepare host backup**. The host snapshots the committed SQLite state and includes every registered uploaded artwork file. Edits committed after that snapshot stay in the current host.
@@ -12,11 +12,11 @@ A successful isolated recovery is not an automatic switch or a password reset. K
 
 Backups are unencrypted whole-host private data, including account password hashes, all participants' private whispers/rolls and hidden campaign content. This is an explicit trusted machine-owner export privilege. Ordinary campaign DMs have no such access; normal Chat/dice/document routes still filter by current permissions. Checksums detect corruption, not who created a file. Store and restore backups you trust.
 
-Current bounds:512MiB archive,128MiB DB,16MiB per PNG,4096 unique uploaded blobs,512million decoded pixels,1MiB manifest. Schema10, schema11, schema12, schema13, schema14, schema15, schema16, schema17 and schema18 archives are supported. Larger stores can use the offline copy procedure below. Scheduled/retained/encrypted/selective backups, imports from other older schemas, automatic host switching and comprehensive crash/platform acceptance remain pending.
+Current bounds:512MiB archive,128MiB DB,16MiB per PNG,4096 unique uploaded blobs,512million decoded pixels,1MiB manifest. Schema10, schema11, schema12, schema13, schema14, schema15, schema16, schema17, schema18 and schema19 archives are supported. Larger stores can use the offline copy procedure below. Scheduled/retained/encrypted/selective backups, imports from other older schemas, automatic host switching and comprehensive crash/platform acceptance remain pending.
 
 ## Open backup format1
 
-The uncompressed byte format is8 ASCII bytes `HEARTHB1`, a4-byte little-endian unsigned manifest length, strict UTF-8 JSON, then the concatenated payloads. Manifest fields: `formatVersion:1`, `schemaVersion` (10–18), `appVersion`, `createdAt` (Unix seconds), `counts` (users/campaigns/scenes/tokens/actors/journals/messages/rolls/encounters/assets) and `files:[{path,byteSize,sha256}]`. Database is first at `hearth.db`; subsequent entries are unique sorted `assets/<lowercase SHA256>.png`. SHA256 refers to each file's complete bytes. No directories, links, arbitrary paths, compression or trailing bytes. Asset count is unique registered blobs. Logs, prior backups/recovery copies, orphan/temp files and external environment configuration are excluded. Original runtime example art stays in the matching host package.
+The uncompressed byte format is8 ASCII bytes `HEARTHB1`, a4-byte little-endian unsigned manifest length, strict UTF-8 JSON, then the concatenated payloads. Manifest fields: `formatVersion:1`, `schemaVersion` (10–19), `appVersion`, `createdAt` (Unix seconds), `counts` (users/campaigns/scenes/tokens/actors/journals/messages/rolls/encounters/assets) and `files:[{path,byteSize,sha256}]`. Database is first at `hearth.db`; subsequent entries are unique sorted `assets/<lowercase SHA256>.png`. SHA256 refers to each file's complete bytes. No directories, links, arbitrary paths, compression or trailing bytes. Asset count is unique registered blobs. Logs, prior backups/recovery copies, orphan/temp files and external environment configuration are excluded. Original runtime example art stays in the matching host package.
 
 ## Offline full-directory alternative
 
@@ -69,3 +69,7 @@ Current archives use schema17 and retain exact folder names, hierarchy, versions
 ## Journal-image compatibility ·0.0.21
 
 Current backups use schema18 and include journal image references plus the existing complete registered canonical artwork set. Recovery validates same-campaign journal/artwork references as well as canonical migrations, hashes, schema and foreign keys. Current image/private scope/version/blob roundtrip and original17 recovery extend the retained10–16 coverage. Migration0018 leaves all old text pages intact with no image; it does not grant sharing. Keep the matched pre-update executable/web/configuration and complete data/artwork backup. Older hosts must not open schema18; rollback uses a compatible prior copy.
+
+## Selective-sharing compatibility ·0.0.22
+
+Current archives use schema19. Exact selected reader IDs/campaign/page references, image references and page versions survive whole-host recovery. Validation rejects cross-campaign, shared-page, non-player or oversized grants in addition to canonical schema/checksum/FK/artwork checks. Original18 archive recovery adds no grants, joining retained10–17 recovery; original migrations1–18 are unchanged. Existing private/shared text/images/folders remain intact. Keep matched old executable/web/configuration and complete data/artwork copies; older hosts must not open schema19. Membership/session/invite recovery policy remains unchanged.

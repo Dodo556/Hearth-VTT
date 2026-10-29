@@ -1,3 +1,13 @@
+# Hearth VTT · Build0.0.22 · selected journal readers ·2026-10-29
+
+Continue the plan from pushed0.0.21. Added GM-selected1–8 player readers for text/image pages alongside private/everyone scope, a Share page dialog, selected-aware content editing and atomic versioned audience saves. Current REST/live/media filtering denies unselected/revoked readers before serialization/download; players receive no recipient/folder metadata. Private replacement clears grants; hide/delete/member revocation remove grants while preserving independent image grants. Schema19 adds only a grant table/index; original migrations1–18 and old page/image scopes stay intact. No dependency; wire1/all179 partial IDs retained.
+
+Protocol/host/current-schema backup missing-feature failures observed before implementation; focused UI tests preserve errors/stale/missing-reader choices. Current19 exact grant/image/version recovery and original18 isolated upgrade join canonical10–17 fixtures. Maximum snapshot includes16×8 readers within4MiB. One independent review found no defects; real GM/Alice/Bob selective scope/content/stale/revoke/restart/privacy/layout scenario passes in the full gate. Final complete `pnpm verify:release` exits0: workflow7/TS110/Rust107/browser17/17 in6.2m, plus lint/types/fmt/Clippy/179-ID inventory/matched builds. Final screenshots inspected. Exact source/conditions/limits in RELEASE_VALIDATION.
+
+Next: rich bounded/sanitized journal content, reusable libraries, remaining initiative/P0/host work. No groups/folder ACL inheritance/player authoring/presentation yet; hiding cannot recall received bytes. Manual LAN/30-minute/platform/current-browser/distribution and K019/K020 remain open; no broad feature VERIFIED. Work committed locally, not pushed/published in this task.
+
+## Previous0.0.21 evidence
+
 # Hearth VTT · Build0.0.21 · journal image handouts ·2026-10-29
 
 Continued the requested0.0.20/f5860b9 baseline with one optional canonical raster per journal page, private GM upload/create/replace, read-only player rendering and explicit Reveal to players/Hide from players. Reuse existing folders/search/sidebar, host commands/versions/receipts/projections and campaign media. Image changes require a private save before reveal; omitted text-only updates preserve images and explicit null removes them. Shared journals grant future image reads independently of scene/actor/other-page grants. Concealment cannot recall delivered/in-flight art. No new dependency; schema18/wire1, original migrations1–17 intact.

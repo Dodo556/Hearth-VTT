@@ -1,5 +1,7 @@
 # Engineering decisions
 
+- **2026-10-29 /0.0.22:** Store selected journal readers separately from unchanged dm/shared pages. Nonempty player grants derive GM selected scope; player DTOs share content without recipient metadata. Bound1–8 current players, no GM grants needed. Replace grants with versioned content saves; revoke/delete cascades, private image replacement clears grants. Reuse recipient controls/record dialogs; schema19/canonical10–18 recovery, no dependency. Rich content and reusable content remain next.
+
 - **2026-10-29 /0.0.21:** One optional campaign-owned uploaded raster per existing journal page. Reuse canonical media, current journal snapshots/commands/versions and private-first authoring; image changes require a private save before explicit reveal. Shared page references grant future asset reads independently of scene/actor grants. Concealment removes only that grant and cannot recall delivered/in-flight bytes. Schema18 preserves original migrations and canonical10–17 recovery. No dependency; selective per-user grants/rich text/reusable content remain next.
 
 - **2026-10-28 /0.0.20:** Extend current journals with private GM folder organization and local authorized search before adding image/rich handouts or a second library. Folder metadata is excluded from player DTOs; organization never grants sharing. Bound16 folders/four levels, protect all subtree moves and versions, and delete only the folder while promoting contents to its saved parent. Reuse sidebar/dialog controls; schema17/wire1/no dependency.

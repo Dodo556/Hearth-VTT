@@ -59,3 +59,7 @@ Journal search and New page/New folder are sidebar record actions, grouped using
 ## Journal image handouts
 
 Extend the Journal sidebar with one optional raster image, a labeled native upload input, bounded preview, Remove image and explicit Reveal to players/Hide from players actions. Reuse record buttons and scope labels. Upload/replace keeps the draft private; save privately before reveal. Preserve failed/stale drafts, disable changes while saving/uploading/offline, and show image loading/failure/Retry states. Offer the authenticated full image for detailed reading. Keep the privacy disclosure visible: hide stops future access and cannot recall delivered images or independent grants. Images fit the panel; actions remain reachable through its existing scroll area at desktop/narrow/constrained/short sizes.
+
+## Selective journal sharing
+
+Use Share page in the existing record actions. Its bounded native dialog offers GM-only, everyone or Selected players, reusing recipient checkboxes with explicit unavailable-reader recovery and no implicit widening. Empty/invalid selected audiences block Save sharing. Keep stale/failed choices until explicit Reload sharing or Cancel. Content editing preserves selected scope/readers; replacement images reset the draft to private and clear selection. Players see Shared with you without recipient metadata. Keep Save fully reachable/clickable through dialog scrolling at desktop/narrow/constrained/short sizes.

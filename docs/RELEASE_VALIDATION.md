@@ -1,3 +1,29 @@
+# Current cloud candidate ·0.0.22/schema19 ·2026-10-29
+
+Selected-player sharing extends the verified0.0.21 baseline `cf1aa2950af2f4ab4ffe54c40b7829a8b3cb33d6`. One authoritative Rust/browser application; no dependency or wire-version change. Original migrations0001–0018 remain unchanged. All179 IDs/partial feature states retained; no verified-playable/P0 designation.
+
+## Actual evidence
+
+Tested implementation: `295ffcf1f3292ed91c2007c20de9ce88faa78d7d`. After `source /workspace/hearth-tools/activate.sh`, complete command `HEARTH_HANDOUT_CAPTURE_DIR=/workspace/artifacts/0.0.22/final pnpm verify:release` exits0: workflow7, TypeScript110/37 files, Rust107/none ignored, browser17/17 in6.2m. Lint/types/Rustfmt/strict Clippy/179-ID inventory/matched web and optimized host builds pass. Every previous browser scenario remains; the handout case now includes selected sharing and passes26.5s. No skips/retries/timeout increases/assertion removals. Linux/Node24.19.0/pnpm11.25.0/Rust1.99.1, Chromium154.0.8037.57/headless/software WebGL, four Cargo jobs/CARGO_INCREMENTAL=0, disposable fictional data only.
+
+Host regressions prove Alice-only text/image projection and direct reads, Bob REST/live/image absence, no recipient metadata in player DTOs, forged player writes, empty/duplicate/excessive/foreign/non-player/revoked readers, stale changes, shared→selected→private changes, cascade on membership revocation and private-first image replacement. Image reads preserve independent scene/token/actor/other-page grants. GM snapshots now include the maximum16 pages×8 readers within4MiB. Events remain content-free markers.
+
+Current19 backup roundtrip preserves exact grant campaign/page/user IDs, image reference and page version. Canonical validation rejects bad stored scope/non-player grants as well as cross-campaign/oversized grants, foreign keys, schemas/checksums/artwork. Original18 isolated archive recovery adds no grants, joining retained10–17 fixtures. No old page/folder/image scope is rewritten by migration19. These checks do not establish arbitrary corruption repair, downgrade or automatic rollback; retain a compatible prior executable/web/configuration and complete data/artwork copy.
+
+Real GM/Alice/Bob scenario: original private upload/everyone reveal/hide remains; empty selected scope blocks save, Alice receives a real decoded image while Bob sees neither private ID/image/body in fresh frames nor direct reads; content edits retain selected scope; another GM tab must reload stale sharing; selecting Bob revokes Alice, persists after host restart/reload, and membership revocation denies Bob. Player recipient metadata stays absent. Share dialog/Save geometry checked at1440×1000,760×700,390×700,900×520. Final sharing/view/player screenshots inspected; this is not a full touch/a11y audit. The initial focused case passed33.2s before the final player-caption/snapshot fixture refinement; only the complete final gate above is final candidate evidence.
+
+## Review and diagnostics
+
+One gpt-6-astra/high read-only whole-change review found no concrete correctness/privacy/persistence/data-loss defects. It inspected command transactions, recipient validation, current REST/live/media filtering, cascade behavior, private replacement, UI stale/unavailable-reader handling, protocol bounds and recovery validation. It did not run tests/browsers or inspect screenshots/platform/LAN/distribution. No second review or new deferred minor.
+
+Protocol and real host tests failed before implementation on unsupported selected scope/recipient fields; backup initially rejected the new schema until current-schema support was added. UI focused tests cover retained failed selections, missing-reader blocking, explicit scope recovery and stale reload. Full TypeScript, Rust and Clippy passed before release verification. The version bump required a frozen package metadata refresh with explicit workspace-local pnpm store/cache paths because the default home path is immutable. No dependency resolution, assertion, authentication limit, TLS or checksum was weakened. Schema19 was added to browser prepare/verify/restore validation before the full gate, retaining rejection of future20.
+
+## Limits and next work
+
+Selected sharing is read-only and bounded1–8 current players/page, with all GMs entitled. No groups, folder ACL inheritance, player journal authoring, rich text or presentation mode. Last-reader membership removal leaves a private page; membership changes can invalidate selections without changing content version, so host/UI revalidate current readers before save. Hiding blocks future delivery, not delivered/in-flight bytes or independent grants. Rich journal content, reusable libraries and remaining initiative/hosting work follow. K019/K020 and actual LAN/30-minute P0/Windows/macOS/current-browser matrix/firewall/ready-to-run host distribution remain open. Local source/evidence commits only; no push, publication or real installation replacement in this task.
+
+## Previous0.0.21 evidence
+
 # Current cloud candidate ·0.0.21/schema18 ·2026-10-29
 
 Journal image handouts continue the requested0.0.20/f5860b941541851eef8deb47b8428459d43d1a40 baseline. One optional canonical uploaded raster per page, private creation/replacement, explicit whole-campaign Reveal/Hide, versioned saves, current player projections and protected media reads. No dependency; wire1; original migrations0001–0017 unchanged. All179 feature IDs retained; JRN-01/JRN-02/MED-01 remain IN_PROGRESS and COM-05 now IN_PROGRESS for this limited reveal slice. No feature VERIFIED or playable/P0 promotion.
